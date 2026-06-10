@@ -25,6 +25,10 @@ app.use('/api/v1/mpesa/', PaymentRoutes);
 // Swagger docs 👇 (FALTAVA ISTO)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to the Mobile Money API' });
+});
+
 // health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK' });
