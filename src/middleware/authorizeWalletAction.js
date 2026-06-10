@@ -60,12 +60,9 @@ function authorizeWalletAction(requiredScope) {
       next();
 
     } catch (error) {
-     return res.status(500).json({
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
-    errors: error.errors
-  });
+      return res.status(500).json({
+        error: 'Internal server error'
+      });
     }
   };
 }

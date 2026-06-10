@@ -4,7 +4,7 @@ class PaymentService {
     this.emola = emola;
   }
 
-  async createC2B({ provider, phone, amount, reference }) {
+  async createC2B({ provider, phone, amount, reference, mode }) {
     const normalizedProvider = provider.toLowerCase();
 
     switch (normalizedProvider) {
@@ -12,14 +12,49 @@ class PaymentService {
         return this.mpesa.c2b.execute({
           phone,
           amount,
-          reference
+          reference,
+          mode
         });
 
       case 'emola':
+        if (!this.emola || !this.emola.c2b || !this.emola.c2b.execute) {
+          throw new Error('Provider emola is not configured');
+        }
+
         return this.emola.c2b.execute({
           phone,
           amount,
-          reference
+          reference,
+          mode
+        });
+
+      default:
+        throw new Error(`Provider ${provider} not supported`);
+    }
+  }
+
+  async createB2C({ provider, phone, amount, reference, mode }) {
+    const normalizedProvider = provider.toLowerCase();
+
+    switch (normalizedProvider) {
+      case 'mpesa':
+        return this.mpesa.b2c.execute({
+          phone,
+          amount,
+          reference,
+          mode
+        });
+
+      case 'emola':
+        if (!this.emola || !this.emola.b2c || !this.emola.b2c.execute) {
+          throw new Error('Provider emola is not configured');
+        }
+
+        return this.emola.b2c.execute({
+          phone,
+          amount,
+          reference,
+          mode
         });
 
       default:

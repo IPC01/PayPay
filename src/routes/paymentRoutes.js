@@ -47,17 +47,40 @@
 const router = require('express').Router();
 
 const PaymentController = require('../controllers/PaymentController');
-const checkPermission = require('../middleware/checkPermission');
-const authMiddleware = require('../middleware/authMiddleware');
 const apiKeyMiddleware = require('../middleware/apiKeyMiddleware');
 const authorizeWalletAction = require('../middleware/authorizeWalletAction');
+const mpesaRequestMode = require('../middleware/mpesaRequestMode');
 
 router.post(
   '/c2b',
-  apiKeyMiddleware,  
-                      
-  authorizeWalletAction('admin:all','wallet:create'),   
-  PaymentController.c2b             
+  mpesaRequestMode(),
+  apiKeyMiddleware,
+  authorizeWalletAction('wallet:deposit'),
+  PaymentController.c2b
+);
+
+router.post(
+  '/b2c',
+  mpesaRequestMode(),
+  apiKeyMiddleware,
+  authorizeWalletAction('wallet:withdraw'),
+  PaymentController.b2c
+);
+
+router.post(
+  '/mock/c2b',
+  mpesaRequestMode({ forceMode: 'mock' }),
+  apiKeyMiddleware,
+  authorizeWalletAction('wallet:deposit'),
+  PaymentController.c2b
+);
+
+router.post(
+  '/mock/b2c',
+  mpesaRequestMode({ forceMode: 'mock' }),
+  apiKeyMiddleware,
+  authorizeWalletAction('wallet:withdraw'),
+  PaymentController.b2c
 );
 
 

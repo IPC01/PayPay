@@ -5,6 +5,7 @@ class MpesaC2B {
     phone,
     amount,
     reference,
+    mode,
   }) {
 
     const payload = {
@@ -18,7 +19,8 @@ class MpesaC2B {
 
     const response = await MpesaClient.post(
       '/ipg/v1x/c2bPayment/singleStage/',
-      payload
+      payload,
+      { mode }
     );
 
     return response;

@@ -5,9 +5,19 @@ const checkPermission = require('../middleware/checkPermission');
 
 const router = express.Router();
 
+function selfOrAdmin(req, res, next) {
+	const targetUserId = Number(req.params.id);
+
+	if (req.user?.userId === targetUserId) {
+		return next();
+	}
+
+	return checkPermission('admin:all')(req, res, next);
+}
+
 router.get('/', authMiddleware,checkPermission('admin:all'), UserController.getAll);
-router.get('/:id', authMiddleware, UserController.getById);
-router.put('/:id', authMiddleware, UserController.update);
-router.delete('/:id', authMiddleware, UserController.delete);
+router.get('/:id', authMiddleware, selfOrAdmin, UserController.getById);
+router.put('/:id', authMiddleware, checkPermission('admin:all'), UserController.update);
+router.delete('/:id', authMiddleware, checkPermission('admin:all'), UserController.delete);
 
 module.exports = router;

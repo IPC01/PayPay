@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const walletController = require('../controllers/walletController');
+const walletController = require('../controllers/WalletController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Rotas protegidas (requerem autenticação)

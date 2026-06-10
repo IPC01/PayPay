@@ -1,24 +1,71 @@
 const axios = require('axios');
 
+function isMockMode(mode) {
+  if (mode) {
+    return String(mode).toLowerCase() === 'mock';
+  }
+
+  return String(process.env.MPESA_MOCK_MODE).toLowerCase() === 'true';
+}
+
 function normalizeOrigin(origin) {
   if (!origin) return undefined;
-  return origin.startsWith('http://') || origin.startsWith('https://')
-    ? origin
-    : `https://${origin}`;
+
+  return origin
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/$/, '');
+}
+
+function buildOriginHeaders() {
+  const host = normalizeOrigin(process.env.MPESA_ORIGIN);
+
+  if (!host) {
+    return {};
+  }
+
+  const origin = `https://${host}`;
+
+  return {
+    Origin: origin,
+    Referer: `${origin}/`,
+    'User-Agent': 'PayPay/1.0',
+    'X-Requested-With': 'XMLHttpRequest'
+  };
+}
+
+function requireLiveConfig() {
+  const missing = [];
+
+  if (!process.env.MPESA_API_HOST) {
+    missing.push('MPESA_API_HOST');
+  }
+
+  if (!process.env.MPESA_API_KEY) {
+    missing.push('MPESA_API_KEY');
+  }
+
+  if (missing.length) {
+    throw new Error(`Missing M-Pesa config: ${missing.join(', ')}`);
+  }
 }
 
 class MpesaAuth {
-  async getAccessToken() {
+  async getAccessToken(options = {}) {
+    if (isMockMode(options.mode)) {
+      return 'mock-mpesa-session';
+    }
+
+    requireLiveConfig();
+
     try {
       const url = `https://${process.env.MPESA_API_HOST}:18352/ipg/v1x/getSession/`;
-      const origin = normalizeOrigin(process.env.MPESA_ORIGIN);
 
       const response = await axios.get(url, {
         headers: {
-          Origin: origin,
           Authorization: `Bearer ${process.env.MPESA_API_KEY}`,
           'Content-Type': 'application/json',
-          Accept: 'application/json'
+          Accept: 'application/json',
+          ...buildOriginHeaders()
         },
         timeout: 30000
       });

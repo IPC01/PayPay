@@ -1,0 +1,146 @@
+{
+  "info": {
+    "name": "PayPay - M-Pesa C2B/B2C",
+    "_postman_id": "7f1c8d3d-5d0f-4f2c-b6cb-6a1d4f0c4d61",
+    "description": "Collection with auth, wallet, API key and M-Pesa payment examples for mock and live modes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" },
+    { "key": "email", "value": "admin@test.com" },
+    { "key": "password", "value": "123456" },
+    { "key": "token", "value": "" },
+    { "key": "walletName", "value": "Wallet Demo" },
+    { "key": "walletTypeId", "value": "1" },
+    { "key": "walletCode", "value": "000000" },
+    { "key": "apiKey", "value": "" },
+    { "key": "amount", "value": "10" },
+    { "key": "phone", "value": "258841234567" },
+    { "key": "reference", "value": "PAY-001" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Create Wallet",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletName\": \"{{walletName}}\",\n  \"walletTypeId\": {{walletTypeId}},\n  \"currency\": \"MZN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/wallets"
+          }
+        },
+        {
+          "name": "Create API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"paypay-postman-key\",\n  \"scopes\": [\"wallet:deposit\", \"wallet:withdraw\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/keys/api-keys"
+          }
+        }
+      ]
+    },
+    {
+      "name": "M-Pesa Mock",
+      "item": [
+        {
+          "name": "C2B Mock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" },
+              { "key": "x-mpesa-mode", "value": "mock" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"C2B-POSTMAN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/mpesa/c2b"
+          }
+        },
+        {
+          "name": "B2C Mock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" },
+              { "key": "x-mpesa-mode", "value": "mock" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"B2C-POSTMAN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/mpesa/b2c"
+          }
+        }
+      ]
+    },
+    {
+      "name": "M-Pesa Live",
+      "item": [
+        {
+          "name": "C2B Live",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" },
+              { "key": "x-mpesa-mode", "value": "live" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"C2B-LIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/mpesa/c2b"
+          }
+        },
+        {
+          "name": "B2C Live",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" },
+              { "key": "x-mpesa-mode", "value": "live" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"B2C-LIVE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/mpesa/b2c"
+          }
+        }
+      ]
+    }
+  ]
+}
