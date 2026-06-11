@@ -19,4 +19,9 @@ router.post('/logout', authMiddleware, (req, res) =>
   AuthController.logout(req, res)
 );
 
+// GET current authenticated user
+router.get('/me', authMiddleware, (req, res) =>
+  AuthController.me(req, res)
+);
+
 module.exports = router;

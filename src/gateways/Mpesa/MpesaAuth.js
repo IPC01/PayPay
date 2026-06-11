@@ -1,71 +1,57 @@
 const axios = require('axios');
-
-function isMockMode(mode) {
-  if (mode) {
-    return String(mode).toLowerCase() === 'mock';
-  }
-
-  return String(process.env.MPESA_MOCK_MODE).toLowerCase() === 'true';
-}
+const crypto = require('crypto');
 
 function normalizeOrigin(origin) {
   if (!origin) return undefined;
-
-  return origin
-    .replace(/^https?:\/\//i, '')
-    .replace(/\/$/, '');
+  return origin.startsWith('http://') || origin.startsWith('https://')
+    ? origin
+    : `https://${origin}`;
 }
 
-function buildOriginHeaders() {
-  const host = normalizeOrigin(process.env.MPESA_ORIGIN);
-
-  if (!host) {
-    return {};
+function normalizePublicKey(publicKey) {
+  if (!publicKey) return undefined;
+  let key = publicKey.trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
   }
-
-  const origin = `https://${host}`;
-
-  return {
-    Origin: origin,
-    Referer: `${origin}/`,
-    'User-Agent': 'PayPay/1.0',
-    'X-Requested-With': 'XMLHttpRequest'
-  };
+  key = key.replace(/\s+/g, '');
+  const lines = key.match(/.{1,64}/g) || [];
+  return `-----BEGIN PUBLIC KEY-----\n${lines.join('\n')}\n-----END PUBLIC KEY-----`;
 }
 
-function requireLiveConfig() {
-  const missing = [];
-
-  if (!process.env.MPESA_API_HOST) {
-    missing.push('MPESA_API_HOST');
+function getEncryptedApiKey(apiKey, publicKey) {
+  if (!apiKey || !publicKey) {
+    throw new Error('MPESA_API_KEY and MPESA_PUBLIC_KEY are required for M-Pesa auth');
   }
 
-  if (!process.env.MPESA_API_KEY) {
-    missing.push('MPESA_API_KEY');
-  }
+  const pemKey = normalizePublicKey(publicKey);
+  const encrypted = crypto.publicEncrypt(
+    {
+      key: pemKey,
+      padding: crypto.constants.RSA_PKCS1_PADDING,
+    },
+    Buffer.from(apiKey, 'utf8')
+  );
 
-  if (missing.length) {
-    throw new Error(`Missing M-Pesa config: ${missing.join(', ')}`);
-  }
+  return encrypted.toString('base64');
 }
 
 class MpesaAuth {
-  async getAccessToken(options = {}) {
-    if (isMockMode(options.mode)) {
-      return 'mock-mpesa-session';
-    }
-
-    requireLiveConfig();
-
+  async getAccessToken() {
     try {
       const url = `https://${process.env.MPESA_API_HOST}:18352/ipg/v1x/getSession/`;
+      const origin = normalizeOrigin(process.env.MPESA_ORIGIN);
+      const authorization = `Bearer ${getEncryptedApiKey(
+        process.env.MPESA_API_KEY,
+        process.env.MPESA_PUBLIC_KEY
+      )}`;
 
       const response = await axios.get(url, {
         headers: {
-          Authorization: `Bearer ${process.env.MPESA_API_KEY}`,
+          Origin: origin,
+          Authorization: authorization,
           'Content-Type': 'application/json',
-          Accept: 'application/json',
-          ...buildOriginHeaders()
+          Accept: 'application/json'
         },
         timeout: 30000
       });

@@ -1,4 +1,5 @@
 const AuthService = require('../services/AuthService');
+const { User } = require('../models');
 
 // simples "logout" via blacklist em memória (MVP)
 const tokenBlacklist = new Set();
@@ -58,6 +59,22 @@ class AuthController {
       return res.status(500).json({
         error: err.message
       });
+    }
+  }
+
+  async me(req, res) {
+    try {
+      const user = await User.findByPk(req.user.userId, {
+        attributes: ['id', 'name', 'email', 'createdAt']
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      return res.json(user);
+    } catch (err) {
+      return res.status(500).json({ error: err.message });
     }
   }
 
