@@ -26,6 +26,11 @@ User.init(
       allowNull: false
     },
 
+    profilePhotoUrl: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false

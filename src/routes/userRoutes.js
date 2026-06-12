@@ -15,9 +15,9 @@ function selfOrAdmin(req, res, next) {
 	return checkPermission('admin:all')(req, res, next);
 }
 
-router.get('/', authMiddleware,checkPermission('admin:all'), UserController.getAll);
+router.get('/', authMiddleware, checkPermission('admin:all'), UserController.getAll);
 router.get('/:id', authMiddleware, selfOrAdmin, UserController.getById);
-router.put('/:id', authMiddleware, checkPermission('admin:all'), UserController.update);
+router.put('/:id', authMiddleware, selfOrAdmin, UserController.update);
 router.delete('/:id', authMiddleware, checkPermission('admin:all'), UserController.delete);
 
 module.exports = router;

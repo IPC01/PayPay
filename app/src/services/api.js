@@ -26,3 +26,27 @@ export async function request(path, { method = 'GET', body, token, headers = {} 
 
   return data;
 }
+
+function getToken() {
+  return typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+}
+
+const api = {
+  get(path, options = {}) {
+    return request(path, { method: 'GET', token: options.token || getToken(), ...options });
+  },
+  post(path, body, options = {}) {
+    return request(path, { method: 'POST', body, token: options.token || getToken(), ...options });
+  },
+  put(path, body, options = {}) {
+    return request(path, { method: 'PUT', body, token: options.token || getToken(), ...options });
+  },
+  patch(path, body, options = {}) {
+    return request(path, { method: 'PATCH', body, token: options.token || getToken(), ...options });
+  },
+  delete(path, body, options = {}) {
+    return request(path, { method: 'DELETE', body, token: options.token || getToken(), ...options });
+  }
+};
+
+export default api;

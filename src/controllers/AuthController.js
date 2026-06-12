@@ -1,5 +1,6 @@
 const AuthService = require('../services/AuthService');
 const { User } = require('../models');
+const { createAuditLog } = require('../helpers/auditLogger');
 
 // simples "logout" via blacklist em memória (MVP)
 const tokenBlacklist = new Set();
@@ -29,6 +30,15 @@ class AuthController {
 
       const result = await AuthService.login(email, password);
 
+      await createAuditLog({
+        userId: result.userId || null,
+        action: 'login',
+        entity: 'User',
+        entityId: String(result.userId || ''),
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
       return res.json({
         message: 'Login successful',
         token: result.token
@@ -49,6 +59,15 @@ class AuthController {
         return res.status(400).json({ error: 'Token missing' });
       }
 
+      await createAuditLog({
+        userId: req.user?.userId || null,
+        action: 'logout',
+        entity: 'User',
+        entityId: String(req.user?.userId || ''),
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
       tokenBlacklist.add(token);
 
       return res.json({
@@ -65,7 +84,7 @@ class AuthController {
   async me(req, res) {
     try {
       const user = await User.findByPk(req.user.userId, {
-        attributes: ['id', 'name', 'email', 'createdAt']
+        attributes: ['id', 'name', 'email', 'createdAt', 'profilePhotoUrl', 'roleId']
       });
 
       if (!user) {

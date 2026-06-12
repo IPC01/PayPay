@@ -6,6 +6,7 @@ async function seedWalletTypes() {
       code: 'MPESA',
       name: 'M-Pesa',
       provider: 'Vodacom',
+      imageUrl: '/src/assets/logo/M-pesa-logo-removebg.png',
       isExternal: true,
       status: true
     },
@@ -13,6 +14,15 @@ async function seedWalletTypes() {
       code: 'EMOLA',
       name: 'e-Mola',
       provider: 'Movitel',
+      imageUrl: '/src/assets/logo/emola-logo-removebg.png',
+      isExternal: true,
+      status: true
+    },
+    {
+      code: 'MKESH',
+      name: 'M-Kesh',
+      provider: 'Movitel',
+      imageUrl: '/src/assets/logo/mkesh-logo-removebg.png',
       isExternal: true,
       status: true
     }

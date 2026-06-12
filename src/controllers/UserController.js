@@ -1,4 +1,5 @@
 const { User, Role, Permission } = require('../models');
+const { saveBase64Image } = require('../helpers/imageStorage');
 
 class UserController {
 
@@ -68,7 +69,7 @@ class UserController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { name, email, roleId } = req.body;
+      const { name, email, roleId, profilePhotoBase64 } = req.body;
 
       const user = await User.findByPk(id);
 
@@ -78,10 +79,20 @@ class UserController {
         });
       }
 
+      if (profilePhotoBase64) {
+        try {
+          const imageUrl = await saveBase64Image(profilePhotoBase64, 'users', `user-${user.id}`);
+          user.profilePhotoUrl = imageUrl;
+        } catch (err) {
+          return res.status(400).json({ error: err.message });
+        }
+      }
+
       await user.update({
         name: name || user.name,
         email: email || user.email,
-        roleId: roleId || user.roleId
+        roleId: roleId || user.roleId,
+        profilePhotoUrl: user.profilePhotoUrl
       });
 
       return res.json({

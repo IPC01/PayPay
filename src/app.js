@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
@@ -10,15 +11,18 @@ const walletTypeRoutes = require('./routes/walletTypeRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
+const permissionRoutes = require('./routes/permissionRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, x-api-key');
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }
@@ -32,6 +36,8 @@ app.use('/api/wallets', walletRoutes);
 app.use('/api/wallet-types', walletTypeRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/keys', apiKeyRoutes);
+app.use('/api/permissions', permissionRoutes);
+app.use('/api/audit', auditRoutes);
 
 // payment routes v1
 app.use('/api/v1/mpesa/', PaymentRoutes);

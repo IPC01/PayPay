@@ -1,120 +1,216 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-
-const links = [
-  { to: '/', label: 'Dashboard' },
-  { to: '/wallets/create', label: 'Criar carteira' },
-  { to: '/tokens', label: 'Tokens' },
-  { to: '/transactions', label: 'Transações' },
-  { to: '/profile', label: 'Perfil' }
-];
+import { useUi } from '../contexts/UiContext';
+import Sidebar from './Sidebar';
+import Footer from './Footer';
 
 function Layout({ children }) {
-  const [open, setOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const { user, logout } = useAuth();
+  const { theme, language, toggleTheme, toggleLanguage } = useUi();
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Obter iniciais do usuário
+  const getUserInitials = () => {
+    if (!user?.name) return 'U';
+    return user.name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
+      <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          {/* Logo e Nome do Sistema - Canto Esquerdo */}
           <div className="flex items-center gap-3">
             {user && (
               <button
                 type="button"
-                onClick={() => setOpen(prev => !prev)}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-700 md:hidden"
+                onClick={() => setSidebarOpen(prev => !prev)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm transition hover:border-brand-300 hover:text-brand-700 md:hidden"
               >
                 <span className="sr-only">Abrir menu</span>
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 7h16M4 12h16M4 17h16" />
                 </svg>
               </button>
             )}
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">Payments System</p>
-              <h1 className="text-2xl font-semibold text-slate-900">Painel de Gestão</h1>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
+                  Payments System
+                </p>
+                <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Gestão Financeira
+                </h1>
+              </div>
             </div>
           </div>
+
+          {/* Dropdown de Perfil - Canto Direito */}
           {user && (
-            <div className="hidden items-center gap-4 md:flex">
-              {links.map(link => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={({ isActive }) =>
-                    `rounded-full px-4 py-2 text-sm font-medium transition ${isActive ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-              <button onClick={logout} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200">
-                Logout
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
+                  <span className="text-sm font-semibold">
+                    {getUserInitials()}
+                  </span>
+                </div>
+                <div className="hidden text-left sm:block">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                    {user?.name?.split(' ')[0] || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {user?.email}
+                  </p>
+                </div>
+                <svg className={`h-4 w-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
+
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="border-b border-slate-200 dark:border-slate-700 p-3">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                      {user?.name}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                      {user?.email}
+                    </p>
+                  </div>
+
+                  <div className="p-2">
+                    {/* Perfil */}
+                    <NavLink
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      <span>Meu Perfil</span>
+                    </NavLink>
+
+                    {/* Modo Dark/Light */}
+                    <button
+                      onClick={() => {
+                        toggleTheme();
+                        setDropdownOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        {theme === 'light' ? (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                          </svg>
+                        ) : (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                          </svg>
+                        )}
+                        <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+                      </div>
+                      <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition ${theme === 'dark' ? 'bg-brand-600' : 'bg-slate-300'}`}>
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition ${theme === 'dark' ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </div>
+                    </button>
+
+                    {/* Idioma */}
+                    <button
+                      onClick={() => {
+                        toggleLanguage();
+                        setDropdownOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                        <span>Idioma</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className={`text-xs font-medium ${language === 'pt' ? 'text-brand-600 dark:text-brand-400' : 'text-slate-500'}`}>PT</span>
+                        <span className="text-slate-300 dark:text-slate-600">|</span>
+                        <span className={`text-xs font-medium ${language === 'en' ? 'text-brand-600 dark:text-brand-400' : 'text-slate-500'}`}>EN</span>
+                      </div>
+                    </button>
+
+                    {/* Divider */}
+                    <div className="my-2 border-t border-slate-200 dark:border-slate-700"></div>
+
+                    {/* Sair */}
+                    <button
+                      onClick={() => {
+                        logout();
+                        setDropdownOpen(false);
+                      }}
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      <span>Sair</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="flex flex-1">
         {user ? (
           <>
-            <aside className={`fixed inset-y-0 left-0 z-40 w-72 transform overflow-y-auto border-r border-slate-200 bg-white/95 p-6 shadow-xl transition duration-300 md:static md:translate-x-0 md:block ${open ? 'translate-x-0' : '-translate-x-full'}`}>
-              <div className="mb-8 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-slate-500">Menu</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900">Navegação</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 transition hover:bg-slate-200 md:hidden"
-                >
-                  <span className="sr-only">Fechar menu</span>
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <nav className="space-y-2">
-                {links.map(link => (
-                  <NavLink
-                    key={link.to}
-                    to={link.to}
-                    onClick={() => setOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-3xl px-4 py-3 text-sm font-medium transition ${isActive ? 'bg-brand-600 text-white' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'}`
-                    }
-                  >
-                    <span className="h-2.5 w-2.5 rounded-full bg-brand-400" />
-                    {link.label}
-                  </NavLink>
-                ))}
-              </nav>
-
-              <div className="mt-10 rounded-3xl border border-slate-200 bg-brand-50 p-5">
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Conta</p>
-                <p className="mt-3 text-sm text-slate-600">{user?.name}</p>
-                <p className="mt-1 text-sm text-slate-500">{user?.email}</p>
-              </div>
-            </aside>
-
-            <div className="flex-1 md:ml-72">
-              <div className="md:hidden">
-                <div className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">Resumo</p>
-                  <p className="mt-2 text-base text-slate-700">Use o botão do menu para navegar pelo sistema.</p>
+            <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+            <main className="flex-1">
+              <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <div className="rounded-2xl bg-white dark:bg-slate-800/50 shadow-sm p-6">
+                  {children}
                 </div>
               </div>
-              <div className="rounded-[2rem] bg-slate-50 p-0 md:p-0">{children}</div>
-            </div>
+            </main>
           </>
         ) : (
-          <div className="w-full">{children}</div>
+          <main className="flex-1">
+            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+              {children}
+            </div>
+          </main>
         )}
       </div>
+
+      <Footer />
     </div>
   );
 }

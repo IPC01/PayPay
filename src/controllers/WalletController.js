@@ -1,5 +1,7 @@
+const { Op } = require('sequelize');
 const { Wallet, WalletType } = require('../models');
 const generateUniqueCode = require('../helpers/generateCode');
+const { createAuditLog } = require('../helpers/auditLogger');
 
 class WalletController {
 
@@ -38,6 +40,15 @@ class WalletController {
         status: 'ACTIVE'
       });
 
+      await createAuditLog({
+        userId,
+        action: 'wallet_created',
+        entity: 'Wallet',
+        entityId: wallet.id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
       return res.status(201).json({
         message: 'Wallet created successfully',
         wallet
@@ -56,11 +67,14 @@ class WalletController {
       const userId = req.user.userId;
 
       const wallets = await Wallet.findAll({
-        where: { userId },
+        where: {
+          userId,
+          status: { [Op.ne]: 'CLOSED' }
+        },
         include: [
           {
             model: WalletType,
-            attributes: ['id', 'code', 'name', 'provider']
+            attributes: ['id', 'code', 'name', 'provider', 'imageUrl']
           }
         ],
         order: [['createdAt', 'DESC']]
@@ -81,10 +95,14 @@ class WalletController {
       const { code } = req.params;
 
       const wallet = await Wallet.findOne({
-        where: { walletCode: code },
+        where: {
+          walletCode: code,
+          status: { [Op.ne]: 'CLOSED' }
+        },
         include: [
           {
-            model: WalletType
+            model: WalletType,
+            attributes: ['id', 'code', 'name', 'provider', 'imageUrl']
           }
         ]
       });
@@ -104,13 +122,99 @@ class WalletController {
     }
   }
 
+  // UPDATE WALLET DETAILS
+  async update(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id } = req.params;
+      const { walletName, walletTypeId, currency, status, isActive } = req.body;
+
+      const wallet = await Wallet.findOne({ where: { id, userId } });
+
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      if (walletName) wallet.walletName = walletName;
+      if (currency) wallet.currency = currency;
+      if (walletTypeId) wallet.walletTypeId = walletTypeId;
+
+      if (typeof isActive !== 'undefined') {
+        wallet.status = isActive ? 'ACTIVE' : 'FROZEN';
+      } else if (status) {
+        const validStatuses = ['ACTIVE', 'FROZEN', 'CLOSED'];
+        if (!validStatuses.includes(status)) {
+          return res.status(400).json({ error: 'Invalid status' });
+        }
+        wallet.status = status;
+      }
+
+      await wallet.save();
+
+      await createAuditLog({
+        userId,
+        action: 'wallet_updated',
+        entity: 'Wallet',
+        entityId: wallet.id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      return res.json({
+        message: 'Wallet updated successfully',
+        wallet
+      });
+
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async softDelete(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id } = req.params;
+
+      const wallet = await Wallet.findOne({ where: { id, userId } });
+
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      if (wallet.status === 'CLOSED') {
+        return res.status(400).json({ error: 'Wallet is already closed' });
+      }
+
+      wallet.status = 'CLOSED';
+      await wallet.save();
+
+      await createAuditLog({
+        userId,
+        action: 'wallet_soft_deleted',
+        entity: 'Wallet',
+        entityId: wallet.id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+
+      return res.json({
+        message: 'Wallet closed successfully',
+        wallet
+      });
+
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   // UPDATE STATUS (admin/ops)
   async updateStatus(req, res) {
     try {
       const { id } = req.params;
       const { status } = req.body;
 
-      const wallet = await Wallet.findByPk(id);
+      const userId = req.user.userId;
+      const wallet = await Wallet.findOne({ where: { id, userId } });
 
       if (!wallet) {
         return res.status(404).json({
@@ -128,6 +232,15 @@ class WalletController {
 
       wallet.status = status;
       await wallet.save();
+
+      await createAuditLog({
+        userId,
+        action: 'wallet_status_updated',
+        entity: 'Wallet',
+        entityId: wallet.id,
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
 
       return res.json({
         message: 'Wallet status updated',

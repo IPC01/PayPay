@@ -1,4 +1,5 @@
 const { WalletType } = require('../models');
+const { saveBase64Image } = require('../helpers/imageStorage');
 
 class WalletTypeController {
 
@@ -52,7 +53,7 @@ class WalletTypeController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { status } = req.body;
+      const { status, name, provider, imageBase64 } = req.body;
 
       const type = await WalletType.findByPk(id);
 
@@ -62,7 +63,21 @@ class WalletTypeController {
         });
       }
 
-      type.status = status;
+      if (typeof status !== 'undefined') {
+        type.status = Boolean(status);
+      }
+      if (name) type.name = name;
+      if (provider) type.provider = provider;
+
+      if (imageBase64) {
+        try {
+          const imageUrl = await saveBase64Image(imageBase64, 'wallet-types', `wallet-type-${type.id}`);
+          type.imageUrl = imageUrl;
+        } catch (err) {
+          return res.status(400).json({ error: err.message });
+        }
+      }
+
       await type.save();
 
       return res.json({

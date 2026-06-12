@@ -27,6 +27,11 @@ WalletType.init(
       allowNull: true
     },
 
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
     isExternal: {
       type: DataTypes.BOOLEAN,
       defaultValue: false

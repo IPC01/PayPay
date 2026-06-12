@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const SIMULATED_OTP = '123456';
+
 function Login() {
   const [step, setStep] = useState('credentials');
   const [email, setEmail] = useState('');
@@ -20,7 +22,13 @@ function Login() {
     setError(null);
 
     if (step === 'credentials') {
+      // Não enviamos email real aqui; usamos uma simulação de 2FA com código fixo.
       setStep('otp');
+      return;
+    }
+
+    if (otp !== SIMULATED_OTP) {
+      setError('Código 2FA inválido. Use 123456.');
       return;
     }
 
@@ -59,7 +67,7 @@ function Login() {
           <>
             <div className="rounded-3xl border border-brand-100 bg-brand-50 p-4 text-brand-700">
               <p className="font-semibold">Autenticação de dois fatores</p>
-              <p className="mt-2 text-sm text-slate-700">Insira o código enviado para o seu email.</p>
+              <p className="mt-2 text-sm text-slate-700">Insira o código enviado para o seu email. Código simulado: 123456.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700">Código 2FA</label>

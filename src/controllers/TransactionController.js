@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { Transaction, Wallet } = require('../models');
+const { Transaction, Wallet, WalletType } = require('../models');
 
 class TransactionController {
 
@@ -42,7 +42,27 @@ class TransactionController {
         order: [['createdAt', 'DESC']]
       });
 
-      return res.json(transactions);
+      const detailedWallets = await Wallet.findAll({
+        where: { walletCode: walletCodes },
+        include: [{ model: WalletType, attributes: ['code', 'name', 'provider', 'imageUrl'] }]
+      });
+
+      const walletMap = detailedWallets.reduce((acc, wallet) => {
+        acc[wallet.walletCode] = {
+          walletTypeCode: wallet.WalletType?.code,
+          walletTypeName: wallet.WalletType?.name,
+          walletTypeProvider: wallet.WalletType?.provider,
+          walletTypeImageUrl: wallet.WalletType?.imageUrl
+        };
+        return acc;
+      }, {});
+
+      const enrichedTransactions = transactions.map((tx) => ({
+        ...tx.toJSON(),
+        ...walletMap[tx.walletCode]
+      }));
+
+      return res.json(enrichedTransactions);
 
     } catch (error) {
       return res.status(500).json({ error: error.message });

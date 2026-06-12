@@ -1,8 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { UiProvider } from './contexts/UiContext';
+import { NotificationProvider } from './contexts/NotificationContext';
+import Notifications from './components/Notifications';
 import RequireAuth from './components/RequireAuth';
 import Dashboard from './client/Dashboard';
-import WalletCreate from './client/WalletCreate';
+import Wallet from './client/Wallet';
 import TokenCreate from './client/TokenCreate';
 import Login from './client/Login';
 import Register from './client/Register';
@@ -13,8 +16,10 @@ import Layout from './components/Layout';
 function App() {
   return (
     <AuthProvider>
-      <Layout>
-        <Routes>
+      <UiProvider>
+        <NotificationProvider>
+          <Layout>
+            <Routes>
           <Route
             path="/"
             element={
@@ -24,10 +29,10 @@ function App() {
             }
           />
           <Route
-            path="/wallets/create"
+            path="/wallets"
             element={
               <RequireAuth>
-                <WalletCreate />
+                <Wallet />
               </RequireAuth>
             }
           />
@@ -59,7 +64,10 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Layout>
+          </Layout>
+          <Notifications />
+        </NotificationProvider>
+      </UiProvider>
     </AuthProvider>
   );
 }

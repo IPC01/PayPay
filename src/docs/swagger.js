@@ -15,17 +15,25 @@ const options = {
     ],
     components: {
       securitySchemes: {
-        
-        apiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'x-api-key'
-        }
+      bearerAuth: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'Access Key',
+      description: `
+Insira a chave de acesso gerada pelo sistema.
+
+Formato:
+
+Bearer SUA_CHAVE_DE_ACESSO
+
+
+`
+    }
       }
     },
     security: [
       {
-        apiKeyAuth: []
+        bearerAuth: []
       }
     ]
   },

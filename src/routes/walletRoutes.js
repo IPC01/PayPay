@@ -15,7 +15,13 @@ router.get('/', walletController.getUserWallets);
 // Buscar carteira por código
 router.get('/code/:code', walletController.getByCode);
 
+// Atualizar carteira
+router.put('/:id', walletController.update);
+
 // Atualizar status da carteira (apenas admin)
 router.put('/:id/status', walletController.updateStatus);
+
+// Soft delete / fechar carteira
+router.delete('/:id', walletController.softDelete);
 
 module.exports = router;

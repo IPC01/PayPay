@@ -58,11 +58,31 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
-  }, []);
+  const logout = useCallback(async () => {
+    try {
+      if (token) {
+        await request('/api/auth/logout', { method: 'POST', token });
+      }
+    } catch (err) {
+      console.error('Logout API error:', err.message);
+    } finally {
+      localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+    }
+  }, [token]);
+
+  const refreshUser = useCallback(async () => {
+    if (!token) return null;
+    try {
+      const data = await request('/api/auth/me', { token });
+      setUser(data);
+      return data;
+    } catch (err) {
+      console.error('Refresh user failed:', err.message);
+      return null;
+    }
+  }, [token]);
 
   const authRequest = useCallback(
     async (path, options = {}) => {
@@ -72,7 +92,7 @@ export function AuthProvider({ children }) {
   );
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, error, login, logout, register, authRequest }}>
+    <AuthContext.Provider value={{ token, user, loading, error, login, logout, register, authRequest, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );
