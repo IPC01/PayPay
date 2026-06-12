@@ -9,6 +9,8 @@ const ApiKeyScope = require('./ApiKeyScope');
 const AuditLog = require('./AuditLog');
 const Ledger = require('./Ledger');
 const Transaction = require('./Transaction');
+const Ticket = require('./Ticket');
+const TicketMessage = require('./TicketMessage');
 
 
 // RELAÇÕES
@@ -31,6 +33,34 @@ WalletType.hasMany(Wallet, {
 
 Wallet.belongsTo(WalletType, {
   foreignKey: 'walletTypeId'
+});
+
+User.hasMany(Wallet, {
+  foreignKey: 'userId'
+});
+
+Wallet.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
+User.hasMany(Ticket, {
+  foreignKey: 'userId'
+});
+
+Ticket.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
+Ticket.hasMany(TicketMessage, {
+  foreignKey: 'ticketId'
+});
+
+TicketMessage.belongsTo(Ticket, {
+  foreignKey: 'ticketId'
+});
+
+TicketMessage.belongsTo(User, {
+  foreignKey: 'userId'
 });
 
 module.exports = {

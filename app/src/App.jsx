@@ -11,7 +11,14 @@ import Login from './client/Login';
 import Register from './client/Register';
 import Profile from './client/Profile';
 import Transactions from './client/Transactions';
+import Tickets from './client/Tickets';
+import AdminDashboard from './admin/AdminDashboard';
+import AdminUsers from './admin/AdminUsers';
+import AdminWallets from './admin/AdminWallets';
+import AdminTransactions from './admin/AdminTransactions';
+import AdminTickets from './admin/AdminTickets';
 import Layout from './components/Layout';
+import RequireAdmin from './components/RequireAdmin';
 
 function App() {
   return (
@@ -41,6 +48,64 @@ function App() {
             element={
               <RequireAuth>
                 <TokenCreate />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <RequireAuth>
+                <Tickets />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminUsers />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/wallets"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminWallets />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/transactions"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminTransactions />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/tickets"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminTickets />
+                </RequireAdmin>
               </RequireAuth>
             }
           />

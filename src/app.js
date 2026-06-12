@@ -13,6 +13,8 @@ const PaymentRoutes = require('./routes/paymentRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const ticketRoutes = require('./routes/ticketRoutes');
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/keys', apiKeyRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/admin', adminRoutes);
 
 // payment routes v1
 app.use('/api/v1/mpesa/', PaymentRoutes);
