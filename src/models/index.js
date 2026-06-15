@@ -11,6 +11,8 @@ const Ledger = require('./Ledger');
 const Transaction = require('./Transaction');
 const Ticket = require('./Ticket');
 const TicketMessage = require('./TicketMessage');
+const WithdrawalRequest = require('./WithdrawalRequest');
+const Notification = require('./Notification');
 
 
 // RELAÇÕES
@@ -63,16 +65,42 @@ TicketMessage.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+User.hasMany(WithdrawalRequest, {
+  foreignKey: 'userId'
+});
+
+WithdrawalRequest.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
+Wallet.hasMany(WithdrawalRequest, {
+  foreignKey: 'walletId'
+});
+
+WithdrawalRequest.belongsTo(Wallet, {
+  foreignKey: 'walletId'
+});
+
+User.hasMany(Notification, {
+  foreignKey: 'userId'
+});
+
+Notification.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
 module.exports = {
   User,
   Role,
   Permission,
   RolePermission,
-    WalletType,
-    Wallet,
-    ApiKey,
-    ApiKeyScope,
-    AuditLog,
-    Ledger,
-    Transaction
+  WalletType,
+  Wallet,
+  ApiKey,
+  ApiKeyScope,
+  AuditLog,
+  Ledger,
+  Transaction,
+  WithdrawalRequest,
+  Notification
 };

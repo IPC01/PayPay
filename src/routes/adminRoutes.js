@@ -1,5 +1,6 @@
 const express = require('express');
 const AdminController = require('../controllers/AdminController');
+const WithdrawalRequestController = require('../controllers/WithdrawalRequestController');
 const authMiddleware = require('../middleware/authMiddleware');
 const checkPermission = require('../middleware/checkPermission');
 const supportOrAdmin = require('../middleware/supportOrAdmin');
@@ -15,5 +16,8 @@ router.get('/tickets', supportGuard, AdminController.getAllTickets);
 router.get('/tickets/:id/messages', supportGuard, AdminController.getTicketMessages);
 router.get('/users/:id/wallets', adminGuard, AdminController.getUserWallets);
 router.get('/users/:id/transactions', adminGuard, AdminController.getUserTransactions);
+router.get('/withdrawals', adminGuard, WithdrawalRequestController.getAdminRequests);
+router.post('/withdrawals/:id/approve', adminGuard, WithdrawalRequestController.approve);
+router.post('/withdrawals/:id/reject', adminGuard, WithdrawalRequestController.reject);
 
 module.exports = router;

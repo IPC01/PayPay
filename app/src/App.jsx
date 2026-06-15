@@ -18,7 +18,9 @@ import AdminUserDetails from './admin/AdminUserDetails';
 import AdminWallets from './admin/AdminWallets';
 import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
+import AdminWithdrawals from './admin/AdminWithdrawals';
 import Layout from './components/Layout';
+import NotificationsPage from './client/NotificationsPage';
 import WalletDetails from './client/WalletDetails';
 import RequireAdmin from './components/RequireAdmin';
 
@@ -152,10 +154,28 @@ function App() {
             }
           />
           <Route
+            path="/notifications"
+            element={
+              <RequireAuth>
+                <NotificationsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/transactions"
             element={
               <RequireAuth>
                 <Transactions />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/withdrawals"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminWithdrawals />
+                </RequireAdmin>
               </RequireAuth>
             }
           />

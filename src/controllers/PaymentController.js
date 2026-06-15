@@ -36,6 +36,10 @@ class PaymentController {
         return res.status(400).json({ error: 'Wallet is not active' });
       }
 
+      if (wallet.allowC2B === false) {
+        return res.status(403).json({ error: 'Wallet is not authorized for C2B transactions' });
+      }
+
       const walletType = await WalletType.findByPk(wallet.walletTypeId);
 
       if (!walletType) {
@@ -54,7 +58,8 @@ class PaymentController {
         });
       }
 
-      const transaction = await Transaction.create({
+      let transaction = null;
+      transaction = await Transaction.create({
         fromWalletId: wallet.id,
         toWalletId: null,
         amount,
@@ -83,7 +88,9 @@ class PaymentController {
       //     status: 'failed',
       //     providerResponse: JSON.stringify({
       //       error: err.message
-      //     })
+      //     }),
+      //     systemErrorCode: 'SYS-1001',
+      //     systemErrorMessage: err.message
       //   });
       //
       //   await createAuditLog({
@@ -103,6 +110,7 @@ class PaymentController {
 
       providerResponse = {
         output_ResponseCode: 'INS-0',
+        output_ResponseDescription: 'Request processed successfully',
         output_ConversationID: `SIM-${transaction.id}`,
         output_TransactionID: `SIMTX-${transaction.id}`
       };
@@ -112,7 +120,9 @@ class PaymentController {
         status: success ? 'success' : 'failed',
         providerReference: providerResponse?.output_ConversationID,
         providerTransactionId: providerResponse?.output_TransactionID,
-        providerResponse: JSON.stringify(providerResponse)
+        providerResponse: JSON.stringify(providerResponse),
+        providerResponseCode: providerResponse?.output_ResponseCode,
+        providerResponseMessage: providerResponse?.output_ResponseDescription
       });
 
       if (success) {
@@ -150,6 +160,14 @@ class PaymentController {
       });
 
     } catch (error) {
+      if (transaction) {
+        await transaction.update({
+          status: 'failed',
+          systemErrorCode: 'SYS-1001',
+          systemErrorMessage: error.message
+        });
+      }
+
       return res.status(500).json({
         name: error.name,
         message: error.message,
@@ -187,6 +205,10 @@ class PaymentController {
         return res.status(400).json({ error: 'Wallet is not active' });
       }
 
+      if (wallet.allowB2C === false) {
+        return res.status(403).json({ error: 'Wallet is not authorized for B2C transactions' });
+      }
+
       const walletType = await WalletType.findByPk(wallet.walletTypeId);
 
       if (!walletType) {
@@ -205,7 +227,8 @@ class PaymentController {
         });
       }
 
-      const transaction = await Transaction.create({
+      let transaction = null;
+      transaction = await Transaction.create({
         fromWalletId: wallet.id,
         toWalletId: null,
         amount,
@@ -218,7 +241,11 @@ class PaymentController {
       });
 
       if (parseFloat(wallet.balance || 0) < parseFloat(amount)) {
-        await transaction.update({ status: 'failed' });
+        await transaction.update({
+          status: 'failed',
+          systemErrorCode: 'SYS-2001',
+          systemErrorMessage: 'Insufficient wallet balance'
+        });
         await createAuditLog({
           userId: wallet.userId || null,
           action: 'transaction_b2c_failed_insufficient_funds',
@@ -271,6 +298,7 @@ class PaymentController {
 
       providerResponse = {
         output_ResponseCode: 'INS-0',
+        output_ResponseDescription: 'Request processed successfully',
         output_ConversationID: `SIM-${transaction.id}`,
         output_TransactionID: `SIMTX-${transaction.id}`
       };
@@ -280,7 +308,9 @@ class PaymentController {
         status: success ? 'success' : 'failed',
         providerReference: providerResponse?.output_ConversationID,
         providerTransactionId: providerResponse?.output_TransactionID,
-        providerResponse: JSON.stringify(providerResponse)
+        providerResponse: JSON.stringify(providerResponse),
+        providerResponseCode: providerResponse?.output_ResponseCode,
+        providerResponseMessage: providerResponse?.output_ResponseDescription
       });
 
       if (success) {
@@ -318,6 +348,14 @@ class PaymentController {
       });
 
     } catch (error) {
+      if (transaction) {
+        await transaction.update({
+          status: 'failed',
+          systemErrorCode: 'SYS-1001',
+          systemErrorMessage: error.message
+        });
+      }
+
       return res.status(500).json({
         name: error.name,
         message: error.message,

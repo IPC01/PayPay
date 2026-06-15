@@ -177,6 +177,24 @@ function Sidebar({ open, setOpen }) {
                 </svg>
                 {!collapsed && 'Transações'}
               </NavLink>
+
+              <NavLink
+                to="/notifications"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 01-3.46 0" />
+                </svg>
+                {!collapsed && 'Notificações'}
+              </NavLink>
             </>
           )}
 

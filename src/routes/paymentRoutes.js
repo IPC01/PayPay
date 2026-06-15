@@ -3,7 +3,14 @@
  * /api/v1/mpesa/c2b:
  *   post:
  *     summary: Customer to Business payment (C2B)
- *     description: Processa um pagamento C2B usando a carteira especificada.
+ *     description: |-
+ *       Processa um pagamento C2B usando a carteira especificada.
+ *       
+ *       A resposta pode incluir códigos M-Pesa como INS-0, INS-1, INS-2, INS-4, INS-5, INS-6, INS-9,
+ *       INS-10, INS-13, INS-14, INS-15, INS-16, INS-17, INS-18, INS-19, INS-20, INS-21, INS-22,
+ *       INS-23, INS-24, INS-25, INS-26, INS-993, INS-994, INS-995, INS-996, INS-997, INS-998,
+ *       INS-2001, INS-2002, INS-2006, INS-2051 e INS-2057.
+ *       Erros internos do sistema usam códigos diferentes, como SYS-1001 ou SYS-2001.
  *     tags:
  *       - Payments
  *     security:
@@ -49,6 +56,18 @@
  *                 transactionId:
  *                   type: string
  *                   example: 9f8d7c6b-1234-4abc-9d0e-1f2a3b4c5d6e
+ *                 providerResponseCode:
+ *                   type: string
+ *                   example: INS-0
+ *                 providerResponseMessage:
+ *                   type: string
+ *                   example: Request processed successfully
+ *                 systemErrorCode:
+ *                   type: string
+ *                   example: SYS-1001
+ *                 systemErrorMessage:
+ *                   type: string
+ *                   example: Internal processing error
  *       '400':
  *         description: Requisição inválida.
  *         content:
@@ -92,7 +111,14 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  * /api/v1/mpesa/b2c:
  *   post:
  *     summary: Business to Customer payment (B2C)
- *     description: Processa um pagamento B2C a partir da carteira especificada.
+ *     description: |-
+ *       Processa um pagamento B2C a partir da carteira especificada.
+ *       
+ *       A resposta pode incluir códigos M-Pesa como INS-0, INS-1, INS-2, INS-4, INS-5, INS-6, INS-9,
+ *       INS-10, INS-13, INS-14, INS-15, INS-16, INS-17, INS-18, INS-19, INS-20, INS-21, INS-22,
+ *       INS-23, INS-24, INS-25, INS-26, INS-993, INS-994, INS-995, INS-996, INS-997, INS-998,
+ *       INS-2001, INS-2002, INS-2006, INS-2051 e INS-2057.
+ *       Erros internos do sistema usam códigos diferentes, como SYS-1001 ou SYS-2001.
  *     tags:
  *       - Payments
  *     security:
@@ -138,6 +164,18 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  *                 transactionId:
  *                   type: string
  *                   example: 9f8d7c6b-1234-4abc-9d0e-1f2a3b4c5d6e
+ *                 providerResponseCode:
+ *                   type: string
+ *                   example: INS-0
+ *                 providerResponseMessage:
+ *                   type: string
+ *                   example: Request processed successfully
+ *                 systemErrorCode:
+ *                   type: string
+ *                   example: SYS-1001
+ *                 systemErrorMessage:
+ *                   type: string
+ *                   example: Internal processing error
  *                 response:
  *                   type: object
  *                   description: Resposta do provedor de pagamento

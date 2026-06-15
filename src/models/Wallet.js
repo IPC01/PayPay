@@ -41,6 +41,21 @@ Wallet.init(
       defaultValue: 'MZN'
     },
 
+    allowC2B: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+
+    allowB2C: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+
+    allowWithdraw: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: true
+    },
+
     status: {
       type: DataTypes.ENUM('ACTIVE', 'FROZEN', 'CLOSED'),
       defaultValue: 'ACTIVE'

@@ -7,6 +7,8 @@ function AdminWallets() {
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [permissionLoading, setPermissionLoading] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
   const [feedback, setFeedback] = useState('');
 
   useEffect(() => {
@@ -41,6 +43,28 @@ function AdminWallets() {
       setFeedback('Não foi possível atualizar o estado da carteira.');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const togglePermissionMenu = (walletId) => {
+    setOpenMenuId(openMenuId === walletId ? null : walletId);
+  };
+
+  const updateWalletPermission = async (wallet, field, value) => {
+    try {
+      setPermissionLoading(wallet.id);
+      await authRequest(`/api/wallets/${wallet.id}`, {
+        method: 'PUT',
+        body: { [field]: value }
+      });
+      setFeedback(`Permissão ${field} atualizada para ${wallet.walletCode}.`);
+      setOpenMenuId(null);
+      await loadWallets();
+    } catch (err) {
+      console.error(err);
+      setFeedback('Não foi possível atualizar a permissão da carteira.');
+    } finally {
+      setPermissionLoading(null);
     }
   };
 
@@ -96,12 +120,53 @@ function AdminWallets() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
-                    <Link
-                      to={`/wallets/${wallet.id}`}
-                      className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-                    >
-                      Ver
-                    </Link>
+                    <div className="inline-flex items-center gap-2">
+                      <Link
+                        to={`/wallets/${wallet.id}`}
+                        className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                      >
+                        Ver
+                      </Link>
+
+                      <div className="relative inline-block text-left">
+                        <button
+                          type="button"
+                          onClick={() => togglePermissionMenu(wallet.id)}
+                          className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                        >
+                          Permissões
+                        </button>
+
+                        {openMenuId === wallet.id && (
+                          <div className="absolute right-0 z-20 mt-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                            <button
+                              type="button"
+                              onClick={() => updateWalletPermission(wallet, 'allowC2B', !wallet.allowC2B)}
+                              disabled={permissionLoading === wallet.id}
+                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              C2B: {wallet.allowC2B ? 'Ativo' : 'Desativado'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateWalletPermission(wallet, 'allowB2C', !wallet.allowB2C)}
+                              disabled={permissionLoading === wallet.id}
+                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              B2C: {wallet.allowB2C ? 'Ativo' : 'Desativado'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updateWalletPermission(wallet, 'allowWithdraw', !wallet.allowWithdraw)}
+                              disabled={permissionLoading === wallet.id}
+                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                            >
+                              Saque: {wallet.allowWithdraw ? 'Ativo' : 'Desativado'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <button
                       type="button"
                       onClick={() => toggleWalletStatus(wallet)}

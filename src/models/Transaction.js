@@ -25,6 +25,10 @@ Transaction.init(
       type: DataTypes.FLOAT,
       allowNull: false
     },
+    type: {
+      type: DataTypes.STRING,
+      defaultValue: 'payment'
+    },
     phone: {
       type: DataTypes.STRING,
       allowNull: false
@@ -44,9 +48,49 @@ Transaction.init(
       unique: true
     },
 
+    provider: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    providerReference: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    providerTransactionId: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    providerResponse: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+
+    providerResponseCode: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    providerResponseMessage: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+
+    systemErrorCode: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
+    systemErrorMessage: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+
     apiKeyId: {
       type: DataTypes.INTEGER,
-      allowNull: false
+      allowNull: true
     }
   },
   {

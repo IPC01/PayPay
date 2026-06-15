@@ -32,6 +32,8 @@ function WalletDetails() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('week'); // week, month, year
+  const [withdrawData, setWithdrawData] = useState({ amount: '', phoneNumber: '', notes: '' });
+  const [submittingWithdraw, setSubmittingWithdraw] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -59,6 +61,35 @@ function WalletDetails() {
 
     load();
   }, [authRequest, id, notify]);
+
+  const handleWithdrawRequest = async (event) => {
+    event.preventDefault();
+    if (!withdrawData.amount || !withdrawData.phoneNumber) {
+      notify({ type: 'error', title: 'Dados obrigatórios', message: 'Informe o valor e o número de telefone.' });
+      return;
+    }
+
+    try {
+      setSubmittingWithdraw(true);
+      await authRequest('/api/withdrawals', {
+        method: 'POST',
+        body: {
+          walletId: wallet.id,
+          amount: Number(withdrawData.amount),
+          phoneNumber: withdrawData.phoneNumber,
+          notes: withdrawData.notes
+        }
+      });
+
+      notify({ type: 'success', title: 'Pedido enviado', message: 'Seu pedido de saque foi enviado para aprovação.' });
+      setWithdrawData({ amount: '', phoneNumber: '', notes: '' });
+    } catch (err) {
+      console.error(err);
+      notify({ type: 'error', title: 'Falha ao solicitar saque', message: err.message || 'Não foi possível enviar o pedido de saque.' });
+    } finally {
+      setSubmittingWithdraw(false);
+    }
+  };
 
   // Dados para gráficos
   const chartData = useMemo(() => {
@@ -200,6 +231,63 @@ function WalletDetails() {
           </span>
         </div>
       </div>
+
+      {wallet.allowWithdraw && wallet.status === 'ACTIVE' && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">Solicitar Saque</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Criar um pedido de saque</h2>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Será enviado para aprovação do administrador e, se aceito, o valor será subtraído do saldo.</p>
+            </div>
+          </div>
+          <form onSubmit={handleWithdrawRequest} className="mt-6 grid gap-4 md:grid-cols-3">
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Montante</span>
+              <input
+                type="number"
+                min="1"
+                step="0.01"
+                value={withdrawData.amount}
+                onChange={(e) => setWithdrawData((prev) => ({ ...prev, amount: e.target.value }))}
+                placeholder="0.00"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                required
+              />
+            </label>
+            <label className="space-y-2">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Número</span>
+              <input
+                type="tel"
+                value={withdrawData.phoneNumber}
+                onChange={(e) => setWithdrawData((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                placeholder="+258 82 123 4567"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                required
+              />
+            </label>
+            <label className="space-y-2 md:col-span-3">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Observações</span>
+              <textarea
+                rows="3"
+                value={withdrawData.notes}
+                onChange={(e) => setWithdrawData((prev) => ({ ...prev, notes: e.target.value }))}
+                placeholder="Observações opcionais"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <div className="md:col-span-3 flex justify-end">
+              <button
+                type="submit"
+                disabled={submittingWithdraw}
+                className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submittingWithdraw ? 'Enviando...' : 'Solicitar Saque'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Cards de Estatísticas */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

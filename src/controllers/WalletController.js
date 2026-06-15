@@ -9,7 +9,7 @@ class WalletController {
   async create(req, res) {
     try {
       const userId = req.user.userId;
-      const { walletName,walletTypeId, currency } = req.body;
+      const { walletName, walletTypeId, currency, allowC2B, allowB2C, allowWithdraw } = req.body;
 
       // validar wallet type
       const walletType = await WalletType.findByPk(walletTypeId);
@@ -37,6 +37,9 @@ class WalletController {
         walletName,
         currency: currency || 'MZN',
         balance: 0.00,
+        allowC2B: typeof allowC2B === 'boolean' ? allowC2B : true,
+        allowB2C: typeof allowB2C === 'boolean' ? allowB2C : true,
+        allowWithdraw: typeof allowWithdraw === 'boolean' ? allowWithdraw : true,
         status: 'ACTIVE'
       });
 
@@ -157,9 +160,10 @@ class WalletController {
     try {
       const userId = req.user.userId;
       const { id } = req.params;
-      const { walletName, walletTypeId, currency, status, isActive } = req.body;
+      const { walletName, walletTypeId, currency, status, isActive, allowC2B, allowB2C, allowWithdraw } = req.body;
 
-      const wallet = await Wallet.findOne({ where: { id, userId } });
+      const where = req.user.roleId === 1 ? { id } : { id, userId };
+      const wallet = await Wallet.findOne({ where });
 
       if (!wallet) {
         return res.status(404).json({ error: 'Wallet not found' });
@@ -168,6 +172,9 @@ class WalletController {
       if (walletName) wallet.walletName = walletName;
       if (currency) wallet.currency = currency;
       if (walletTypeId) wallet.walletTypeId = walletTypeId;
+      if (typeof allowC2B !== 'undefined') wallet.allowC2B = !!allowC2B;
+      if (typeof allowB2C !== 'undefined') wallet.allowB2C = !!allowB2C;
+      if (typeof allowWithdraw !== 'undefined') wallet.allowWithdraw = !!allowWithdraw;
 
       if (typeof isActive !== 'undefined') {
         wallet.status = isActive ? 'ACTIVE' : 'FROZEN';

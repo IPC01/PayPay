@@ -19,7 +19,12 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('✅ Database connected');
 
-    await sequelize.sync({ alter: true });
+    const syncOptions = {};
+    if (process.env.NODE_ENV === 'development' && process.env.DB_SYNC_ALTER === 'true') {
+      syncOptions.alter = true;
+    }
+
+    await sequelize.sync(syncOptions);
 
     console.log('📦 Models synced');
 
