@@ -262,27 +262,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        {typeStatsArray.map((typeStat) => (
-          <div key={typeStat.name} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex items-center gap-3">
-              {renderTypeLogo(typeStat.imageUrl, typeStat.provider)}
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  {typeStat.name}
-                </p>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                  {typeStat.provider}
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-300">
-              <p>Carteiras: <span className="font-semibold text-slate-900 dark:text-white">{typeStat.count}</span></p>
-              <p>Saldo total: <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(typeStat.balance)}</span></p>
-            </div>
-          </div>
-        ))}
-      </div>
+
 
       {/* Lista de Carteiras (Movida para cima) */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
