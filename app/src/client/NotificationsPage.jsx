@@ -17,12 +17,14 @@ function NotificationsPage() {
       setLoading(true);
       const data = await authRequest('/api/notifications');
       setNotifications(data);
-      notify({
-        type: 'info',
-        title: 'Notificações',
-        message: data.length > 0 ? `Você tem ${data.length} notificações.` : 'Nenhuma notificação nova no momento.',
-        duration: 4000
-      });
+      if (data.length > 0) {
+        notify({
+          type: 'info',
+          title: 'Notificações',
+          message: `Você tem ${data.length} notificações.`,
+          duration: 4000
+        });
+      }
     } catch (err) {
       console.error(err);
       notify({
@@ -72,8 +74,6 @@ function NotificationsPage() {
         <div className="divide-y divide-slate-200 dark:divide-slate-700">
           {loading ? (
             <div className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar notificações...</div>
-          ) : notifications.length === 0 ? (
-            <div className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Nenhuma notificação nova.</div>
           ) : (
             notifications.map((notification) => (
               <div key={notification.id} className={`px-6 py-5 ${notification.read ? 'bg-slate-50 dark:bg-slate-900/50' : 'bg-slate-100 dark:bg-slate-800'}`}>

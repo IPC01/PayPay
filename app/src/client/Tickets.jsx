@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 
 function Tickets() {
   const { authRequest } = useAuth();
+  const { notify } = useNotification();
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -11,6 +13,7 @@ function Tickets() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [replyText, setReplyText] = useState('');
+  const [attachmentFile, setAttachmentFile] = useState(null);
 
   useEffect(() => {
     loadTickets();
@@ -40,19 +43,53 @@ function Tickets() {
 
   const createTicket = async (event) => {
     event.preventDefault();
-    if (!subject || !description) return;
+    if (!subject || !description) {
+      notify({
+        type: 'error',
+        title: 'Campos obrigatórios',
+        message: 'Informe assunto e descrição antes de enviar o ticket.'
+      });
+      return;
+    }
 
     try {
       setSending(true);
+      let attachment = null;
+      if (attachmentFile) {
+        attachment = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(attachmentFile);
+        });
+      }
+
       await authRequest('/api/tickets', {
         method: 'POST',
-        body: { subject, description }
+        body: {
+          subject,
+          description,
+          attachment,
+          attachmentName: attachmentFile?.name
+        }
       });
+
       setSubject('');
       setDescription('');
+      setAttachmentFile(null);
+      notify({
+        type: 'success',
+        title: 'Ticket enviado',
+        message: 'O seu ticket foi registado e o admin foi notificado.'
+      });
       await loadTickets();
     } catch (err) {
       console.error(err);
+      notify({
+        type: 'error',
+        title: 'Erro ao enviar ticket',
+        message: err.message || 'Não foi possível enviar o ticket.'
+      });
     } finally {
       setSending(false);
     }
@@ -72,6 +109,11 @@ function Tickets() {
       await openTicket(selectedTicket);
     } catch (err) {
       console.error(err);
+      notify({
+        type: 'error',
+        title: 'Erro ao responder',
+        message: err.message || 'Não foi possível enviar a resposta.'
+      });
     } finally {
       setSending(false);
     }
@@ -110,6 +152,18 @@ function Tickets() {
                 className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                 placeholder="Conte-nos o que está a acontecer..."
               />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-600 dark:text-slate-300">Imagem (opcional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
+                className="w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+              />
+              {attachmentFile && (
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Anexo: {attachmentFile.name}</p>
+              )}
             </div>
             <button
               type="submit"
@@ -170,6 +224,17 @@ function Tickets() {
             <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900">
               <p className="text-sm leading-7 text-slate-700 dark:text-slate-300">{selectedTicket.description}</p>
             </div>
+
+            {selectedTicket.attachmentUrl && (
+              <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                <p className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Anexo</p>
+                <img
+                  src={selectedTicket.attachmentUrl}
+                  alt="Anexo do ticket"
+                  className="max-h-80 w-full rounded-3xl object-contain"
+                />
+              </div>
+            )}
 
             <div className="space-y-3">
               {messages.map((message) => (

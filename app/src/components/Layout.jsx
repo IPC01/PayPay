@@ -10,8 +10,9 @@ function Layout({ children }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, authRequest } = useAuth();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -23,6 +24,19 @@ function Layout({ children }) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const loadUnreadNotifications = async () => {
+      try {
+        const notifications = await authRequest('/api/notifications');
+        setUnreadNotifications(notifications.filter((notification) => !notification.read).length);
+      } catch (error) {
+        console.error('Failed to load notifications count:', error);
+      }
+    };
+
+    loadUnreadNotifications();
+  }, [authRequest]);
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';
@@ -79,9 +93,14 @@ function Layout({ children }) {
               <button
                 type="button"
                 onClick={() => navigate('/notifications')}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 aria-label="Notificações"
               >
+                {unreadNotifications > 0 && (
+                  <span className="absolute right-0 top-0 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold text-white">
+                    {unreadNotifications}
+                  </span>
+                )}
                 <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
                 </svg>

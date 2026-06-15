@@ -1,15 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
 
 function AdminWallets() {
   const { authRequest } = useAuth();
+  const { notify } = useNotification();
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [permissionLoading, setPermissionLoading] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
-  const [feedback, setFeedback] = useState('');
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    console.log('openMenuId changed:', openMenuId);
+  }, [openMenuId]);
 
   useEffect(() => {
     loadWallets();
@@ -36,18 +53,27 @@ function AdminWallets() {
         method: 'PUT',
         body: { status: nextStatus }
       });
-      setFeedback(`Carteira ${wallet.walletCode} foi ${nextStatus === 'ACTIVE' ? 'ativada' : 'desativada'} com sucesso.`);
+      notify({
+        type: 'success',
+        title: 'Sucesso',
+        message: `Carteira ${wallet.walletCode} foi ${nextStatus === 'ACTIVE' ? 'ativada' : 'desativada'} com sucesso.`
+      });
       await loadWallets();
     } catch (err) {
       console.error(err);
-      setFeedback('Não foi possível atualizar o estado da carteira.');
+      notify({
+        type: 'error',
+        title: 'Erro',
+        message: 'Não foi possível atualizar o estado da carteira.'
+      });
     } finally {
       setActionLoading(null);
     }
   };
 
   const togglePermissionMenu = (walletId) => {
-    setOpenMenuId(openMenuId === walletId ? null : walletId);
+    console.log('togglePermissionMenu called for walletId:', walletId, 'current openMenuId:', openMenuId);
+    setOpenMenuId((currentOpenMenuId) => (currentOpenMenuId === walletId ? null : walletId));
   };
 
   const updateWalletPermission = async (wallet, field, value) => {
@@ -57,12 +83,19 @@ function AdminWallets() {
         method: 'PUT',
         body: { [field]: value }
       });
-      setFeedback(`Permissão ${field} atualizada para ${wallet.walletCode}.`);
-      setOpenMenuId(null);
+      notify({
+        type: 'success',
+        title: 'Sucesso',
+        message: `Permissão ${field} atualizada para ${wallet.walletCode}.`
+      });
       await loadWallets();
     } catch (err) {
       console.error(err);
-      setFeedback('Não foi possível atualizar a permissão da carteira.');
+      notify({
+        type: 'error',
+        title: 'Erro',
+        message: 'Não foi possível atualizar a permissão da carteira.'
+      });
     } finally {
       setPermissionLoading(null);
     }
@@ -80,13 +113,8 @@ function AdminWallets() {
         </div>
       </div>
 
-      {feedback && (
-        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:text-emerald-100">
-          {feedback}
-        </div>
-      )}
 
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
             <tr>
@@ -128,41 +156,57 @@ function AdminWallets() {
                         Ver
                       </Link>
 
-                      <div className="relative inline-block text-left">
+                      <div className="relative inline-block text-left" ref={openMenuId === wallet.id ? menuRef : null}>
                         <button
                           type="button"
-                          onClick={() => togglePermissionMenu(wallet.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            togglePermissionMenu(wallet.id);
+                          }}
                           className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-900 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
                         >
                           Permissões
                         </button>
 
                         {openMenuId === wallet.id && (
-                          <div className="absolute right-0 z-20 mt-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-                            <button
-                              type="button"
-                              onClick={() => updateWalletPermission(wallet, 'allowC2B', !wallet.allowC2B)}
-                              disabled={permissionLoading === wallet.id}
-                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                            >
-                              C2B: {wallet.allowC2B ? 'Ativo' : 'Desativado'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateWalletPermission(wallet, 'allowB2C', !wallet.allowB2C)}
-                              disabled={permissionLoading === wallet.id}
-                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                            >
-                              B2C: {wallet.allowB2C ? 'Ativo' : 'Desativado'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updateWalletPermission(wallet, 'allowWithdraw', !wallet.allowWithdraw)}
-                              disabled={permissionLoading === wallet.id}
-                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                            >
-                              Saque: {wallet.allowWithdraw ? 'Ativo' : 'Desativado'}
-                            </button>
+                          <div className="absolute right-0 z-50 mt-2 min-w-[220px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                            <div className="space-y-1 p-3">
+                              <div className="flex items-center justify-between rounded-2xl px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <span>C2B</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateWalletPermission(wallet, 'allowC2B', !wallet.allowC2B)}
+                                  disabled={permissionLoading === wallet.id}
+                                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${wallet.allowC2B ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                >
+                                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${wallet.allowC2B ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between rounded-2xl px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <span>B2C</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateWalletPermission(wallet, 'allowB2C', !wallet.allowB2C)}
+                                  disabled={permissionLoading === wallet.id}
+                                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${wallet.allowB2C ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                >
+                                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${wallet.allowB2C ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                              </div>
+
+                              <div className="flex items-center justify-between rounded-2xl px-4 py-3 text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800">
+                                <span>Saque</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateWalletPermission(wallet, 'allowWithdraw', !wallet.allowWithdraw)}
+                                  disabled={permissionLoading === wallet.id}
+                                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${wallet.allowWithdraw ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                >
+                                  <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${wallet.allowWithdraw ? 'translate-x-5' : 'translate-x-0'}`} />
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         )}
                       </div>

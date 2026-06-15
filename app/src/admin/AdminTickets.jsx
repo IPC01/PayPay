@@ -118,6 +118,17 @@ function AdminTickets() {
                 <p className="text-sm leading-7 text-slate-700 dark:text-slate-300">{selectedTicket.description}</p>
               </div>
 
+              {selectedTicket.attachmentUrl && (
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                  <p className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Imagem anexada</p>
+                  <img
+                    src={selectedTicket.attachmentUrl}
+                    alt="Anexo do ticket"
+                    className="max-h-96 w-full rounded-3xl object-contain"
+                  />
+                </div>
+              )}
+
               <div className="space-y-3">
                 {messages.map((message) => (
                   <div key={message.id} className={`rounded-3xl border p-4 ${message.senderType === 'admin' ? 'border-brand-200 bg-brand-50 dark:border-brand-500/30 dark:bg-brand-900/20' : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900'}`}>

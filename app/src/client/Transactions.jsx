@@ -84,16 +84,18 @@ function Transactions() {
   };
 
   const getTransactionType = (type) => {
-    const types = {
-      deposit: { label: 'Depósito', icon: '📥', className: 'text-green-600 dark:text-green-400' },
-      withdrawal: { label: 'Levantamento', icon: '📤', className: 'text-red-600 dark:text-red-400' },
-      transfer: { label: 'Transferência', icon: '🔄', className: 'text-blue-600 dark:text-blue-400' },
-      payment: { label: 'Pagamento', icon: '💳', className: 'text-purple-600 dark:text-purple-400' }
+    const typeMap = {
+      c2b: { label: 'C2B', icon: '⬅️', className: 'text-green-600 dark:text-green-400' },
+      b2c: { label: 'B2C', icon: '➡️', className: 'text-blue-600 dark:text-blue-400' },
+      deposit: { label: 'Depósito', className: 'text-green-600 dark:text-green-400' },
+      withdrawal: { label: 'Levantamento', className: 'text-red-600 dark:text-red-400' },
+      transfer: { label: 'Transferência', className: 'text-blue-600 dark:text-blue-400' }
     };
-    const config = types[type] || { label: type, icon: '💰', className: 'text-slate-600' };
+
+    const config = typeMap[type] || { label: type?.toString().toUpperCase() || 'Desconhecido', className: 'text-slate-600' };
     return (
       <div className="flex items-center gap-2">
-        <span className="text-lg">{config.icon}</span>
+        {config.icon ? <span className="text-lg">{config.icon}</span> : null}
         <span className={`text-sm font-medium ${config.className}`}>{config.label}</span>
       </div>
     );
@@ -305,10 +307,10 @@ function Transactions() {
                   ID
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Tipo
+                  Carteira
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Carteira
+                  Tipo
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Montante
@@ -368,14 +370,14 @@ function Transactions() {
                         #{tx.id}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4">
-                      {getTransactionType(tx.type)}
-                    </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-2">
                         {renderTypeLogo(getWalletTypeLogo({ imageUrl: tx.walletTypeImageUrl || tx.wallet?.WalletType?.imageUrl, code: tx.walletTypeCode || tx.wallet?.WalletType?.code }), tx.walletTypeName || tx.wallet?.WalletType?.name)}
                         <span>{tx.walletCode || tx.wallet?.code || 'N/A'}</span>
                       </div>
+                    </td>
+                    <td className="whitespace-nowrap px-6 py-4">
+                      {getTransactionType(tx.type)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">
