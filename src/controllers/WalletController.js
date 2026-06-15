@@ -122,6 +122,36 @@ class WalletController {
     }
   }
 
+  // GET WALLET BY ID
+  async getById(req, res) {
+    try {
+      const userId = req.user.userId;
+      const { id } = req.params;
+
+      const wallet = await Wallet.findOne({
+        where: { id },
+        include: [
+          {
+            model: WalletType,
+            attributes: ['id', 'code', 'name', 'provider', 'imageUrl']
+          }
+        ]
+      });
+
+      if (!wallet) {
+        return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      if (req.user.roleId !== 1 && wallet.userId !== userId) {
+        return res.status(403).json({ error: 'Not authorized to view this wallet' });
+      }
+
+      return res.json(wallet);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   // UPDATE WALLET DETAILS
   async update(req, res) {
     try {
@@ -210,15 +240,21 @@ class WalletController {
   // UPDATE STATUS (admin/ops)
   async updateStatus(req, res) {
     try {
+      const userId = req.user.userId;
       const { id } = req.params;
       const { status } = req.body;
 
-      const userId = req.user.userId;
-      const wallet = await Wallet.findOne({ where: { id, userId } });
+      const wallet = await Wallet.findByPk(id);
 
       if (!wallet) {
         return res.status(404).json({
           error: 'Wallet not found'
+        });
+      }
+
+      if (req.user.roleId !== 1 && wallet.userId !== userId) {
+        return res.status(403).json({
+          error: 'Not authorized to update this wallet'
         });
       }
 

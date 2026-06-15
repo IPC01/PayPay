@@ -15,6 +15,9 @@ router.get('/', walletController.getUserWallets);
 // Buscar carteira por código
 router.get('/code/:code', walletController.getByCode);
 
+// Buscar carteira por ID
+router.get('/:id', walletController.getById);
+
 // Atualizar carteira
 router.put('/:id', walletController.update);
 

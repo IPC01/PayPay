@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 function AdminUsers() {
   const { authRequest } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [feedback, setFeedback] = useState('');
 
   useEffect(() => {
     loadUsers();
@@ -22,6 +25,28 @@ function AdminUsers() {
     }
   };
 
+  const toggleUserStatus = async (user) => {
+    const nextStatus = !user.isActive;
+
+    try {
+      setActionLoading(user.id);
+      const response = await authRequest(`/api/users/${user.id}`, {
+        method: 'PUT',
+        body: { isActive: nextStatus }
+      });
+
+      setUsers((current) =>
+        current.map((item) => (item.id === user.id ? { ...item, isActive: response.user.isActive } : item))
+      );
+      setFeedback(`Usuário ${response.user.name} foi ${response.user.isActive ? 'ativado' : 'bloqueado'} com sucesso.`);
+    } catch (err) {
+      console.error(err);
+      setFeedback('Não foi possível atualizar o estado do utilizador.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -34,6 +59,12 @@ function AdminUsers() {
         </div>
       </div>
 
+      {feedback && (
+        <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-950/20 dark:text-emerald-100">
+          {feedback}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
           <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
@@ -41,17 +72,19 @@ function AdminUsers() {
               <th className="px-6 py-4">Nome</th>
               <th className="px-6 py-4">Email</th>
               <th className="px-6 py-4">Perfil</th>
+              <th className="px-6 py-4">Estado</th>
               <th className="px-6 py-4">Criado em</th>
+              <th className="px-6 py-4">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 bg-white text-sm dark:divide-slate-700 dark:bg-slate-800">
             {loading ? (
               <tr>
-                <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar utilizadores...</td>
+                <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar utilizadores...</td>
               </tr>
             ) : users.length === 0 ? (
               <tr>
-                <td colSpan="4" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Nenhum utilizador encontrado.</td>
+                <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Nenhum utilizador encontrado.</td>
               </tr>
             ) : (
               users.map((user) => (
@@ -59,7 +92,30 @@ function AdminUsers() {
                   <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{user.name}</td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.email}</td>
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{user.Role?.name || 'N/A'}</td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${user.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-200'}`}>
+                      {user.isActive ? 'Ativo' : 'Bloqueado'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.createdAt).toLocaleDateString('pt-PT')}</td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Link
+                        to={`/admin/users/${user.id}`}
+                        className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand-500"
+                      >
+                        Ver
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => toggleUserStatus(user)}
+                        disabled={actionLoading === user.id}
+                        className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${user.isActive ? 'bg-rose-600 text-white hover:bg-rose-700' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
+                      >
+                        {actionLoading === user.id ? 'A processar...' : user.isActive ? 'Bloquear' : 'Ativar'}
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             )}

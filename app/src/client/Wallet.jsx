@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../helpers/walletTypeLogos';
@@ -12,6 +13,8 @@ function Wallets() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState(null);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [formData, setFormData] = useState({
     walletName: '',
     walletTypeId: '',
@@ -179,7 +182,20 @@ function Wallets() {
     }
   };
 
-  const openEditModal = (wallet) => {
+  const loadAuditLogs = async (walletId) => {
+    try {
+      setAuditLoading(true);
+      const logs = await authRequest(`/api/audit?entity=Wallet&entityId=${walletId}`);
+      setAuditLogs(logs.slice(0, 5));
+    } catch (err) {
+      console.error(err);
+      setAuditLogs([]);
+    } finally {
+      setAuditLoading(false);
+    }
+  };
+
+  const openEditModal = async (wallet) => {
     setSelectedWallet(wallet);
     setFormData({
       walletName: wallet.walletName,
@@ -187,6 +203,7 @@ function Wallets() {
       currency: wallet.currency
     });
     setEditModalOpen(true);
+    await loadAuditLogs(wallet.id);
   };
 
   const formatCurrency = (amount) => {
@@ -393,9 +410,12 @@ function Wallets() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">
+                      <Link
+                        to={`/wallets/${wallet.id}`}
+                        className="text-sm font-medium text-slate-900 transition hover:text-brand-600 dark:text-white dark:hover:text-brand-400"
+                      >
                         {wallet.walletName}
-                      </div>
+                      </Link>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -438,6 +458,16 @@ function Wallets() {
                           </svg>
                         </button>
                         
+                        <Link
+                          to={`/wallets/${wallet.id}`}
+                          className="rounded-lg p-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                          title="Ver carteira"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </Link>
                         <button
                           onClick={() => openEditModal(wallet)}
                           className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"
@@ -447,7 +477,7 @@ function Wallets() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
-                        
+
                         <button
                           onClick={() => handleDelete(wallet)}
                           className="rounded-lg p-2 text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
@@ -653,6 +683,29 @@ function Wallets() {
                     <option value="USD">Dólar Americano (USD)</option>
                     <option value="EUR">Euro (EUR)</option>
                   </select>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Atividades Recentes</h3>
+                    {auditLoading && <span className="text-xs text-slate-500">Carregando...</span>}
+                  </div>
+
+                  {!auditLoading && auditLogs.length === 0 && (
+                    <p className="text-sm text-slate-500">Nenhuma atividade recente encontrada para esta carteira.</p>
+                  )}
+
+                  {!auditLoading && auditLogs.length > 0 && (
+                    <div className="space-y-3">
+                      {auditLogs.map((log) => (
+                        <div key={log.id} className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                          <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{log.action}</p>
+                          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{new Date(log.createdAt).toLocaleString()}</p>
+                          <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{log.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

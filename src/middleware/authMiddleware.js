@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const { tokenBlacklist } = require('../controllers/AuthController');
+const { User } = require('../models');
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
 
   if (!header) {
@@ -19,6 +20,15 @@ function authMiddleware(req, res, next) {
 
     req.user = decoded;
     req.token = token;
+
+    if (!req.user.roleId) {
+      const user = await User.findByPk(req.user.userId, {
+        attributes: ['roleId']
+      });
+      if (user) {
+        req.user.roleId = user.roleId;
+      }
+    }
 
     next();
   } catch (err) {

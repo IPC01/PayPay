@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { User } = require('../models');
+const { User, Role } = require('../models');
 
 class AuthService {
 
@@ -13,11 +13,13 @@ class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+    const userRole = await Role.findOne({ where: { name: 'user' } });
 
     const user = await User.create({
       name,
       email,
-      passwordHash
+      passwordHash,
+      roleId: userRole ? userRole.id : 2
     });
 
     return {
@@ -43,7 +45,8 @@ class AuthService {
     const token = jwt.sign(
       {
         userId: user.id,
-        email: user.email
+        email: user.email,
+        roleId: user.roleId
       },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }

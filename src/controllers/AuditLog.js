@@ -4,7 +4,19 @@ class AuditLogController {
 
   async list(req, res) {
     try {
+      const { entity, entityId } = req.query;
+      const where = {};
+
+      if (entity) {
+        where.entity = entity;
+      }
+
+      if (entityId) {
+        where.entityId = entityId;
+      }
+
       const logs = await AuditLog.findAll({
+        where,
         order: [['createdAt', 'DESC']]
       });
 

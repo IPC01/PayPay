@@ -7,7 +7,7 @@ class UserController {
   async getAll(req, res) {
     try {
       const users = await User.findAll({
-        attributes: ['id', 'name', 'email', 'createdAt'],
+        attributes: ['id', 'name', 'email', 'createdAt', 'isActive'],
         include: [
           {
             model: Role,
@@ -37,7 +37,7 @@ class UserController {
       const { id } = req.params;
 
       const user = await User.findByPk(id, {
-        attributes: ['id', 'name', 'email'],
+        attributes: ['id', 'name', 'email', 'isActive'],
         include: [
           {
             model: Role,
@@ -69,7 +69,7 @@ class UserController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { name, email, roleId, profilePhotoBase64 } = req.body;
+      const { name, email, roleId, profilePhotoBase64, isActive } = req.body;
 
       const user = await User.findByPk(id);
 
@@ -92,6 +92,7 @@ class UserController {
         name: name || user.name,
         email: email || user.email,
         roleId: roleId || user.roleId,
+        isActive: typeof isActive !== 'undefined' ? isActive : user.isActive,
         profilePhotoUrl: user.profilePhotoUrl
       });
 

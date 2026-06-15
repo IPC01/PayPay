@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UiProvider } from './contexts/UiContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Notifications from './components/Notifications';
@@ -14,11 +14,27 @@ import Transactions from './client/Transactions';
 import Tickets from './client/Tickets';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
+import AdminUserDetails from './admin/AdminUserDetails';
 import AdminWallets from './admin/AdminWallets';
 import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
 import Layout from './components/Layout';
+import WalletDetails from './client/WalletDetails';
 import RequireAdmin from './components/RequireAdmin';
+
+function HomeRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (user?.roleId === 1) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <Dashboard />;
+}
 
 function App() {
   return (
@@ -31,7 +47,7 @@ function App() {
             path="/"
             element={
               <RequireAuth>
-                <Dashboard />
+                <HomeRoute />
               </RequireAuth>
             }
           />
@@ -40,6 +56,14 @@ function App() {
             element={
               <RequireAuth>
                 <Wallet />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/wallets/:id"
+            element={
+              <RequireAuth>
+                <WalletDetails />
               </RequireAuth>
             }
           />
@@ -75,6 +99,16 @@ function App() {
               <RequireAuth>
                 <RequireAdmin>
                   <AdminUsers />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/users/:id"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminUserDetails />
                 </RequireAdmin>
               </RequireAuth>
             }

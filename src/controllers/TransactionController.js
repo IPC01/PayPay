@@ -25,13 +25,24 @@ class TransactionController {
   async getUserTransactions(req, res) {
     try {
       const userId = req.user.userId;
+      const { walletId } = req.query;
 
-      const wallets = await Wallet.findAll({
-        where: { userId },
-        attributes: ['walletCode']
-      });
+      let walletCodes;
 
-      const walletCodes = wallets.map(wallet => wallet.walletCode);
+      if (walletId) {
+        const wallet = await Wallet.findOne({ where: { id: walletId, userId } });
+        if (!wallet) {
+          return res.json([]);
+        }
+        walletCodes = [wallet.walletCode];
+      } else {
+        const wallets = await Wallet.findAll({
+          where: { userId },
+          attributes: ['walletCode']
+        });
+
+        walletCodes = wallets.map((wallet) => wallet.walletCode);
+      }
 
       if (walletCodes.length === 0) {
         return res.json([]);

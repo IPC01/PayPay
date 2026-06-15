@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
@@ -12,89 +12,90 @@ function Layout({ children }) {
   const { user, logout } = useAuth();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
 
-  // Fechar dropdown ao clicar fora
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Obter iniciais do usuário
   const getUserInitials = () => {
     if (!user?.name) return 'U';
     return user.name
       .split(' ')
-      .map(word => word[0])
+      .map((word) => word[0])
       .join('')
       .toUpperCase()
       .slice(0, 2);
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+          {children}
+        </main>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          {/* Logo e Nome do Sistema - Canto Esquerdo */}
-          <div className="flex items-center gap-3">
-            {user && (
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(prev => !prev)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm transition hover:border-brand-300 hover:text-brand-700 md:hidden"
-              >
-                <span className="sr-only">Abrir menu</span>
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 7h16M4 12h16M4 17h16" />
-                </svg>
-              </button>
-            )}
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
-                  Payments System
-                </p>
-                <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Gestão Financeira
-                </h1>
+    <div className="min-h-screen flex bg-slate-50 dark:bg-slate-900">
+      <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
+
+      <div className="flex min-h-screen flex-1 flex-col">
+        <header className="sticky top-0 z-30 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-3">
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => setSidebarOpen((prev) => !prev)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm transition hover:border-brand-300 hover:text-brand-700 md:hidden"
+                >
+                  <span className="sr-only">Abrir menu</span>
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 7h16M4 12h16M4 17h16" />
+                  </svg>
+                </button>
+              )}
+              <div className="flex items-center gap-2">
+              
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
+                  </p>
+                  <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  </h1>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Dropdown de Perfil - Canto Direito */}
-          {user && (
             <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                type="button"
+                onClick={() => setDropdownOpen((prev) => !prev)}
                 className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-slate-100 dark:hover:bg-slate-800"
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
-                  <span className="text-sm font-semibold">
-                    {getUserInitials()}
-                  </span>
-                </div>
-                <div className="hidden text-left sm:block">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-md">
+                  {getUserInitials()}
+                </span>
+                <span className="hidden text-left sm:block">
+                  <span className="block text-sm font-medium text-slate-900 dark:text-white">
                     {user?.name?.split(' ')[0] || 'Usuário'}
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  </span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">
                     {user?.email}
-                  </p>
-                </div>
+                  </span>
+                </span>
                 <svg className={`h-4 w-4 text-slate-400 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="border-b border-slate-200 dark:border-slate-700 p-3">
@@ -107,7 +108,6 @@ function Layout({ children }) {
                   </div>
 
                   <div className="p-2">
-                    {/* Perfil */}
                     <NavLink
                       to="/profile"
                       onClick={() => setDropdownOpen(false)}
@@ -119,13 +119,13 @@ function Layout({ children }) {
                       <span>Meu Perfil</span>
                     </NavLink>
 
-                    {/* Modo Dark/Light */}
                     <button
+                      type="button"
                       onClick={() => {
                         toggleTheme();
                         setDropdownOpen(false);
                       }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
                       <div className="flex items-center gap-3">
                         {theme === 'light' ? (
@@ -144,13 +144,13 @@ function Layout({ children }) {
                       </div>
                     </button>
 
-                    {/* Idioma */}
                     <button
+                      type="button"
                       onClick={() => {
                         toggleLanguage();
                         setDropdownOpen(false);
                       }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                      className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-slate-700 dark:text-slate-300 transition hover:bg-slate-100 dark:hover:bg-slate-700"
                     >
                       <div className="flex items-center gap-3">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -165,16 +165,15 @@ function Layout({ children }) {
                       </div>
                     </button>
 
-                    {/* Divider */}
-                    <div className="my-2 border-t border-slate-200 dark:border-slate-700"></div>
+                    <div className="my-2 border-t border-slate-200 dark:border-slate-700" />
 
-                    {/* Sair */}
                     <button
+                      type="button"
                       onClick={() => {
                         logout();
                         setDropdownOpen(false);
                       }}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950"
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 dark:text-red-400 transition hover:bg-red-50 dark:hover:bg-red-950"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -185,32 +184,19 @@ function Layout({ children }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </header>
+          </div>
+        </header>
 
-      <div className="flex flex-1">
-        {user ? (
-          <>
-            <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-            <main className="flex-1">
-              <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                <div className="rounded-2xl bg-white dark:bg-slate-800/50 shadow-sm p-6">
-                  {children}
-                </div>
-              </div>
-            </main>
-          </>
-        ) : (
-          <main className="flex-1">
-            <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+            <div className="rounded-2xl bg-white dark:bg-slate-800/50 shadow-sm p-6">
               {children}
             </div>
-          </main>
-        )}
-      </div>
+          </div>
+        </main>
 
-      <Footer />
+        <Footer />
+      </div>
     </div>
   );
 }
