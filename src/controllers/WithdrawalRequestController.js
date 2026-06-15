@@ -6,15 +6,29 @@ class WithdrawalRequestController {
   async create(req, res) {
     try {
       const userId = req.user.userId;
-      const { walletId, amount, phone, note } = req.body;
+      const {
+        walletId,
+        amount,
+        phone,
+        phoneNumber,
+        note,
+        notes
+      } = req.body;
 
-      if (!walletId || !amount || !phone) {
+      const requestedPhone = phone || phoneNumber;
+      const requestedNote = note || notes;
+
+      if (!walletId || !amount || !requestedPhone) {
         return res.status(400).json({ error: 'walletId, amount and phone are required' });
       }
 
-      const wallet = await Wallet.findOne({ where: { id: walletId, userId } });
+      const wallet = await Wallet.findByPk(walletId);
       if (!wallet) {
         return res.status(404).json({ error: 'Wallet not found' });
+      }
+
+      if (wallet.userId !== userId) {
+        return res.status(403).json({ error: 'You are not allowed to request withdrawals for this wallet' });
       }
 
       if (wallet.status !== 'ACTIVE') {
@@ -29,8 +43,8 @@ class WithdrawalRequestController {
         walletId,
         userId,
         amount,
-        phone,
-        note: note || null,
+        phone: requestedPhone,
+        note: requestedNote || null,
         status: 'pending'
       });
 

@@ -36,7 +36,7 @@ function Sidebar({ open, setOpen }) {
   const isAdmin = user?.roleId === 1;
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-40 transform overflow-y-auto border-r border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl transition-all duration-300 md:static md:h-screen md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'w-20' : 'w-80'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-40 transform overflow-y-auto border-r border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl transition-all duration-300 md:fixed md:h-screen md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'w-20' : 'w-80'}`}>
       <div className="flex h-full flex-col">
         {/* Header do Sidebar */}
         <div className="border-b border-slate-200 dark:border-slate-700 p-4">
@@ -269,6 +269,23 @@ function Sidebar({ open, setOpen }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18" />
                 </svg>
                 {!collapsed && 'Transações'}
+              </NavLink>
+
+              <NavLink
+                to="/admin/withdrawals"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {!collapsed && 'Saques'}
               </NavLink>
 
               <NavLink

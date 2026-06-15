@@ -101,6 +101,8 @@ module.exports = {
   AuditLog,
   Ledger,
   Transaction,
+  Ticket,
+  TicketMessage,
   WithdrawalRequest,
   Notification
 };

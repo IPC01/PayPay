@@ -17,6 +17,12 @@ function NotificationsPage() {
       setLoading(true);
       const data = await authRequest('/api/notifications');
       setNotifications(data);
+      notify({
+        type: 'info',
+        title: 'Notificações',
+        message: data.length > 0 ? `Você tem ${data.length} notificações.` : 'Nenhuma notificação nova no momento.',
+        duration: 4000
+      });
     } catch (err) {
       console.error(err);
       notify({

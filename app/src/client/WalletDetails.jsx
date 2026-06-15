@@ -26,13 +26,13 @@ import { getWalletTypeLogo } from '../helpers/walletTypeLogos';
 function WalletDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { authRequest } = useAuth();
+  const { user, authRequest } = useAuth();
   const { notify } = useNotification();
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('week'); // week, month, year
-  const [withdrawData, setWithdrawData] = useState({ amount: '', phoneNumber: '', notes: '' });
+  const [withdrawData, setWithdrawData] = useState({ amount: '', phone: '', note: '' });
   const [submittingWithdraw, setSubmittingWithdraw] = useState(false);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ function WalletDetails() {
 
   const handleWithdrawRequest = async (event) => {
     event.preventDefault();
-    if (!withdrawData.amount || !withdrawData.phoneNumber) {
+    if (!withdrawData.amount || !withdrawData.phone) {
       notify({ type: 'error', title: 'Dados obrigatórios', message: 'Informe o valor e o número de telefone.' });
       return;
     }
@@ -76,13 +76,13 @@ function WalletDetails() {
         body: {
           walletId: wallet.id,
           amount: Number(withdrawData.amount),
-          phoneNumber: withdrawData.phoneNumber,
-          notes: withdrawData.notes
+          phone: withdrawData.phone,
+          note: withdrawData.note
         }
       });
 
       notify({ type: 'success', title: 'Pedido enviado', message: 'Seu pedido de saque foi enviado para aprovação.' });
-      setWithdrawData({ amount: '', phoneNumber: '', notes: '' });
+      setWithdrawData({ amount: '', phone: '', note: '' });
     } catch (err) {
       console.error(err);
       notify({ type: 'error', title: 'Falha ao solicitar saque', message: err.message || 'Não foi possível enviar o pedido de saque.' });
@@ -144,6 +144,7 @@ function WalletDetails() {
 
   const statusLabel = wallet?.status === 'ACTIVE' ? 'Ativa' : wallet?.status === 'FROZEN' ? 'Congelada' : 'Fechada';
   const statusColor = wallet?.status === 'ACTIVE' ? 'green' : wallet?.status === 'FROZEN' ? 'yellow' : 'gray';
+  const isWalletOwner = wallet?.userId === user?.userId;
 
   // Dados para gráfico de pizza
   const pieData = useMemo(() => [
@@ -213,8 +214,19 @@ function WalletDetails() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-600">Carteira</p>
           <div className="flex items-center gap-3 mt-2">
-            {getWalletTypeLogo(wallet.WalletType?.name)}
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{wallet.walletName}</h1>
+            {wallet.WalletType ? (
+              <img
+                src={getWalletTypeLogo({ imageUrl: wallet.WalletType.imageUrl, code: wallet.WalletType.code })}
+                alt={wallet.WalletType.name}
+                className="h-10 w-10 rounded-2xl object-contain"
+              />
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300">?</div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{wallet.walletName}</h1>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{wallet.WalletType?.name || 'Tipo desconhecido'}</p>
+            </div>
           </div>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Código: {wallet.walletCode}</p>
         </div>
@@ -232,7 +244,7 @@ function WalletDetails() {
         </div>
       </div>
 
-      {wallet.allowWithdraw && wallet.status === 'ACTIVE' && (
+      {wallet.allowWithdraw && wallet.status === 'ACTIVE' && wallet.userId === user?.userId && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -259,8 +271,8 @@ function WalletDetails() {
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Número</span>
               <input
                 type="tel"
-                value={withdrawData.phoneNumber}
-                onChange={(e) => setWithdrawData((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                value={withdrawData.phone}
+                onChange={(e) => setWithdrawData((prev) => ({ ...prev, phone: e.target.value }))}
                 placeholder="+258 82 123 4567"
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 required
@@ -270,8 +282,8 @@ function WalletDetails() {
               <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Observações</span>
               <textarea
                 rows="3"
-                value={withdrawData.notes}
-                onChange={(e) => setWithdrawData((prev) => ({ ...prev, notes: e.target.value }))}
+                value={withdrawData.note}
+                onChange={(e) => setWithdrawData((prev) => ({ ...prev, note: e.target.value }))}
                 placeholder="Observações opcionais"
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
@@ -286,6 +298,12 @@ function WalletDetails() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {wallet.allowWithdraw && wallet.status === 'ACTIVE' && !isWalletOwner && (
+        <div className="rounded-3xl border border-slate-200 bg-yellow-50 p-6 text-sm text-slate-700 shadow-sm dark:border-slate-700 dark:bg-yellow-900/10 dark:text-yellow-100">
+          Apenas o dono desta carteira pode solicitar um saque.
         </div>
       )}
 
