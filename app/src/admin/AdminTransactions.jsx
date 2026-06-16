@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import Transactions from '../client/Transactions';
 
 function AdminTransactions() {
-  const { authRequest } = useAuth();
-  const [transactions, setTransactions] = useState([]);
+  return <Transactions adminView />;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

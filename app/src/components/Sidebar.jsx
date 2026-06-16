@@ -162,6 +162,24 @@ function Sidebar({ open, setOpen }) {
               </NavLink>
 
               <NavLink
+                to="/kyc"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c4.97 0 9 2.46 9 5.5 0 2.82-3.8 5.17-8.83 5.81a1.5 1.5 0 01-1.34-.5 1.5 1.5 0 01-1.34.5C6.8 13.67 3 11.32 3 8.5 3 5.46 7.03 3 12 3z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 14h6m-3-3v6" />
+                </svg>
+                {!collapsed && 'KYC'}
+              </NavLink>
+
+              <NavLink
                 to="/transactions"
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
@@ -305,6 +323,41 @@ function Sidebar({ open, setOpen }) {
                 </svg>
                 {!collapsed && 'Tickets'}
               </NavLink>
+
+              <NavLink
+                to="/admin/kyc"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6a3 3 0 00-6 0v9" />
+                </svg>
+                {!collapsed && 'KYC'}
+              </NavLink>
+
+              <NavLink
+                to="/admin/settings"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                {!collapsed && 'Definições'}
+              </NavLink>
             </div>
           )}
 
@@ -316,7 +369,7 @@ function Sidebar({ open, setOpen }) {
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-all ${collapsed ? 'justify-center px-2' : ''}`}
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-7 7-7-7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 4h12a2 2 0 012 2v14a1 1 0 01-1.447.894L12 18.118l-6.553 3.776A1 1 0 014 20V6a2 2 0 012-2z" />
             </svg>
             {!collapsed && 'Documentação'}
           </a>

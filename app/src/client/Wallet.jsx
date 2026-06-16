@@ -23,6 +23,24 @@ function Wallets() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const [editTypeDropdownOpen, setEditTypeDropdownOpen] = useState(false);
+  const [kyc, setKyc] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
+
+  async function loadKyc() {
+    try {
+      setKycLoading(true);
+      const data = await authRequest('/api/kyc');
+      const currentKyc = data?.kyc || null;
+      setKyc(currentKyc);
+      return currentKyc;
+    } catch (err) {
+      console.error(err);
+      setKyc(null);
+      return null;
+    } finally {
+      setKycLoading(false);
+    }
+  }
 
   useEffect(() => {
     async function prepare() {
@@ -35,7 +53,12 @@ function Wallets() {
         }
       }).catch(() => {});
 
-      await loadData();
+      const currentKyc = await loadKyc();
+      if (currentKyc?.status === 'APPROVED') {
+        await loadData();
+      } else {
+        setLoading(false);
+      }
     }
 
     prepare();
@@ -258,6 +281,37 @@ function Wallets() {
       </div>
     );
   };
+
+  if (loading || kycLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="text-center text-slate-600 dark:text-slate-300">Carregando dados do KYC...</div>
+      </div>
+    );
+  }
+
+  if (kyc?.status !== 'APPROVED') {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-3xl rounded-3xl border border-red-200 bg-red-50 p-8 text-center shadow-sm dark:border-red-700/40 dark:bg-red-950/20">
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-red-600">Atenção</p>
+          <h1 className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">KYC necessário</h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            Você precisa completar o processo de KYC e aguardar a aprovação antes de acessar suas carteiras.
+          </p>
+          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <a
+              href="/kyc"
+              className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              Completar KYC
+            </a>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Após aprovação, suas carteiras serão liberadas.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const totalBalance = wallets.reduce((sum, wallet) => sum + Number(wallet.balance || 0), 0);
   const activeWallets = wallets.filter(w => w.status === 'active').length;

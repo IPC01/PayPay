@@ -51,6 +51,31 @@ class AuthController {
     }
   }
 
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      const result = await AuthService.forgotPassword(email);
+      return res.json(result);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ error: 'Token and password are required' });
+      }
+
+      const result = await AuthService.resetPassword(token, password);
+      return res.json(result);
+    } catch (err) {
+      return res.status(400).json({ error: err.message });
+    }
+  }
+
   async logout(req, res) {
     try {
       const token = req.headers.authorization?.split(' ')[1];

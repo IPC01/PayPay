@@ -1,11 +1,17 @@
 const { WithdrawalRequest, Wallet, Transaction, Ledger, Notification, User } = require('../models');
 const sequelize = require('../config/database');
 const { createAuditLog } = require('../helpers/auditLogger');
+const { hasApprovedKyc } = require('../helpers/kycHelper');
 
 class WithdrawalRequestController {
   async create(req, res) {
     try {
       const userId = req.user.userId;
+
+      if (!(await hasApprovedKyc(userId))) {
+        return res.status(403).json({ error: 'KYC deve ser aprovado para realizar levantamentos' });
+      }
+
       const {
         walletId,
         amount,

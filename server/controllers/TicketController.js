@@ -180,6 +180,27 @@ class TicketController {
       return res.status(500).json({ error: error.message });
     }
   }
+
+  async deleteTicket(req, res) {
+    try {
+      const { id } = req.params;
+      const ticket = await Ticket.findByPk(id);
+      if (!ticket) {
+        return res.status(404).json({ error: 'Ticket not found' });
+      }
+
+      const isOwner = ticket.userId === req.user.userId;
+      const isAdmin = req.user.roleId === 1;
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      await ticket.destroy();
+      return res.json({ message: 'Ticket deleted successfully' });
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
 }
 
 module.exports = new TicketController();

@@ -30,6 +30,7 @@ function WalletDetails() {
   const { notify } = useNotification();
   const [wallet, setWallet] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [kycStatus, setKycStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('week'); // week, month, year
   const [withdrawData, setWithdrawData] = useState({ amount: '', phone: '', note: '' });
@@ -41,13 +42,15 @@ function WalletDetails() {
     const load = async () => {
       try {
         setLoading(true);
-        const [walletData, txData] = await Promise.all([
+        const [walletData, txData, kycData] = await Promise.all([
           authRequest(`/api/wallets/${id}`),
-          authRequest(`/api/transactions?walletId=${id}`)
+          authRequest(`/api/transactions?walletId=${id}`),
+          authRequest('/api/kyc')
         ]);
 
         setWallet(walletData);
         setTransactions(txData);
+        setKycStatus(kycData?.kyc?.status || 'DRAFT');
       } catch (err) {
         notify({
           type: 'error',
@@ -230,7 +233,16 @@ function WalletDetails() {
           </div>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Código: {wallet.walletCode}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+      </div>
+
+      {kycStatus !== 'APPROVED' && (
+        <div className="rounded-3xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700 dark:border-orange-700/40 dark:bg-orange-950/20 dark:text-orange-200">
+          A sua conta ainda não foi verificada. Complete o KYC para desbloquear carteiras, levantamentos, transferências e integrações API.
+          <Link to="/kyc" className="ml-2 font-semibold text-orange-800 dark:text-orange-100 underline">Ir para KYC</Link>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/wallets"
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition hover:border-brand-300 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
@@ -242,7 +254,6 @@ function WalletDetails() {
             {statusLabel}
           </span>
         </div>
-      </div>
 
       {wallet.allowWithdraw && wallet.status === 'ACTIVE' && wallet.userId === user?.userId && (
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">

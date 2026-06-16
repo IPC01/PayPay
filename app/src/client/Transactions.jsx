@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../helpers/walletTypeLogos';
 
-function Transactions() {
+function Transactions({ adminView = false }) {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
   const [transactions, setTransactions] = useState([]);
@@ -20,7 +20,8 @@ function Transactions() {
   const loadTransactions = async () => {
     try {
       setLoading(true);
-      const data = await authRequest('/api/transactions');
+      const endpoint = adminView ? '/api/admin/transactions' : '/api/transactions';
+      const data = await authRequest(endpoint);
       setTransactions(data);
     } catch (err) {
       console.error(err);
@@ -163,9 +164,9 @@ function Transactions() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Transações</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{adminView ? 'Transações da Plataforma' : 'Transações'}</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Gerencie e acompanhe todas as transações do sistema
+            {adminView ? 'Visualize todas as transações do sistema' : 'Gerencie e acompanhe suas transações pessoais'}
           </p>
         </div>
         <button

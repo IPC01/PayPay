@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import api from '../services/api';
@@ -16,13 +17,39 @@ function ApiKeys() {
     expiresIn: '30'
   });
   const [availableScopes, setAvailableScopes] = useState([]);
-  const { user } = useAuth();
+  const [kyc, setKyc] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
+  const { user, authRequest } = useAuth();
   const { notify } = useNotification();
 
   useEffect(() => {
-    fetchApiKeys();
-    fetchAvailableScopes();
+    async function init() {
+      const currentKyc = await loadKyc();
+      if (currentKyc?.status === 'APPROVED') {
+        await Promise.all([fetchApiKeys(), fetchAvailableScopes()]);
+      } else {
+        setLoading(false);
+      }
+    }
+
+    init();
   }, []);
+
+  const loadKyc = async () => {
+    try {
+      setKycLoading(true);
+      const response = await authRequest('/api/kyc');
+      const currentKyc = response?.kyc || null;
+      setKyc(currentKyc);
+      return currentKyc;
+    } catch (error) {
+      console.error('Erro ao carregar KYC:', error);
+      setKyc(null);
+      return null;
+    } finally {
+      setKycLoading(false);
+    }
+  };
 
   const fetchAvailableScopes = async () => {
     try {
@@ -177,6 +204,37 @@ function ApiKeys() {
     }
     return <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">Ativa</span>;
   };
+
+  if (kycLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-900">
+        <div className="text-center text-slate-600 dark:text-slate-300">Carregando dados do KYC...</div>
+      </div>
+    );
+  }
+
+  if (kyc?.status !== 'APPROVED') {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-3xl rounded-3xl border border-red-200 bg-red-50 p-8 text-center shadow-sm dark:border-red-700/40 dark:bg-red-950/20">
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-red-600">Atenção</p>
+          <h1 className="mt-4 text-3xl font-bold text-slate-900 dark:text-white">KYC necessário</h1>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            Você precisa completar o KYC e ser aprovado antes de criar ou gerenciar chaves de acesso.
+          </p>
+          <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Link
+              to="/kyc"
+              className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+            >
+              Ir para KYC
+            </Link>
+            <span className="text-sm text-slate-600 dark:text-slate-400">Após aprovação, você terá acesso à criação de chaves.</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

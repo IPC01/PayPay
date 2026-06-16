@@ -13,6 +13,7 @@ function Dashboard() {
   const [wallets, setWallets] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [kycStatus, setKycStatus] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
 
   const actions = [
@@ -28,12 +29,14 @@ function Dashboard() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [walletsData, transactionsData] = await Promise.all([
+      const [walletsData, transactionsData, kycData] = await Promise.all([
         authRequest('/api/wallets'),
-        authRequest('/api/transactions')
+        authRequest('/api/transactions'),
+        authRequest('/api/kyc')
       ]);
       setWallets(walletsData);
       setTransactions(transactionsData || []);
+      setKycStatus(kycData?.kyc?.status || 'DRAFT');
     } catch (err) {
       console.error(err);
     } finally {
@@ -171,6 +174,14 @@ function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      {kycStatus !== 'APPROVED' && (
+        <div className="rounded-3xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700 dark:border-orange-700/40 dark:bg-orange-950/20 dark:text-orange-200">
+          A sua conta ainda não foi verificada. Complete o KYC para desbloquear carteiras, levantamentos, transferências e integrações API.
+          <Link to="/kyc" className="ml-2 font-semibold text-orange-800 dark:text-orange-100 underline">
+            Ir para KYC
+          </Link>
+        </div>
+      )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">

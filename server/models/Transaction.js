@@ -38,6 +38,11 @@ Transaction.init(
       allowNull: false
     },
 
+    paymentMode: {
+      type: DataTypes.ENUM('C2B', 'B2C'),
+      allowNull: true
+    },
+
     status: {
       type: DataTypes.STRING,
       defaultValue: 'pending'

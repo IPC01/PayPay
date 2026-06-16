@@ -14,6 +14,14 @@ router.post('/login', (req, res) =>
   AuthController.login(req, res)
 );
 
+// PASSWORD RECOVERY
+router.post('/forgot-password', (req, res) =>
+  AuthController.forgotPassword(req, res)
+);
+router.post('/reset-password', (req, res) =>
+  AuthController.resetPassword(req, res)
+);
+
 // LOGOUT (precisa estar autenticado)
 router.post('/logout', authMiddleware, (req, res) =>
   AuthController.logout(req, res)

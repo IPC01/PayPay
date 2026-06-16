@@ -10,6 +10,7 @@ function Tickets() {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [replyText, setReplyText] = useState('');
@@ -119,6 +120,30 @@ function Tickets() {
     }
   };
 
+  const deleteTicket = async (ticketId) => {
+    if (!window.confirm('Tem certeza que deseja excluir este ticket?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(ticketId);
+      await authRequest(`/api/tickets/${ticketId}`, { method: 'DELETE' });
+      setTickets((prev) => prev.filter((ticket) => ticket.id !== ticketId));
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(null);
+      }
+    } catch (err) {
+      console.error(err);
+      notify({
+        type: 'error',
+        title: 'Erro ao excluir',
+        message: err.message || 'Não foi possível excluir o ticket.'
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -184,20 +209,39 @@ function Tickets() {
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">Nenhum ticket encontrado.</div>
             ) : (
               tickets.map((ticket) => (
-                <button
+                <div
                   key={ticket.id}
-                  type="button"
-                  onClick={() => openTicket(ticket)}
-                  className={`w-full rounded-3xl border px-4 py-4 text-left transition ${selectedTicket?.id === ticket.id ? 'border-brand-500 bg-brand-50 dark:border-brand-500/40 dark:bg-brand-900/30' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800'} hover:border-brand-300 hover:bg-slate-50 dark:hover:border-brand-500/40 dark:hover:bg-slate-900/70`}
+                  className={`rounded-3xl border ${selectedTicket?.id === ticket.id ? 'border-brand-500 bg-brand-50 dark:border-brand-500/40 dark:bg-brand-900/30' : 'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800'} shadow-sm transition hover:border-brand-300 hover:bg-slate-50 dark:hover:border-brand-500/40 dark:hover:bg-slate-900/70`}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{ticket.subject}</p>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{ticket.status}</p>
+                  <button
+                    type="button"
+                    onClick={() => openTicket(ticket)}
+                    className="w-full text-left px-4 py-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">{ticket.subject}</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{ticket.status}</p>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">{ticket.priority}</span>
                     </div>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-700 dark:text-slate-200">{ticket.priority}</span>
+                  </button>
+                  <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => openTicket(ticket)}
+                      className="rounded-2xl border border-brand-600 bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/40 dark:bg-brand-900/20 dark:text-brand-200"
+                    >Ver</button>
+                    <button
+                      type="button"
+                      onClick={() => deleteTicket(ticket.id)}
+                      disabled={deletingId === ticket.id}
+                      className="rounded-2xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:bg-slate-800 dark:text-red-300 dark:hover:bg-red-900/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {deletingId === ticket.id ? 'Eliminando…' : 'Eliminar'}
+                    </button>
                   </div>
-                </button>
+                </div>
               ))
             )}
           </div>

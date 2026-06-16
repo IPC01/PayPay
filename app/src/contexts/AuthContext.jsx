@@ -58,6 +58,24 @@ export function AuthProvider({ children }) {
     return data;
   }, []);
 
+  const forgotPassword = useCallback(async (email) => {
+    const data = await request('/api/auth/forgot-password', {
+      method: 'POST',
+      body: { email }
+    });
+
+    return data;
+  }, []);
+
+  const resetPassword = useCallback(async (token, password) => {
+    const data = await request('/api/auth/reset-password', {
+      method: 'POST',
+      body: { token, password }
+    });
+
+    return data;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       if (token) {
@@ -92,7 +110,7 @@ export function AuthProvider({ children }) {
   );
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, error, login, logout, register, authRequest, refreshUser }}>
+    <AuthContext.Provider value={{ token, user, loading, error, login, logout, register, forgotPassword, resetPassword, authRequest, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

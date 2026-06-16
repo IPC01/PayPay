@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
 function Profile() {
   const { user, authRequest } = useAuth();
   const { notify } = useNotification();
+  const [kycStatus, setKycStatus] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -65,6 +66,19 @@ function Profile() {
       setIsChangingPassword(false);
     }
   };
+
+  useEffect(() => {
+    const loadKyc = async () => {
+      try {
+        const response = await authRequest('/api/kyc');
+        setKycStatus(response?.kyc?.status || 'DRAFT');
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadKyc();
+  }, [authRequest]);
 
   const handleDeleteAccount = async () => {
     if (window.confirm('Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.')) {
@@ -133,6 +147,9 @@ function Profile() {
         </div>
         <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
           {user?.role === 'admin' ? 'Administrador' : 'Utilizador'}
+        </div>
+        <div className={`rounded-full px-3 py-1 text-xs font-medium ${kycStatus === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
+          {kycStatus === 'APPROVED' ? 'KYC aprovado' : kycStatus ? `KYC ${kycStatus.toLowerCase()}` : 'KYC pendente'}
         </div>
       </div>
 

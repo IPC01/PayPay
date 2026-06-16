@@ -13,6 +13,9 @@ const Ticket = require('./Ticket');
 const TicketMessage = require('./TicketMessage');
 const WithdrawalRequest = require('./WithdrawalRequest');
 const Notification = require('./Notification');
+const Kyc = require('./Kyc');
+const KycDocument = require('./KycDocument');
+const Setting = require('./Setting');
 
 
 // RELAÇÕES
@@ -65,6 +68,22 @@ TicketMessage.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+User.hasMany(Kyc, {
+  foreignKey: 'userId'
+});
+
+Kyc.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
+Kyc.hasMany(KycDocument, {
+  foreignKey: 'kycId'
+});
+
+KycDocument.belongsTo(Kyc, {
+  foreignKey: 'kycId'
+});
+
 User.hasMany(WithdrawalRequest, {
   foreignKey: 'userId'
 });
@@ -104,5 +123,8 @@ module.exports = {
   Ticket,
   TicketMessage,
   WithdrawalRequest,
-  Notification
+  Notification,
+  Kyc,
+  KycDocument,
+  Setting
 };

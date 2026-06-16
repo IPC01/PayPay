@@ -11,6 +11,8 @@ class TransactionController {
         fromWalletId,
         toWalletId,
         amount,
+        type: req.body.type || 'payment',
+        paymentMode: req.body.paymentMode || null,
         apiKeyId,
         status: 'pending'
       });

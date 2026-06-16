@@ -19,9 +19,14 @@ import AdminWallets from './admin/AdminWallets';
 import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
 import AdminWithdrawals from './admin/AdminWithdrawals';
+import AdminKyc from './admin/AdminKyc';
+import AdminSettings from './admin/AdminSettings';
 import Layout from './components/Layout';
 import NotificationsPage from './client/NotificationsPage';
 import WalletDetails from './client/WalletDetails';
+import Kyc from './client/Kyc';
+import ForgotPassword from './client/ForgotPassword';
+import ResetPassword from './client/ResetPassword';
 import RequireAdmin from './components/RequireAdmin';
 
 function HomeRoute() {
@@ -82,6 +87,14 @@ function App() {
             element={
               <RequireAuth>
                 <Tickets />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/kyc"
+            element={
+              <RequireAuth>
+                <Kyc />
               </RequireAuth>
             }
           />
@@ -179,6 +192,28 @@ function App() {
               </RequireAuth>
             }
           />
+          <Route
+            path="/admin/kyc"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminKyc />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminSettings />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<Navigate to="/" replace />} />

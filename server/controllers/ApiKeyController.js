@@ -5,6 +5,7 @@ const {
   ApiKeyScope,
   Permission
 } = require('../models');
+const { hasApprovedKyc } = require('../helpers/kycHelper');
 
 class ApiKeyController {
 
@@ -12,6 +13,10 @@ class ApiKeyController {
     try {
 
       const userId = req.user.userId;
+
+      if (!(await hasApprovedKyc(userId))) {
+        return res.status(403).json({ error: 'KYC deve ser aprovado para criar chaves de API' });
+      }
 
       const {
         name,

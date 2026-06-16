@@ -57,6 +57,57 @@ class AuthService {
       userId: user.id
     };
   }
+
+  async forgotPassword(email) {
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      return {
+        message: 'If this email is registered, a password reset token was generated.'
+      };
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        action: 'password_reset'
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    return {
+      message: 'Password reset token generated.',
+      resetToken: token
+    };
+  }
+
+  async resetPassword(token, newPassword) {
+    let payload;
+
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      throw new Error('Token inválido ou expirado');
+    }
+
+    if (!payload || payload.action !== 'password_reset' || !payload.userId) {
+      throw new Error('Token inválido');
+    }
+
+    const user = await User.findByPk(payload.userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    user.passwordHash = passwordHash;
+    await user.save();
+
+    return {
+      message: 'Password updated successfully'
+    };
+  }
 }
 
 module.exports = new AuthService();

@@ -1,5 +1,5 @@
 ﻿import { useState, useRef, useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
 import Sidebar from './Sidebar';
@@ -13,6 +13,7 @@ function Layout({ children }) {
   const { user, logout, authRequest } = useAuth();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const location = useLocation();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -28,6 +29,11 @@ function Layout({ children }) {
   useEffect(() => {
     const loadUnreadNotifications = async () => {
       try {
+        if (location.pathname === '/notifications') {
+          setUnreadNotifications(0);
+          return;
+        }
+
         const notifications = await authRequest('/api/notifications');
         setUnreadNotifications(notifications.filter((notification) => !notification.read).length);
       } catch (error) {
@@ -36,7 +42,7 @@ function Layout({ children }) {
     };
 
     loadUnreadNotifications();
-  }, [authRequest]);
+  }, [authRequest, location.pathname]);
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';

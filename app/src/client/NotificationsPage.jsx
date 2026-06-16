@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
 function NotificationsPage() {
-  const { authRequest } = useAuth();
+  const navigate = useNavigate();
+  const { authRequest, user } = useAuth();
   const { notify } = useNotification();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +19,7 @@ function NotificationsPage() {
       setLoading(true);
       const data = await authRequest('/api/notifications');
       setNotifications(data);
+
       if (data.length > 0) {
         notify({
           type: 'info',
@@ -24,6 +27,19 @@ function NotificationsPage() {
           message: `Você tem ${data.length} notificações.`,
           duration: 4000
         });
+      }
+
+      const unreadItems = data.filter((notification) => !notification.read);
+      if (unreadItems.length > 0) {
+        await Promise.allSettled(
+          unreadItems.map((notification) =>
+            authRequest(`/api/notifications/${notification.id}/read`, {
+              method: 'PATCH'
+            })
+          )
+        );
+
+        setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
       }
     } catch (err) {
       console.error(err);
@@ -58,6 +74,28 @@ function NotificationsPage() {
     }
   };
 
+  const getNotificationPath = (notification) => {
+    const text = `${notification.title} ${notification.message}`.toLowerCase();
+
+    if (text.includes('kyc')) {
+      return '/kyc';
+    }
+    if (text.includes('ticket')) {
+      return '/tickets';
+    }
+    if (text.includes('saque') || text.includes('withdrawal') || text.includes('retirada')) {
+      return user?.roleId === 1 ? '/admin/withdrawals' : '/wallets';
+    }
+    return '/';
+  };
+
+  const handleNotificationClick = async (notification) => {
+    if (!notification.read) {
+      await markRead(notification.id);
+    }
+    navigate(getNotificationPath(notification));
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -76,7 +114,12 @@ function NotificationsPage() {
             <div className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar notificações...</div>
           ) : (
             notifications.map((notification) => (
-              <div key={notification.id} className={`px-6 py-5 ${notification.read ? 'bg-slate-50 dark:bg-slate-900/50' : 'bg-slate-100 dark:bg-slate-800'}`}>
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => handleNotificationClick(notification)}
+                className={`w-full text-left px-6 py-5 transition ${notification.read ? 'bg-slate-50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`}
+              >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-900 dark:text-white">{notification.title}</p>
@@ -85,16 +128,11 @@ function NotificationsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(notification.createdAt).toLocaleString('pt-PT')}</span>
                     {!notification.read && (
-                      <button
-                        onClick={() => markRead(notification.id)}
-                        className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white transition hover:bg-brand-700"
-                      >
-                        Marcar como lida
-                      </button>
+                      <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white">Novo</span>
                     )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>

@@ -2,6 +2,7 @@ const { Op } = require('sequelize');
 const { Wallet, WalletType, Notification } = require('../models');
 const generateUniqueCode = require('../helpers/generateCode');
 const { createAuditLog } = require('../helpers/auditLogger');
+const { hasApprovedKyc } = require('../helpers/kycHelper');
 
 class WalletController {
 
@@ -9,6 +10,11 @@ class WalletController {
   async create(req, res) {
     try {
       const userId = req.user.userId;
+
+      if (!(await hasApprovedKyc(userId))) {
+        return res.status(403).json({ error: 'KYC deve ser aprovado para criar novas carteiras' });
+      }
+
       const { walletName, walletTypeId, currency, allowC2B, allowB2C, allowWithdraw } = req.body;
 
       // validar wallet type
