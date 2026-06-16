@@ -33,7 +33,27 @@ function Sidebar({ open, setOpen }) {
       .slice(0, 2);
   };
 
+  const [legalPages, setLegalPages] = useState([]);
   const isAdmin = user?.roleId === 1;
+
+  useEffect(() => {
+    const loadLegalPages = async () => {
+      if (isAdmin) return;
+      try {
+        const response = await fetch(`${API_BASE}/api/legal-pages`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        setLegalPages(data);
+      } catch (error) {
+        console.error('Unable to load legal pages', error);
+      }
+    };
+    loadLegalPages();
+  }, [isAdmin]);
 
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 transform overflow-y-auto border-r border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xl transition-all duration-300 md:fixed md:h-screen md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'} ${collapsed ? 'w-20' : 'w-80'}`}>
@@ -213,6 +233,64 @@ function Sidebar({ open, setOpen }) {
                 </svg>
                 {!collapsed && 'Notificações'}
               </NavLink>
+
+              <NavLink
+                to="/company-info"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3C7.03 3 3 5.46 3 8.5c0 2.82 3.8 5.17 8.83 5.81a1.5 1.5 0 011.34.5 1.5 1.5 0 011.34-.5C20.2 13.67 24 11.32 24 8.5 24 5.46 19.97 3 15 3z" />
+                  <path d="M12 12c-2.5 0-4.5 1.12-5.63 2.88L6 19h12l-.37-4.12C16.5 13.12 14.5 12 12 12z" />
+                </svg>
+                {!collapsed && 'Info Empresa'}
+              </NavLink>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900">
+                <NavLink
+                  to="/legal"
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                      isActive 
+                        ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                    } ${collapsed ? 'justify-center px-2' : ''}`
+                  }
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16v16H4z" />
+                    <path d="M8 7h8M8 11h8M8 15h5" />
+                  </svg>
+                  {!collapsed && 'Documentos Legais'}
+                </NavLink>
+                {!collapsed && legalPages.length > 0 && (
+                  <div className="mt-2 space-y-1 px-4">
+                    {legalPages.map((page) => (
+                      <NavLink
+                        key={page.slug}
+                        to={`/legal/${page.slug}`}
+                        onClick={() => setOpen(false)}
+                        className={({ isActive }) =>
+                          `block rounded-xl px-3 py-2 text-sm transition ${
+                            isActive
+                              ? 'bg-brand-600 text-white'
+                              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                          }`
+                        }
+                      >
+                        {page.title}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
             </>
           )}
 
@@ -340,6 +418,23 @@ function Sidebar({ open, setOpen }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6a3 3 0 00-6 0v9" />
                 </svg>
                 {!collapsed && 'KYC'}
+              </NavLink>
+
+              <NavLink
+                to="/admin/legal-pages"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16v4H4zm0 6h16v4H4zm0 6h16v2H4z" />
+                </svg>
+                {!collapsed && 'Páginas Legais'}
               </NavLink>
 
               <NavLink

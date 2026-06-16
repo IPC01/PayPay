@@ -38,11 +38,6 @@ Setting.init(
     additionalInfo: {
       type: DataTypes.TEXT,
       allowNull: true
-    },
-    transactionType: {
-      type: DataTypes.ENUM('C2B', 'B2C'),
-      allowNull: false,
-      defaultValue: 'C2B'
     }
   },
   {

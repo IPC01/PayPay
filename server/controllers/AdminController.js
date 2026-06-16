@@ -4,18 +4,62 @@ const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage } = require
 class AdminController {
   async getStats(req, res) {
     try {
-      const [userCount, walletCount, transactionCount, activeWalletCount] = await Promise.all([
+      const now = new Date();
+      const days = Array.from({ length: 7 }, (_, index) => {
+        const day = new Date(now);
+        day.setDate(now.getDate() - (6 - index));
+        day.setHours(0, 0, 0, 0);
+        return day;
+      });
+
+      const [userCount, walletCount, transactionCount, activeWalletCount, openTicketCount, pendingTransactionsCount] = await Promise.all([
         User.count(),
         Wallet.count(),
         Transaction.count(),
-        Wallet.count({ where: { status: 'ACTIVE' } })
+        Wallet.count({ where: { status: 'ACTIVE' } }),
+        Ticket.count({ where: { status: { [Op.in]: ['open', 'pending'] } } }),
+        Transaction.count({ where: { status: 'pending' } })
       ]);
+
+      const weeklyGrowth = await Promise.all(
+        days.map(async (day) => {
+          const nextDay = new Date(day);
+          nextDay.setDate(day.getDate() + 1);
+          return User.count({
+            where: {
+              createdAt: {
+                [Op.gte]: day,
+                [Op.lt]: nextDay
+              }
+            }
+          });
+        })
+      );
+
+      const dailyTransactions = await Promise.all(
+        days.map(async (day) => {
+          const nextDay = new Date(day);
+          nextDay.setDate(day.getDate() + 1);
+          return Transaction.count({
+            where: {
+              createdAt: {
+                [Op.gte]: day,
+                [Op.lt]: nextDay
+              }
+            }
+          });
+        })
+      );
 
       return res.json({
         userCount,
         walletCount,
         transactionCount,
-        activeWalletCount
+        activeWalletCount,
+        openTicketCount,
+        pendingTransactionsCount,
+        weeklyGrowth,
+        dailyTransactions
       });
     } catch (error) {
       return res.status(500).json({ error: error.message });

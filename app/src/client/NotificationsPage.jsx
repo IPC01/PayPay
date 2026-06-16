@@ -81,7 +81,7 @@ function NotificationsPage() {
       return '/kyc';
     }
     if (text.includes('ticket')) {
-      return '/tickets';
+      return user?.roleId === 1 ? '/admin/tickets' : '/tickets';
     }
     if (text.includes('saque') || text.includes('withdrawal') || text.includes('retirada')) {
       return user?.roleId === 1 ? '/admin/withdrawals' : '/wallets';

@@ -16,6 +16,7 @@ const Notification = require('./Notification');
 const Kyc = require('./Kyc');
 const KycDocument = require('./KycDocument');
 const Setting = require('./Setting');
+const DocumentPage = require('./DocumentPage');
 
 
 // RELAÇÕES
@@ -126,5 +127,6 @@ module.exports = {
   Notification,
   Kyc,
   KycDocument,
-  Setting
+  Setting,
+  DocumentPage
 };

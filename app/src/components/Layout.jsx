@@ -215,6 +215,12 @@ function Layout({ children }) {
           </div>
         </header>
 
+        {unreadNotifications > 0 && location.pathname !== '/notifications' && (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
+            Você tem <span className="font-semibold">{unreadNotifications}</span> notificações não lidas. Clique no sino para acompanhar.
+          </div>
+        )}
+
         <main className="flex-1 overflow-y-auto md:pl-80">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="rounded-2xl bg-white dark:bg-slate-800/50 shadow-sm p-6">

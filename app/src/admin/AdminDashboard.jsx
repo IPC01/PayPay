@@ -353,6 +353,7 @@ function AdminDashboard() {
               <p className="text-sm text-slate-500 dark:text-slate-400">Tempo médio de resposta</p>
               <p className="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">320ms</p>
               <p className="mt-1 text-xs text-green-600">✓ Dentro do SLA esperado</p>
+              
             </div>
           </div>
         </div>

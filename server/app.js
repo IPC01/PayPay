@@ -9,7 +9,8 @@ const userRoutes = require('./routes/userRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const walletTypeRoutes = require('./routes/walletTypeRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
-const PaymentRoutes = require('./routes/paymentRoutes');const withdrawRoutes = require('./routes/withdrawRoutes');
+const PaymentRoutes = require('./routes/paymentRoutes');
+const withdrawRoutes = require('./routes/withdrawRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
 const kycRoutes = require('./routes/kycRoutes');
@@ -17,6 +18,8 @@ const permissionRoutes = require('./routes/permissionRoutes');
 const auditRoutes = require('./routes/auditRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
+const legalPageRoutes = require('./routes/legalPageRoutes');
 
 const app = express();
 
@@ -45,6 +48,8 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/legal-pages', legalPageRoutes);
 app.use('/api/admin', adminRoutes);
 
 // payment routes v1

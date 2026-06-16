@@ -20,10 +20,14 @@ import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
 import AdminWithdrawals from './admin/AdminWithdrawals';
 import AdminKyc from './admin/AdminKyc';
+import AdminLegalPages from './admin/AdminLegalPages';
 import AdminSettings from './admin/AdminSettings';
 import Layout from './components/Layout';
 import NotificationsPage from './client/NotificationsPage';
 import WalletDetails from './client/WalletDetails';
+import CompanyInfo from './client/CompanyInfo';
+import LegalPages from './client/LegalPages';
+import LegalPageView from './client/LegalPageView';
 import Kyc from './client/Kyc';
 import ForgotPassword from './client/ForgotPassword';
 import ResetPassword from './client/ResetPassword';
@@ -209,6 +213,40 @@ function App() {
                 <RequireAdmin>
                   <AdminSettings />
                 </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/legal-pages"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminLegalPages />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/company-info"
+            element={
+              <RequireAuth>
+                <CompanyInfo />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/legal"
+            element={
+              <RequireAuth>
+                <LegalPages />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/legal/:slug"
+            element={
+              <RequireAuth>
+                <LegalPageView />
               </RequireAuth>
             }
           />

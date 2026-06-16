@@ -2,6 +2,7 @@ const express = require('express');
 const AdminController = require('../controllers/AdminController');
 const WithdrawalRequestController = require('../controllers/WithdrawalRequestController');
 const SettingsController = require('../controllers/SettingsController');
+const DocumentPageController = require('../controllers/DocumentPageController');
 const authMiddleware = require('../middleware/authMiddleware');
 const checkPermission = require('../middleware/checkPermission');
 const supportOrAdmin = require('../middleware/supportOrAdmin');
@@ -22,5 +23,9 @@ router.post('/withdrawals/:id/approve', adminGuard, WithdrawalRequestController.
 router.post('/withdrawals/:id/reject', adminGuard, WithdrawalRequestController.reject);
 router.get('/settings', adminGuard, SettingsController.getSettings);
 router.post('/settings', adminGuard, SettingsController.saveSettings);
+router.post('/settings/logo-upload', adminGuard, SettingsController.uploadLogo);
+router.get('/legal-pages', adminGuard, DocumentPageController.getAll);
+router.post('/legal-pages', adminGuard, DocumentPageController.save);
+router.delete('/legal-pages/:id', adminGuard, DocumentPageController.delete);
 
 module.exports = router;
