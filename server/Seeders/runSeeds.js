@@ -3,6 +3,7 @@ const seedPermissions = require('./permissionsSeeder');
 const seedRolePermissions = require('./rolePermissionsSeeder');
 const seedUsers = require('./usersSeeder');
 const seedWalletTypes = require('./walletTypesSeeder');
+const seedPackages = require('./packagesSeeder');
 
 async function runSeeds() {
   try {
@@ -13,6 +14,7 @@ async function runSeeds() {
     await seedRolePermissions();
     await seedUsers();
     await seedWalletTypes();
+    await seedPackages();
 
     console.log('✅ Seeds completed');
 

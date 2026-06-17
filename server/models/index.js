@@ -17,6 +17,9 @@ const Kyc = require('./Kyc');
 const KycDocument = require('./KycDocument');
 const Setting = require('./Setting');
 const DocumentPage = require('./DocumentPage');
+const TransactionFee = require('./TransactionFee');
+const Package = require('./Package');
+const Subscription = require('./Subscription');
 
 
 // RELAÇÕES
@@ -109,6 +112,30 @@ Notification.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+WalletType.hasMany(TransactionFee, {
+  foreignKey: 'walletTypeId'
+});
+
+TransactionFee.belongsTo(WalletType, {
+  foreignKey: 'walletTypeId'
+});
+
+Package.hasMany(Subscription, {
+  foreignKey: 'packageId'
+});
+
+Subscription.belongsTo(Package, {
+  foreignKey: 'packageId'
+});
+
+User.hasMany(Subscription, {
+  foreignKey: 'userId'
+});
+
+Subscription.belongsTo(User, {
+  foreignKey: 'userId'
+});
+
 module.exports = {
   User,
   Role,
@@ -128,5 +155,8 @@ module.exports = {
   Kyc,
   KycDocument,
   Setting,
-  DocumentPage
+  DocumentPage,
+  TransactionFee,
+  Package,
+  Subscription
 };

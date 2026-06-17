@@ -20,10 +20,13 @@ import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
 import AdminWithdrawals from './admin/AdminWithdrawals';
 import AdminKyc from './admin/AdminKyc';
+import AdminPackages from './admin/AdminPackages';
+import AdminSubscriptions from './admin/AdminSubscriptions';
 import AdminLegalPages from './admin/AdminLegalPages';
 import AdminSettings from './admin/AdminSettings';
 import Layout from './components/Layout';
 import NotificationsPage from './client/NotificationsPage';
+import Packages from './client/Packages';
 import WalletDetails from './client/WalletDetails';
 import CompanyInfo from './client/CompanyInfo';
 import LegalPages from './client/LegalPages';
@@ -193,6 +196,34 @@ function App() {
                 <RequireAdmin>
                   <AdminWithdrawals />
                 </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/subscriptions"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminSubscriptions />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/packages"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminPackages />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/packages"
+            element={
+              <RequireAuth>
+                <Packages />
               </RequireAuth>
             }
           />

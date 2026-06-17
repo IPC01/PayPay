@@ -28,6 +28,11 @@ function Layout({ children }) {
 
   useEffect(() => {
     const loadUnreadNotifications = async () => {
+      if (!user) {
+        setUnreadNotifications(0);
+        return;
+      }
+
       try {
         if (location.pathname === '/notifications') {
           setUnreadNotifications(0);
@@ -42,7 +47,7 @@ function Layout({ children }) {
     };
 
     loadUnreadNotifications();
-  }, [authRequest, location.pathname]);
+  }, [authRequest, location.pathname, user]);
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';

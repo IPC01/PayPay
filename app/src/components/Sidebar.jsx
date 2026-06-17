@@ -182,6 +182,23 @@ function Sidebar({ open, setOpen }) {
               </NavLink>
 
               <NavLink
+                to="/packages"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                {!collapsed && 'Pacotes'}
+              </NavLink>
+
+              <NavLink
                 to="/kyc"
                 onClick={() => setOpen(false)}
                 className={({ isActive }) =>
@@ -348,6 +365,40 @@ function Sidebar({ open, setOpen }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {!collapsed && 'Carteiras'}
+              </NavLink>
+
+              <NavLink
+                to="/admin/packages"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                {!collapsed && 'Pacotes'}
+              </NavLink>
+
+              <NavLink
+                to="/admin/subscriptions"
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isActive 
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  } ${collapsed ? 'justify-center px-2' : ''}`
+                }
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {!collapsed && 'Subscrições'}
               </NavLink>
 
               <NavLink

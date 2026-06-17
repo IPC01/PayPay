@@ -20,6 +20,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const legalPageRoutes = require('./routes/legalPageRoutes');
+const packageRoutes = require('./routes/packageRoutes');
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
 
 const app = express();
 
@@ -41,9 +43,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/wallets', walletRoutes);
 app.use('/api/wallet-types', walletTypeRoutes);
-app.use('/api/transactions', transactionRoutes);app.use('/api/withdrawals', withdrawRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/withdrawals', withdrawRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/keys', apiKeyRoutes);
+app.use('/api/packages', packageRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/audit', auditRoutes);

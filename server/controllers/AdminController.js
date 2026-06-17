@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage } = require('../models');
+const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage, Subscription, Package } = require('../models');
 
 class AdminController {
   async getStats(req, res) {
@@ -261,6 +261,53 @@ class AdminController {
       }));
 
       return res.json(enrichedTransactions);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getSubscriptions(req, res) {
+    try {
+      const subscriptions = await Subscription.findAll({
+        order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: Package
+          },
+          {
+            model: User,
+            attributes: ['id', 'name', 'email']
+          }
+        ]
+      });
+
+      return res.json(subscriptions);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getSubscriptionStats(req, res) {
+    try {
+      const totalRevenue = await Subscription.sum('pricePaid');
+      const activeSubscriptions = await Subscription.count({ where: { status: 'active' } });
+      const expiredSubscriptions = await Subscription.count({ where: { status: 'expired' } });
+      const cancelledSubscriptions = await Subscription.count({ where: { status: 'cancelled' } });
+      const monthlyRevenue = await Subscription.sum('pricePaid', {
+        where: {
+          createdAt: {
+            [Op.gte]: new Date(new Date().setDate(new Date().getDate() - 30))
+          }
+        }
+      });
+
+      return res.json({
+        totalRevenue: totalRevenue || 0,
+        activeSubscriptions,
+        expiredSubscriptions,
+        cancelledSubscriptions,
+        monthlyRevenue: monthlyRevenue || 0
+      });
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }

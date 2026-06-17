@@ -104,7 +104,8 @@ export function AuthProvider({ children }) {
 
   const authRequest = useCallback(
     async (path, options = {}) => {
-      return request(path, { ...options, token });
+      const authToken = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+      return request(path, { ...options, token: authToken });
     },
     [token]
   );

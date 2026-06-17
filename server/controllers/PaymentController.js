@@ -2,13 +2,27 @@ const {
   Wallet,
   WalletType,
   Transaction,
-  Ledger
+  Ledger,
+  TransactionFee
 } = require('../models');
 const sequelize = require('../config/database');
 const PaymentService = require('../services/PaymentService');
 const { createAuditLog } = require('../helpers/auditLogger');
 
 class PaymentController {
+  async getFeeAmount(walletTypeId, transactionType, amount) {
+    const feeRecord = await TransactionFee.findOne({
+      where: {
+        walletTypeId,
+        type: transactionType
+      }
+    });
+
+    const feePercent = feeRecord ? parseFloat(feeRecord.feePercent) : 0;
+    const amountValue = Number(amount) || 0;
+    const feeAmount = (amountValue * feePercent) / 100;
+    return Number.isFinite(feeAmount) ? Math.max(0, feeAmount) : 0;
+  }
   async c2b(req, res) {
     try {
       const {
@@ -58,11 +72,13 @@ class PaymentController {
         });
       }
 
+      const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'c2b', amount);
       let transaction = null;
       transaction = await Transaction.create({
         fromWalletId: wallet.id,
         toWalletId: null,
         amount,
+        fee: feeAmount,
         type: 'c2b',
         paymentMode: 'C2B',
         phone,
@@ -129,7 +145,9 @@ class PaymentController {
 
       if (success) {
         const previousBalance = parseFloat(wallet.balance || 0);
-        const newBalance = previousBalance + parseFloat(amount);
+        const amountValue = parseFloat(amount) || 0;
+        const netAmount = Math.max(0, amountValue - feeAmount);
+        const newBalance = previousBalance + netAmount;
         wallet.balance = newBalance;
 
         await sequelize.transaction(async (t) => {
@@ -138,7 +156,7 @@ class PaymentController {
             transactionId: transaction.id,
             walletId: wallet.id,
             type: 'credit',
-            amount,
+            amount: netAmount,
             balanceBefore: previousBalance,
             balanceAfter: newBalance
           }, { transaction: t });
@@ -234,6 +252,7 @@ class PaymentController {
         fromWalletId: wallet.id,
         toWalletId: null,
         amount,
+        fee: feeAmount,
         type: 'b2c',
         paymentMode: 'B2C',
         phone,
@@ -244,7 +263,11 @@ class PaymentController {
         provider
       });
 
-      if (parseFloat(wallet.balance || 0) < parseFloat(amount)) {
+      const amountValue = parseFloat(amount) || 0;
+      const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'b2c', amountValue);
+      const totalDebit = amountValue + feeAmount;
+
+      if (parseFloat(wallet.balance || 0) < totalDebit) {
         await transaction.update({
           status: 'failed',
           systemErrorCode: 'SYS-2001',
@@ -319,7 +342,8 @@ class PaymentController {
 
       if (success) {
         const previousBalance = parseFloat(wallet.balance || 0);
-        const newBalance = previousBalance - parseFloat(amount);
+        const totalDebit = amountValue + feeAmount;
+        const newBalance = previousBalance - totalDebit;
         wallet.balance = newBalance;
 
         await sequelize.transaction(async (t) => {
@@ -328,7 +352,7 @@ class PaymentController {
             transactionId: transaction.id,
             walletId: wallet.id,
             type: 'debit',
-            amount,
+            amount: totalDebit,
             balanceBefore: previousBalance,
             balanceAfter: newBalance
           }, { transaction: t });

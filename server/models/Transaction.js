@@ -63,6 +63,12 @@ Transaction.init(
       allowNull: true
     },
 
+    fee: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.0
+    },
+
     providerTransactionId: {
       type: DataTypes.STRING,
       allowNull: true

@@ -20,7 +20,7 @@ async function startServer() {
     console.log('✅ Database connected');
 
     const syncOptions = {};
-    if (process.env.DB_SYNC_ALTER === 'true' || process.env.NODE_ENV === 'development') {
+    if (process.env.DB_SYNC_ALTER === 'true') {
       syncOptions.alter = true;
     }
 

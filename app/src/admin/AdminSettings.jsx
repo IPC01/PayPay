@@ -2,6 +2,11 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 
+const TRANSACTION_TYPES = [
+  { value: 'c2b', label: 'C2B' },
+  { value: 'b2c', label: 'B2C' }
+];
+
 function AdminSettings() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -14,8 +19,12 @@ function AdminSettings() {
     ownerName: '',
     additionalInfo: ''
   });
+  const [fees, setFees] = useState([]);
+  const [walletTypes, setWalletTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [feesLoading, setFeesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingFees, setSavingFees] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -23,8 +32,10 @@ function AdminSettings() {
   }, []);
 
   const loadSettings = async () => {
+    setLoading(true);
+    setFeesLoading(true);
+
     try {
-      setLoading(true);
       const data = await authRequest('/api/admin/settings');
       setSettings({
         platformName: data.platformName || '',
@@ -43,6 +54,29 @@ function AdminSettings() {
       });
     } finally {
       setLoading(false);
+    }
+
+    try {
+      const [feesData, walletTypeData] = await Promise.all([
+        authRequest('/api/admin/transaction-fees'),
+        authRequest('/api/wallet-types')
+      ]);
+
+      setFees(
+        feesData.map((fee) => ({
+          ...fee,
+          feePercent: fee.feePercent != null ? String(fee.feePercent) : ''
+        }))
+      );
+      setWalletTypes(walletTypeData);
+    } catch (error) {
+      notify({
+        type: 'error',
+        title: 'Erro ao carregar taxas',
+        message: 'Não foi possível carregar as taxas de transação.'
+      });
+    } finally {
+      setFeesLoading(false);
     }
   };
 
@@ -79,8 +113,107 @@ function AdminSettings() {
     }
   };
 
+  const handleSaveFees = async () => {
+    if (!walletTypes.length) {
+      notify({
+        type: 'error',
+        title: 'Sem tipos de carteira',
+        message: 'Não há tipos de carteira carregados para definir as taxas.'
+      });
+      return;
+    }
+
+    const normalizedFees = fees.map((fee) => ({
+      ...fee,
+      feePercent: String(fee.feePercent).replace(',', '.')
+    }));
+
+    const invalidRow = normalizedFees.some(
+      (fee) => !fee.walletTypeId || !fee.type || fee.feePercent === '' || Number.isNaN(parseFloat(fee.feePercent))
+    );
+
+    if (invalidRow) {
+      notify({
+        type: 'error',
+        title: 'Campos em falta',
+        message: 'Preencha todos os campos de cada taxa antes de guardar.'
+      });
+      return;
+    }
+
+    try {
+      setSavingFees(true);
+      const saved = await authRequest('/api/admin/transaction-fees', {
+        method: 'POST',
+        body: { fees: normalizedFees }
+      });
+      setFees(
+        saved.map((fee) => ({
+          ...fee,
+          feePercent: fee.feePercent != null ? String(fee.feePercent) : ''
+        }))
+      );
+      notify({
+        type: 'success',
+        title: 'Taxas salvas',
+        message: 'As taxas de transação foram atualizadas com sucesso.'
+      });
+    } catch (error) {
+      notify({
+        type: 'error',
+        title: 'Erro ao guardar taxas',
+        message: 'Não foi possível guardar as taxas de transação. Tente novamente.'
+      });
+    } finally {
+      setSavingFees(false);
+    }
+  };
+
+  const removeFeeRow = async (index) => {
+    const fee = fees[index];
+    if (!fee) return;
+
+    if (fee.id) {
+      try {
+        await authRequest(`/api/admin/transaction-fees/${fee.id}`, {
+          method: 'DELETE'
+        });
+      } catch (error) {
+        notify({
+          type: 'error',
+          title: 'Erro ao remover taxa',
+          message: 'Não foi possível remover a taxa selecionada.'
+        });
+        return;
+      }
+    }
+
+    setFees((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const addFeeRow = () => {
+    const defaultWalletType = walletTypes[0]?.id || '';
+    setFees((prev) => [
+      ...prev,
+      {
+        id: null,
+        walletTypeId: defaultWalletType,
+        type: 'c2b',
+        feePercent: ''
+      }
+    ]);
+  };
+
   const updateField = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateFeeField = (index, field, value) => {
+    setFees((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
   };
 
   return (
@@ -90,8 +223,106 @@ function AdminSettings() {
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Admin</p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Definições da Plataforma</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Atualize os detalhes principais da plataforma, contactos e tipo de transação padrão.
+            Atualize os detalhes principais da plataforma, contactos e taxas de transação.
           </p>
+        </div>
+      </div>
+       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Taxas de Transação</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+              Registe, altere e mantenha as taxas de transação por tipo e por carteira.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={addFeeRow}
+            disabled={feesLoading || !walletTypes.length}
+            className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            Adicionar taxa
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4">
+          {feesLoading ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">Carregando taxas de transação...</p>
+          ) : fees.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">Ainda não existem taxas definidas. Adicione uma nova taxa para começar.</p>
+          ) : (
+            fees.map((fee, index) => (
+              <div
+                key={`${fee.id || 'new'}-${index}`}
+                className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900 sm:grid-cols-[2fr_1fr_1fr_auto]"
+              >
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
+                  Carteira
+                  <select
+                    value={fee.walletTypeId}
+                    onChange={(event) => updateFeeField(index, 'walletTypeId', event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  >
+                    <option value="">Selecione uma carteira</option>
+                    {walletTypes.map((walletType) => (
+                      <option key={walletType.id} value={walletType.id}>
+                        {walletType.name || walletType.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
+                  Tipo de Transação
+                  <select
+                    value={fee.type}
+                    onChange={(event) => updateFeeField(index, 'type', event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  >
+                    {TRANSACTION_TYPES.map((transactionType) => (
+                      <option key={transactionType.value} value={transactionType.value}>
+                        {transactionType.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
+                  Percentual (%)
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={fee.feePercent}
+                    onChange={(event) => updateFeeField(index, 'feePercent', event.target.value)}
+                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </label>
+
+                <div className="flex items-end justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeFeeRow(index)}
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end">
+          <button
+            type="button"
+            onClick={handleSaveFees}
+            disabled={feesLoading || savingFees}
+            className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+          >
+            {savingFees ? 'Guardando taxas...' : 'Guardar taxas de transação'}
+          </button>
         </div>
       </div>
 
@@ -220,6 +451,8 @@ function AdminSettings() {
           </button>
         </div>
       </form>
+
+     
     </div>
   );
 }
