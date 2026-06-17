@@ -60,7 +60,11 @@ class PaymentController {
         return res.status(404).json({ error: 'Wallet type not found' });
       }
 
-      const provider = walletType.code.toLowerCase();
+      if (!walletType.code) {
+        return res.status(500).json({ error: 'Wallet type code is not configured' });
+      }
+
+      const provider = String(walletType.code).toLowerCase();
 
       const existingTransaction = await Transaction.findOne({
         where: { reference }
@@ -85,7 +89,7 @@ class PaymentController {
         walletCode,
         reference,
         status: 'pending',
-        apiKeyId: req.apiKey.id,
+        apiKeyId: req.apiKey?.id || null,
         provider
       });
 
@@ -180,6 +184,7 @@ class PaymentController {
       });
 
     } catch (error) {
+      console.error('PaymentController.c2b error', error);
       if (transaction) {
         await transaction.update({
           status: 'failed',
@@ -235,7 +240,11 @@ class PaymentController {
         return res.status(404).json({ error: 'Wallet type not found' });
       }
 
-      const provider = walletType.code.toLowerCase();
+      if (!walletType.code) {
+        return res.status(500).json({ error: 'Wallet type code is not configured' });
+      }
+
+      const provider = String(walletType.code).toLowerCase();
 
       const existingTransaction = await Transaction.findOne({
         where: { reference }
@@ -248,6 +257,8 @@ class PaymentController {
       }
 
       let transaction = null;
+      const amountValue = parseFloat(amount) || 0;
+      const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'b2c', amountValue);
       transaction = await Transaction.create({
         fromWalletId: wallet.id,
         toWalletId: null,
@@ -259,12 +270,9 @@ class PaymentController {
         walletCode,
         reference,
         status: 'pending',
-        apiKeyId: req.apiKey.id,
+        apiKeyId: req.apiKey?.id || null,
         provider
       });
-
-      const amountValue = parseFloat(amount) || 0;
-      const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'b2c', amountValue);
       const totalDebit = amountValue + feeAmount;
 
       if (parseFloat(wallet.balance || 0) < totalDebit) {
@@ -376,6 +384,7 @@ class PaymentController {
       });
 
     } catch (error) {
+      console.error('PaymentController.b2c error', error);
       if (transaction) {
         await transaction.update({
           status: 'failed',

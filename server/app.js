@@ -10,6 +10,7 @@ const walletRoutes = require('./routes/walletRoutes');
 const walletTypeRoutes = require('./routes/walletTypeRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const PaymentRoutes = require('./routes/paymentRoutes');
+const paymentsRoutes = require('./routes/paymentsRoutes');
 const withdrawRoutes = require('./routes/withdrawRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
@@ -59,6 +60,8 @@ app.use('/api/admin', adminRoutes);
 
 // payment routes v1
 app.use('/api/v1/mpesa/', PaymentRoutes);
+app.use('/api/emolar', PaymentRoutes);
+app.use('/api/payments', paymentsRoutes);
 
 // Swagger docs 👇 (FALTAVA ISTO)
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

@@ -52,15 +52,18 @@ class SubscriptionController {
   async subscribe(req, res) {
     try {
       const userId = req.user.userId;
-      const { packageId, walletId, autoRenew } = req.body;
+      const { packageId, walletId, autoRenew, paymentMethod, paymentNumber } = req.body;
       const pack = await Package.findByPk(packageId);
       if (!pack || !pack.active) {
         return res.status(404).json({ error: 'Package not found or inactive' });
       }
 
-      const wallet = await Wallet.findOne({ where: { id: walletId, userId } });
-      if (!wallet) {
-        return res.status(404).json({ error: 'Wallet not found' });
+      let wallet = null;
+      if (walletId) {
+        wallet = await Wallet.findOne({ where: { id: walletId, userId } });
+        if (!wallet) {
+          return res.status(404).json({ error: 'Wallet not found' });
+        }
       }
 
       const now = new Date();
@@ -68,7 +71,7 @@ class SubscriptionController {
         ? parseFloat(pack.promoPrice)
         : parseFloat(pack.price);
 
-      if (parseFloat(wallet.balance || 0) < price) {
+      if (wallet && parseFloat(wallet.balance || 0) < price) {
         return res.status(400).json({ error: 'Insufficient wallet balance' });
       }
 
@@ -76,32 +79,36 @@ class SubscriptionController {
       expiresAt.setDate(expiresAt.getDate() + 30);
 
       const transaction = await sequelize.transaction(async (t) => {
-        wallet.balance = parseFloat(wallet.balance || 0) - price;
-        await wallet.save({ transaction: t });
+        if (wallet) {
+          wallet.balance = parseFloat(wallet.balance || 0) - price;
+          await wallet.save({ transaction: t });
+        }
 
         const tx = await Transaction.create({
-          fromWalletId: wallet.id,
+          fromWalletId: wallet?.id || null,
           toWalletId: null,
           amount: price,
           fee: 0,
           type: 'subscription',
           paymentMode: 'subscription',
-          phone: wallet.walletCode,
-          walletCode: wallet.walletCode,
-          reference: `SUB-${Date.now()}-${wallet.walletCode}`,
+          phone: wallet?.walletCode || paymentNumber || null,
+          walletCode: wallet?.walletCode || null,
+          reference: `SUB-${Date.now()}${wallet?.walletCode ? `-${wallet.walletCode}` : ''}`,
           status: 'success',
           apiKeyId: null,
-          provider: 'platform'
+          provider: paymentMethod || 'platform'
         }, { transaction: t });
 
-        await Ledger.create({
-          transactionId: tx.id,
-          walletId: wallet.id,
-          type: 'debit',
-          amount: price,
-          balanceBefore: parseFloat(wallet.balance || 0) + price,
-          balanceAfter: parseFloat(wallet.balance || 0)
-        }, { transaction: t });
+        if (wallet) {
+          await Ledger.create({
+            transactionId: tx.id,
+            walletId: wallet.id,
+            type: 'debit',
+            amount: price,
+            balanceBefore: parseFloat(wallet.balance || 0) + price,
+            balanceAfter: parseFloat(wallet.balance || 0)
+          }, { transaction: t });
+        }
 
         return tx;
       });
@@ -135,9 +142,13 @@ class SubscriptionController {
       if (!pack || !pack.active) {
         return res.status(404).json({ error: 'Package not found or inactive' });
       }
-      const wallet = await Wallet.findOne({ where: { id: walletId, userId } });
-      if (!wallet) {
-        return res.status(404).json({ error: 'Wallet not found' });
+
+      let wallet = null;
+      if (walletId) {
+        wallet = await Wallet.findOne({ where: { id: walletId, userId } });
+        if (!wallet) {
+          return res.status(404).json({ error: 'Wallet not found' });
+        }
       }
 
       const now = new Date();
@@ -145,7 +156,7 @@ class SubscriptionController {
         ? parseFloat(pack.promoPrice)
         : parseFloat(pack.price);
 
-      if (parseFloat(wallet.balance || 0) < price) {
+      if (wallet && parseFloat(wallet.balance || 0) < price) {
         return res.status(400).json({ error: 'Insufficient wallet balance' });
       }
 
@@ -155,32 +166,36 @@ class SubscriptionController {
       expiresAt.setDate(expiresAt.getDate() + 30);
 
       const transaction = await sequelize.transaction(async (t) => {
-        wallet.balance = parseFloat(wallet.balance || 0) - price;
-        await wallet.save({ transaction: t });
+        if (wallet) {
+          wallet.balance = parseFloat(wallet.balance || 0) - price;
+          await wallet.save({ transaction: t });
+        }
 
         const tx = await Transaction.create({
-          fromWalletId: wallet.id,
+          fromWalletId: wallet?.id || null,
           toWalletId: null,
           amount: price,
           fee: 0,
           type: 'subscription',
           paymentMode: 'subscription',
-          phone: wallet.walletCode,
-          walletCode: wallet.walletCode,
-          reference: `SUB-RENEW-${Date.now()}-${wallet.walletCode}`,
+          phone: wallet?.walletCode || null,
+          walletCode: wallet?.walletCode || null,
+          reference: `SUB-RENEW-${Date.now()}${wallet?.walletCode ? `-${wallet.walletCode}` : ''}`,
           status: 'success',
           apiKeyId: null,
           provider: 'platform'
         }, { transaction: t });
 
-        await Ledger.create({
-          transactionId: tx.id,
-          walletId: wallet.id,
-          type: 'debit',
-          amount: price,
-          balanceBefore: parseFloat(wallet.balance || 0) + price,
-          balanceAfter: parseFloat(wallet.balance || 0)
-        }, { transaction: t });
+        if (wallet) {
+          await Ledger.create({
+            transactionId: tx.id,
+            walletId: wallet.id,
+            type: 'debit',
+            amount: price,
+            balanceBefore: parseFloat(wallet.balance || 0) + price,
+            balanceAfter: parseFloat(wallet.balance || 0)
+          }, { transaction: t });
+        }
 
         return tx;
       });

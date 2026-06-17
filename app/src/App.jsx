@@ -11,6 +11,8 @@ import Login from './client/Login';
 import Register from './client/Register';
 import Profile from './client/Profile';
 import Transactions from './client/Transactions';
+import TransactionsC2B from './client/TransactionsC2B';
+import TransactionsB2C from './client/TransactionsB2C';
 import Tickets from './client/Tickets';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminUsers from './admin/AdminUsers';
@@ -186,6 +188,22 @@ function App() {
             element={
               <RequireAuth>
                 <Transactions />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/transactions/c2b"
+            element={
+              <RequireAuth>
+                <TransactionsC2B />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/transactions/b2c"
+            element={
+              <RequireAuth>
+                <TransactionsB2C />
               </RequireAuth>
             }
           />

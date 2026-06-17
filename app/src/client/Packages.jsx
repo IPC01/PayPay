@@ -39,13 +39,11 @@ function Packages() {
   const { notify } = useNotification();
   const [packages, setPackages] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
-  const [wallets, setWallets] = useState([]);
   const [walletTypes, setWalletTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subscribingId, setSubscribingId] = useState(null);
   const [renewingId, setRenewingId] = useState(null);
   const [autoRenew, setAutoRenew] = useState(true);
-  const [selectedWalletId, setSelectedWalletId] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [activePackage, setActivePackage] = useState(null);
   const [modalStep, setModalStep] = useState(1);
@@ -59,24 +57,16 @@ function Packages() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [packagesData, subsData, walletsData, walletTypesData] = await Promise.all([
+      const [packagesData, subsData, walletTypesData] = await Promise.all([
         authRequest('/api/packages'),
         authRequest('/api/subscriptions'),
-        authRequest('/api/wallets'),
         authRequest('/api/wallet-types')
       ]);
       setPackages(packagesData);
       setSubscriptions(subsData);
-      setWallets(walletsData);
       setWalletTypes(walletTypesData);
-      const defaultTypeCode = walletTypesData.find((type) =>
-        type.code?.toLowerCase() === walletsData[0]?.WalletType?.code?.toLowerCase()
-      )?.code?.toLowerCase() || walletTypesData[0]?.code?.toLowerCase() || walletsData[0]?.WalletType?.code?.toLowerCase() || '';
+      const defaultTypeCode = walletTypesData[0]?.code?.toLowerCase() || '';
       setPaymentMethod(defaultTypeCode);
-      const defaultWallet = walletsData.find(
-        (wallet) => wallet.WalletType?.code?.toLowerCase() === defaultTypeCode
-      );
-      setSelectedWalletId(defaultWallet?.id || walletsData[0]?.id || '');
     } catch (error) {
       notify({
         type: 'error',
@@ -89,11 +79,11 @@ function Packages() {
   };
 
   const handleSubscribe = async (pack) => {
-    if (!selectedWalletId) {
+    if (!paymentMethods.length) {
       notify({
         type: 'error',
-        title: 'Selecione uma carteira',
-        message: 'Escolha uma carteira para pagar a subscrição.'
+        title: 'Métodos de pagamento indisponíveis',
+        message: 'Não há métodos de pagamento configurados para subscrever.'
       });
       return;
     }
@@ -104,8 +94,9 @@ function Packages() {
         method: 'POST',
         body: {
           packageId: pack.id,
-          walletId: selectedWalletId,
-          autoRenew
+          autoRenew,
+          paymentMethod,
+          paymentNumber
         }
       });
       notify({
@@ -126,32 +117,12 @@ function Packages() {
   };
 
   const handleRenew = async (subscriptionId) => {
-    if (!wallets.length) {
-      notify({
-        type: 'error',
-        title: 'Renovação indisponível',
-        message: 'Crie uma carteira antes de renovar a subscrição.'
-      });
-      return;
-    }
-
-    const walletToUse = wallets.find((wallet) => parseFloat(wallet.balance || 0) > 0) || wallets[0];
-    if (!walletToUse) {
-      notify({
-        type: 'error',
-        title: 'Nenhuma carteira disponível',
-        message: 'Não foi possível encontrar uma carteira válida para renovar.'
-      });
-      return;
-    }
-
     try {
       setRenewingId(subscriptionId);
       await authRequest('/api/subscriptions/renew', {
         method: 'POST',
         body: {
-          id: subscriptionId,
-          walletId: walletToUse.id
+          id: subscriptionId
         }
       });
       notify({
@@ -188,12 +159,6 @@ function Packages() {
         typeId: type.id
       }));
   }, [walletTypes]);
-
-  const getWalletForMethod = (methodCode) => {
-    return wallets.find(
-      (wallet) => wallet.WalletType?.code?.toLowerCase() === methodCode
-    );
-  };
 
   const getSubscriptionStatus = (pack) => {
     const sub = subscriptionByPackage[pack.id];
@@ -347,11 +312,11 @@ function Packages() {
             <button
               type="button"
               onClick={() => openSubscribeModal(pack)}
-              disabled={subscribingId === pack.id || !wallets.length}
+              disabled={subscribingId === pack.id || !paymentMethods.length}
               className={`inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white transition-all duration-200 ${
                 subscribingId === pack.id
                   ? 'bg-slate-400 cursor-not-allowed'
-                  : !wallets.length
+                  : !paymentMethods.length
                     ? 'bg-slate-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 hover:shadow-lg transform hover:scale-[1.02]'
               }`}
@@ -374,10 +339,10 @@ function Packages() {
               )}
             </button>
           )}
-          {!wallets.length && (
+          {!paymentMethods.length && (
             <p className="mt-2 flex items-center gap-1 text-sm text-rose-600 dark:text-rose-400">
               <Wallet className="h-4 w-4" />
-              Crie uma carteira antes de subscrever
+              Não há métodos de pagamento configurados para subscrição
             </p>
           )}
         </div>
@@ -388,12 +353,8 @@ function Packages() {
   const openSubscribeModal = (pack) => {
     setActivePackage(pack);
     setModalStep(1);
-    const defaultMethod = walletTypes[0]?.code?.toLowerCase() || wallets[0]?.WalletType?.code?.toLowerCase() || '';
+    const defaultMethod = walletTypes[0]?.code?.toLowerCase() || '';
     setPaymentMethod(defaultMethod);
-    const defaultWallet = wallets.find(
-      (wallet) => wallet.WalletType?.code?.toLowerCase() === defaultMethod
-    );
-    setSelectedWalletId(defaultWallet?.id || wallets[0]?.id || '');
     setPaymentNumber('');
     setShowModal(true);
   };
@@ -406,12 +367,11 @@ function Packages() {
 
   const handleConfirmSubscription = async () => {
     if (!activePackage) return;
-    const selectedWallet = getWalletForMethod(paymentMethod);
-    if (!selectedWallet) {
+    if (!paymentMethod) {
       notify({
         type: 'error',
-        title: 'Nenhuma carteira disponível',
-        message: 'Não existe uma carteira válida para o método selecionado.'
+        title: 'Método de pagamento requerido',
+        message: 'Selecione um método de pagamento para continuar.'
       });
       return;
     }
@@ -430,7 +390,6 @@ function Packages() {
         method: 'POST',
         body: {
           packageId: activePackage.id,
-          walletId: selectedWallet.id,
           autoRenew,
           paymentMethod,
           paymentNumber
@@ -581,12 +540,7 @@ function Packages() {
                                     value={method.code}
                                     checked={paymentMethod === method.code}
                                     onChange={(event) => {
-                                      const methodSelected = event.target.value;
-                                      setPaymentMethod(methodSelected);
-                                      const walletForMethod = getWalletForMethod(methodSelected);
-                                      if (walletForMethod) {
-                                        setSelectedWalletId(walletForMethod.id);
-                                      }
+                                      setPaymentMethod(event.target.value);
                                     }}
                                     className="mt-1 h-4 w-4 text-brand-600 focus:ring-brand-500"
                                   />
@@ -648,7 +602,7 @@ function Packages() {
               <button
                 type="button"
                 onClick={modalStep === 1 ? () => setModalStep(2) : handleConfirmSubscription}
-                disabled={modalStep === 2 && (!paymentNumber.trim() || !selectedWalletId)}
+                disabled={modalStep === 2 && (!paymentNumber.trim() || !paymentMethod)}
                 className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {modalStep === 1 ? 'Próximo' : subscribingId === activePackage.id ? 'A processar...' : 'Pagar agora'}
@@ -719,18 +673,15 @@ function Packages() {
                       <button
                         type="button"
                         onClick={() => handleRenew(sub.id)}
-                        disabled={renewingId === sub.id || !wallets.length}
+                        disabled={renewingId === sub.id}
                         className={`inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white transition duration-200 ${
-                          renewingId === sub.id || !wallets.length
+                          renewingId === sub.id
                             ? 'bg-slate-400 cursor-not-allowed'
                             : 'bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800'
                         }`}
                       >
                         {renewingId === sub.id ? 'A renovar...' : 'Renovar subscrição'}
                       </button>
-                      {!wallets.length && (
-                        <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">Crie uma carteira para renovar a subscrição.</p>
-                      )}
                     </div>
                   )}
                 </div>

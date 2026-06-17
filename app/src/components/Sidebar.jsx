@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUi } from '../contexts/UiContext';
 import { API_BASE } from '../services/api';
@@ -9,7 +9,10 @@ function Sidebar({ open, setOpen }) {
   const [collapsed, setCollapsed] = useState(false);
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
   const dropdownRef = useRef(null);
+  const [transactionsOpen, setTransactionsOpen] = useState(false);
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const isTransactionsActive = location.pathname.startsWith('/transactions');
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -216,22 +219,82 @@ function Sidebar({ open, setOpen }) {
                 {!collapsed && 'KYC'}
               </NavLink>
 
-              <NavLink
-                to="/transactions"
-                onClick={() => setOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-                    isActive 
-                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950' 
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setTransactionsOpen((prev) => !prev)}
+                  className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                    isTransactionsActive
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-                  } ${collapsed ? 'justify-center px-2' : ''}`
-                }
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18" />
-                </svg>
-                {!collapsed && 'Transações'}
-              </NavLink>
+                  } ${collapsed ? 'justify-center px-2' : ''}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18" />
+                    </svg>
+                    {!collapsed && 'Transações'}
+                  </span>
+                  {!collapsed && (
+                    <svg className={`h-4 w-4 transition-transform ${transactionsOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  )}
+                </button>
+
+                {!collapsed && transactionsOpen && (
+                  <div className="mt-2 space-y-1 rounded-2xl border border-slate-200 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-900">
+                    <NavLink
+                      to="/transactions"
+                      onClick={() => {
+                        setOpen(false);
+                        setTransactionsOpen(false);
+                      }}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? 'bg-brand-600 text-white'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      Lista de transações
+                    </NavLink>
+                    <NavLink
+                      to="/transactions/c2b"
+                      onClick={() => {
+                        setOpen(false);
+                        setTransactionsOpen(false);
+                      }}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? 'bg-brand-600 text-white'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      Transações C2B
+                    </NavLink>
+                    <NavLink
+                      to="/transactions/b2c"
+                      onClick={() => {
+                        setOpen(false);
+                        setTransactionsOpen(false);
+                      }}
+                      className={({ isActive }) =>
+                        `block rounded-xl px-4 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? 'bg-brand-600 text-white'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                        }`
+                      }
+                    >
+                      Transferência B2C
+                    </NavLink>
+                  </div>
+                )}
+              </div>
 
               <NavLink
                 to="/notifications"
