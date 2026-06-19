@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
+import { API_BASE } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
+
+function normalizeImageUrl(url) {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) {
+    const scheme = API_BASE.startsWith('https') ? 'https:' : 'http:';
+    return `${scheme}${url}`;
+  }
+  if (url.startsWith('/')) return `${API_BASE}${url}`;
+  return `${API_BASE}/${url}`;
+}
 
 function CompanyInfo() {
   const { authRequest } = useAuth();
@@ -13,7 +25,10 @@ function CompanyInfo() {
       try {
         setLoading(true);
         const data = await authRequest('/api/settings');
-        setSettings(data);
+        setSettings({
+          ...data,
+          logoImg: normalizeImageUrl(data.logoImg)
+        });
       } catch (error) {
         console.error(error);
         notify({

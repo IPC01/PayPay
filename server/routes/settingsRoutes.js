@@ -1,9 +1,9 @@
 const express = require('express');
-const authMiddleware = require('../middleware/authMiddleware');
 const SettingsController = require('../controllers/SettingsController');
 
 const router = express.Router();
 
-router.get('/', authMiddleware, SettingsController.getPublicSettings);
+// Public endpoint to expose company/platform settings for login pages and public branding.
+router.get('/', SettingsController.getPublicSettings);
 
 module.exports = router;

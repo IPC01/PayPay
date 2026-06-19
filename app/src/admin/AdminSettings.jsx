@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
+import { API_BASE } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { useSettings } from '../contexts/SettingsContext';
+
+function normalizeImageUrl(url) {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) {
+    const scheme = API_BASE.startsWith('https') ? 'https:' : 'http:';
+    return `${scheme}${url}`;
+  }
+  if (url.startsWith('/')) return `${API_BASE}${url}`;
+  return `${API_BASE}/${url}`;
+}
 
 const TRANSACTION_TYPES = [
   { value: 'c2b', label: 'C2B' },
@@ -10,6 +23,7 @@ const TRANSACTION_TYPES = [
 function AdminSettings() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { refreshSettings } = useSettings();
   const [settings, setSettings] = useState({
     platformName: '',
     logoImg: '',
@@ -102,6 +116,7 @@ function AdminSettings() {
         title: 'Definições salvas',
         message: 'As definições da plataforma foram atualizadas com sucesso.'
       });
+      refreshSettings();
     } catch (error) {
       notify({
         type: 'error',
@@ -370,7 +385,8 @@ function AdminSettings() {
                           data: reader.result
                         }
                       });
-                      updateField('logoImg', response.logoImg);
+                      updateField('logoImg', normalizeImageUrl(response.logoImg));
+                      refreshSettings();
                     } catch (error) {
                       notify({
                         type: 'error',

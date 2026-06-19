@@ -1,6 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { useUi } from '../contexts/UiContext';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
@@ -11,6 +12,7 @@ function Layout({ children }) {
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { user, logout, authRequest } = useAuth();
+  const { settings } = useSettings();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const location = useLocation();
@@ -92,10 +94,10 @@ function Layout({ children }) {
               <div className="flex items-center gap-2">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">
-                    Painel
+                    {settings?.platformName ? 'Plataforma' : 'Painel'}
                   </p>
                   <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
-                    Gestão
+                    {settings?.platformName || 'Gestão'}
                   </h1>
                 </div>
               </div>

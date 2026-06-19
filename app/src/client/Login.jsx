@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const SIMULATED_OTP = '123456';
 
@@ -13,6 +14,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const { login } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || '/';
@@ -95,7 +97,7 @@ function Login() {
           
           <div className="mt-8 pt-8 border-t border-white/20">
             <p className="text-sm text-white/70">
-              © 2024 Sua Empresa. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.platformName || 'Sua Empresa'}. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -105,13 +107,17 @@ function Login() {
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:text-left">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-100 text-brand-600 mb-6">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-3xl bg-brand-100 text-brand-600 mb-6">
+              {settings?.logoImg ? (
+                <img src={settings.logoImg} alt={settings.platformName || 'Logo'} className="h-10 w-10 object-contain" />
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+              )}
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Faça login na sua conta</h1>
-            <p className="text-slate-500">Use as suas credenciais para aceder ao sistema.</p>
+            <p className="text-slate-500">Aceda ao {settings?.platformName || 'sistema'} com as suas credenciais.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

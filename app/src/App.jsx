@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SettingsProvider } from './contexts/SettingsContext';
 import { UiProvider } from './contexts/UiContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Notifications from './components/Notifications';
@@ -54,10 +55,11 @@ function HomeRoute() {
 
 function App() {
   return (
-    <AuthProvider>
-      <UiProvider>
-        <NotificationProvider>
-          <Layout>
+    <SettingsProvider>
+      <AuthProvider>
+        <UiProvider>
+          <NotificationProvider>
+            <Layout>
             <Routes>
           <Route
             path="/"
@@ -310,6 +312,7 @@ function App() {
         </NotificationProvider>
       </UiProvider>
     </AuthProvider>
+  </SettingsProvider>
   );
 }
 

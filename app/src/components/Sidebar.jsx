@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 import { useUi } from '../contexts/UiContext';
 import { API_BASE } from '../services/api';
 
@@ -37,6 +38,7 @@ function Sidebar({ open, setOpen }) {
   };
 
   const [legalPages, setLegalPages] = useState([]);
+  const { settings } = useSettings();
   const isAdmin = user?.roleId === 1;
 
   useEffect(() => {
@@ -65,18 +67,26 @@ function Sidebar({ open, setOpen }) {
         <div className="border-b border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between gap-2">
             <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
+              {settings?.logoImg ? (
+                <img
+                  src={settings.logoImg}
+                  alt={settings.platformName || 'Logo'}
+                  className="h-10 w-10 rounded-2xl bg-white object-contain p-1"
+                />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+              )}
               {!collapsed && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">
-                    Payments System
+                    {settings?.platformName || 'Payments System'}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
-                    Gestão Financeira
+                    {settings?.ownerName || 'Gestão Financeira'}
                   </p>
                 </div>
               )}

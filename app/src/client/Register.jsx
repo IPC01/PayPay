@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useSettings } from '../contexts/SettingsContext';
 
 const SIMULATED_OTP = '123456';
 
@@ -15,6 +16,7 @@ function Register() {
   const [success, setSuccess] = useState(null);
 
   const { register } = useAuth();
+  const { settings } = useSettings();
   const navigate = useNavigate();
 
   const handleSubmit = async e => {
@@ -96,7 +98,7 @@ function Register() {
           
           <div className="mt-8 pt-8 border-t border-white/20">
             <p className="text-sm text-white/70">
-              © 2024 Sua Empresa. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.platformName || 'Sua Empresa'}. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -106,13 +108,17 @@ function Register() {
       <div className="flex-1 flex items-center justify-center p-8 overflow-y-auto">
         <div className="w-full max-w-md">
           <div className="mb-8 text-center lg:text-left">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-100 text-brand-600 mb-6">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-              </svg>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-3xl bg-brand-100 text-brand-600 mb-6">
+              {settings?.logoImg ? (
+                <img src={settings.logoImg} alt={settings.platformName || 'Logo'} className="h-10 w-10 object-contain" />
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+              )}
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Crie a sua conta</h1>
-            <p className="text-slate-500">Insira os dados e verifique o código 2FA.</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Crie a conta no {settings?.platformName || 'sistema'}</h1>
+            <p className="text-slate-500">Insira os seus dados e verifique o código 2FA para começar.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
