@@ -23,6 +23,7 @@ import AdminTransactions from './admin/AdminTransactions';
 import AdminTickets from './admin/AdminTickets';
 import AdminWithdrawals from './admin/AdminWithdrawals';
 import AdminKyc from './admin/AdminKyc';
+import AdminKycDetail from './admin/AdminKycDetail';
 import AdminPackages from './admin/AdminPackages';
 import AdminSubscriptions from './admin/AdminSubscriptions';
 import AdminLegalPages from './admin/AdminLegalPages';
@@ -31,6 +32,7 @@ import Layout from './components/Layout';
 import NotificationsPage from './client/NotificationsPage';
 import Packages from './client/Packages';
 import WalletDetails from './client/WalletDetails';
+import Withdrawals from './client/Withdrawals';
 import CompanyInfo from './client/CompanyInfo';
 import LegalPages from './client/LegalPages';
 import LegalPageView from './client/LegalPageView';
@@ -82,6 +84,14 @@ function App() {
             element={
               <RequireAuth>
                 <WalletDetails />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/withdrawals"
+            element={
+              <RequireAuth>
+                <Withdrawals />
               </RequireAuth>
             }
           />
@@ -253,6 +263,16 @@ function App() {
               <RequireAuth>
                 <RequireAdmin>
                   <AdminKyc />
+                </RequireAdmin>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/admin/kyc/:id"
+            element={
+              <RequireAuth>
+                <RequireAdmin>
+                  <AdminKycDetail />
                 </RequireAdmin>
               </RequireAuth>
             }

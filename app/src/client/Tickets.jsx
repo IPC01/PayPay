@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
+import { API_BASE } from '../services/api';
 
 function Tickets() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
   const [tickets, setTickets] = useState([]);
+
+  const resolveAttachmentUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${API_BASE}${url}`;
+  };
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -273,7 +280,7 @@ function Tickets() {
               <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                 <p className="mb-3 text-sm font-medium text-slate-600 dark:text-slate-400">Anexo</p>
                 <img
-                  src={selectedTicket.attachmentUrl}
+                  src={resolveAttachmentUrl(selectedTicket.attachmentUrl)}
                   alt="Anexo do ticket"
                   className="max-h-80 w-full rounded-3xl object-contain"
                 />

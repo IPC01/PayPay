@@ -96,6 +96,16 @@ WithdrawalRequest.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+User.hasMany(WithdrawalRequest, {
+  foreignKey: 'adminId',
+  as: 'AdminProcessedWithdrawals'
+});
+
+WithdrawalRequest.belongsTo(User, {
+  foreignKey: 'adminId',
+  as: 'Admin'
+});
+
 Wallet.hasMany(WithdrawalRequest, {
   foreignKey: 'walletId'
 });

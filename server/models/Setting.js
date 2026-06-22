@@ -38,6 +38,21 @@ Setting.init(
     additionalInfo: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    withdrawalFeePercent: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0.0
+    },
+    withdrawalMinValue: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0.0
+    },
+    withdrawalMaxValue: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0.0
     }
   },
   {

@@ -14,7 +14,7 @@ class ApiKeyController {
 
       const userId = req.user.userId;
 
-      if (!(await hasApprovedKyc(userId))) {
+      if (!(await hasApprovedKyc(userId, req.user.roleId))) {
         return res.status(403).json({ error: 'KYC deve ser aprovado para criar chaves de API' });
       }
 

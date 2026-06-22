@@ -28,6 +28,30 @@ async function saveKycFile(base64, filename) {
   };
 }
 
+function normalizeDateOnly(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const stringValue = String(value).trim();
+  if (!stringValue) {
+    return null;
+  }
+
+  const isoDate = stringValue.split('T')[0];
+  const date = new Date(isoDate);
+
+  if (!Number.isNaN(date.getTime())) {
+    return date.toISOString().slice(0, 10);
+  }
+
+  return null;
+}
+
 class KycController {
   async getMyKyc(req, res) {
     try {
@@ -71,12 +95,12 @@ class KycController {
         lastName: payload.lastName,
         otherNames: payload.otherNames,
         gender: payload.gender,
-        dateOfBirth: payload.dateOfBirth,
+        dateOfBirth: normalizeDateOnly(payload.dateOfBirth),
         nationality: payload.nationality,
         documentType: payload.documentType,
         documentNumber: payload.documentNumber,
-        documentIssuedAt: payload.documentIssuedAt,
-        documentExpiresAt: payload.documentExpiresAt,
+        documentIssuedAt: normalizeDateOnly(payload.documentIssuedAt),
+        documentExpiresAt: normalizeDateOnly(payload.documentExpiresAt),
         documentIssuer: payload.documentIssuer,
         nuit: payload.nuit,
         occupation: payload.occupation,
@@ -86,7 +110,7 @@ class KycController {
         tradeName: payload.tradeName,
         companyNuit: payload.companyNuit,
         registrationNumber: payload.registrationNumber,
-        registrationDate: payload.registrationDate,
+        registrationDate: normalizeDateOnly(payload.registrationDate),
         legalForm: payload.legalForm,
         economicSector: payload.economicSector,
         activityDescription: payload.activityDescription,
@@ -100,7 +124,7 @@ class KycController {
         companyAnnualVolume: payload.companyAnnualVolume,
         beneficialOwnerName: payload.beneficialOwnerName,
         beneficialOwnerNationality: payload.beneficialOwnerNationality,
-        beneficialOwnerDob: payload.beneficialOwnerDob,
+        beneficialOwnerDob: normalizeDateOnly(payload.beneficialOwnerDob),
         beneficialOwnerDocumentNumber: payload.beneficialOwnerDocumentNumber,
         beneficialOwnerShare: payload.beneficialOwnerShare
       };

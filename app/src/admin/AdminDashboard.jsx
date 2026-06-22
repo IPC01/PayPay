@@ -58,20 +58,30 @@ function AdminDashboard() {
   // Preparar dados para gráficos
   const growthData = useMemo(() => {
     const series = stats?.weeklyGrowth || DEFAULT_GROWTH;
-    return series.map((value, index) => ({
-      dia: `Dia ${index + 1}`,
-      usuarios: value,
-      semana: `Semana ${Math.floor(index / 7) + 1}`
-    }));
+    const now = new Date();
+    return series.map((value, index) => {
+      const day = new Date(now);
+      day.setDate(now.getDate() - (series.length - 1 - index));
+      return {
+        dia: day.toLocaleDateString('pt-PT'),
+        usuarios: value,
+        semana: `Semana ${Math.floor(index / 7) + 1}`
+      };
+    });
   }, [stats]);
 
   const transactionData = useMemo(() => {
     const series = stats?.dailyTransactions || DEFAULT_TRANSACTIONS;
-    return series.map((value, index) => ({
-      dia: `Dia ${index + 1}`,
-      transacoes: value,
-      semana: `Semana ${Math.floor(index / 7) + 1}`
-    }));
+    const now = new Date();
+    return series.map((value, index) => {
+      const day = new Date(now);
+      day.setDate(now.getDate() - (series.length - 1 - index));
+      return {
+        dia: day.toLocaleDateString('pt-PT'),
+        transacoes: value,
+        semana: `Semana ${Math.floor(index / 7) + 1}`
+      };
+    });
   }, [stats]);
 
   const pieData = useMemo(() => [

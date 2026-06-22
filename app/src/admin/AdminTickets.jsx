@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useNotification } from '../contexts/NotificationContext';
+import { API_BASE } from '../services/api';
 
 function AdminTickets() {
   const { authRequest } = useAuth();
+  const { notify } = useNotification();
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
+
+  const resolveAttachmentUrl = (url) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${API_BASE}${url}`;
+  };
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -34,6 +43,7 @@ function AdminTickets() {
       setMessages(response.messages);
     } catch (err) {
       console.error(err);
+      notify({ type: 'error', title: 'Erro ao abrir ticket', message: err.message || 'Não foi possível carregar as mensagens do ticket.' });
     }
   };
 
@@ -51,6 +61,7 @@ function AdminTickets() {
       await openTicket(selectedTicket);
     } catch (err) {
       console.error(err);
+      notify({ type: 'error', title: 'Erro ao responder', message: err.message || 'Não foi possível enviar a resposta.' });
     } finally {
       setSending(false);
     }
@@ -72,6 +83,7 @@ function AdminTickets() {
       }
     } catch (err) {
       console.error(err);
+      notify({ type: 'error', title: 'Erro ao excluir ticket', message: err.message || 'Não foi possível excluir o ticket.' });
     } finally {
       setDeletingId(null);
     }
@@ -155,10 +167,10 @@ function AdminTickets() {
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Anexo</p>
-                    <a href={selectedTicket.attachmentUrl} target="_blank" rel="noreferrer" className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400">Abrir</a>
+                    <a href={resolveAttachmentUrl(selectedTicket.attachmentUrl)} target="_blank" rel="noreferrer" className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400">Abrir</a>
                   </div>
                   <img
-                    src={selectedTicket.attachmentUrl}
+                    src={resolveAttachmentUrl(selectedTicket.attachmentUrl)}
                     alt="Anexo do ticket"
                     className="w-full rounded-3xl object-contain"
                   />

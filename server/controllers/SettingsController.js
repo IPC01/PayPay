@@ -60,7 +60,10 @@ class SettingsController {
         address: req.body.address || null,
         emails: req.body.emails || null,
         ownerName: req.body.ownerName || null,
-        additionalInfo: req.body.additionalInfo || null
+        additionalInfo: req.body.additionalInfo || null,
+        withdrawalFeePercent: Number.isFinite(parseFloat(req.body.withdrawalFeePercent)) ? parseFloat(req.body.withdrawalFeePercent) : 0.0,
+        withdrawalMinValue: Number.isFinite(parseFloat(req.body.withdrawalMinValue)) ? parseFloat(req.body.withdrawalMinValue) : 0.0,
+        withdrawalMaxValue: Number.isFinite(parseFloat(req.body.withdrawalMaxValue)) ? parseFloat(req.body.withdrawalMaxValue) : 0.0
       };
 
       let settings = await Setting.findOne();

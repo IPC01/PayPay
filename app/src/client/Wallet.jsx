@@ -522,6 +522,15 @@ function Wallets() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
                         </Link>
+                        <Link
+                          to={`/withdrawals?walletId=${wallet.id}`}
+                          className="rounded-lg p-2 text-teal-600 transition hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950"
+                          title="Saque"
+                        >
+                          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v8m0 0l-3-3m3 3l3-3M5 12a7 7 0 0114 0" />
+                          </svg>
+                        </Link>
                         <button
                           onClick={() => openEditModal(wallet)}
                           className="rounded-lg p-2 text-blue-600 transition hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950"

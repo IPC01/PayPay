@@ -31,7 +31,10 @@ function AdminSettings() {
     address: '',
     emails: '',
     ownerName: '',
-    additionalInfo: ''
+    additionalInfo: '',
+    withdrawalFeePercent: '',
+    withdrawalMinValue: '',
+    withdrawalMaxValue: ''
   });
   const [fees, setFees] = useState([]);
   const [walletTypes, setWalletTypes] = useState([]);
@@ -58,7 +61,10 @@ function AdminSettings() {
         address: data.address || '',
         emails: data.emails || '',
         ownerName: data.ownerName || '',
-        additionalInfo: data.additionalInfo || ''
+        additionalInfo: data.additionalInfo || '',
+        withdrawalFeePercent: data.withdrawalFeePercent != null ? String(data.withdrawalFeePercent) : '',
+        withdrawalMinValue: data.withdrawalMinValue != null ? String(data.withdrawalMinValue) : '',
+        withdrawalMaxValue: data.withdrawalMaxValue != null ? String(data.withdrawalMaxValue) : ''
       });
     } catch (error) {
       notify({
@@ -109,7 +115,13 @@ function AdminSettings() {
         address: data.address || '',
         emails: data.emails || '',
         ownerName: data.ownerName || '',
-        additionalInfo: data.additionalInfo || ''
+        additionalInfo: data.additionalInfo || '',
+        withdrawalFeePercent: data.withdrawalFeePercent != null ? String(data.withdrawalFeePercent) : '',
+        withdrawalMinValue: data.withdrawalMinValue != null ? String(data.withdrawalMinValue) : '',
+        withdrawalMaxValue: data.withdrawalMaxValue != null ? String(data.withdrawalMaxValue) : '',
+        withdrawalFeePercent: data.withdrawalFeePercent != null ? String(data.withdrawalFeePercent) : '',
+        withdrawalMinValue: data.withdrawalMinValue != null ? String(data.withdrawalMinValue) : '',
+        withdrawalMaxValue: data.withdrawalMaxValue != null ? String(data.withdrawalMaxValue) : ''
       });
       notify({
         type: 'success',
@@ -235,10 +247,10 @@ function AdminSettings() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Admin</p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Definições da Plataforma</h1>
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Configurações de Pagamentos</p>
+          <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Configurações de Pagamentos</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Atualize os detalhes principais da plataforma, contactos e taxas de transação.
+            Atualize as regras de pagamento, taxas e limites de saque para a plataforma.
           </p>
         </div>
       </div>
@@ -327,6 +339,50 @@ function AdminSettings() {
               </div>
             ))
           )}
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-900">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Limites e Taxas de Saque</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Defina as regras e limites de valor para pedidos de saque.</p>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block text-sm text-slate-700 dark:text-slate-300">
+              Taxa de Saque (%)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={settings.withdrawalFeePercent}
+                onChange={(event) => updateField('withdrawalFeePercent', event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">
+              Valor mínimo de saque
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={settings.withdrawalMinValue}
+                onChange={(event) => updateField('withdrawalMinValue', event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+            <label className="block text-sm text-slate-700 dark:text-slate-300">
+              Valor máximo de saque
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={settings.withdrawalMaxValue}
+                onChange={(event) => updateField('withdrawalMaxValue', event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+            </label>
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end">
@@ -445,6 +501,7 @@ function AdminSettings() {
               className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             />
           </div>
+
         </div>
 
         <div>
