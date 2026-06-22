@@ -101,54 +101,66 @@ function AdminTickets() {
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-4">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Lista de tickets</h2>
-          <div className="mt-5 space-y-3">
+          <div className="mt-5 overflow-x-auto">
             {loading ? (
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">A carregar tickets...</div>
             ) : tickets.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">Nenhum ticket encontrado.</div>
             ) : (
-              tickets.map((ticket) => (
-                <div key={ticket.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-semibold text-slate-900 dark:text-white truncate">{ticket.subject}</p>
-                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{ticket.User?.name || 'Usuário'} · {ticket.status} · {ticket.priority}</p>
-                    </div>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{new Date(ticket.updatedAt).toLocaleDateString('pt-PT')}</span>
-                  </div>
-                  <p className="mt-4 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{ticket.description}</p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openTicket(ticket)}
-                      className="rounded-2xl border border-brand-600 bg-brand-50 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/40 dark:bg-brand-900/20 dark:text-brand-200"
-                    >Ver</button>
-                    <button
-                      type="button"
-                      onClick={() => deleteTicket(ticket.id)}
-                      disabled={deletingId === ticket.id}
-                      className="rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-700 dark:bg-slate-800 dark:text-red-300 dark:hover:bg-red-900/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {deletingId === ticket.id ? 'Eliminando…' : 'Eliminar'}
-                    </button>
-                  </div>
-                </div>
-              ))
+              <table className="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-700">
+                <thead className="bg-slate-50 text-left uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                  <tr>
+                    <th className="px-4 py-4">Assunto</th>
+                    <th className="px-4 py-4">Cliente</th>
+                    <th className="px-4 py-4">Status</th>
+                    <th className="px-4 py-4">Prioridade</th>
+                    <th className="px-4 py-4">Atualizado</th>
+                    <th className="px-4 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
+                  {tickets.map((ticket) => (
+                    <tr key={ticket.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/60">
+                      <td className="px-4 py-4">
+                        <p className="font-semibold text-slate-900 dark:text-white truncate">{ticket.subject}</p>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{ticket.description}</p>
+                      </td>
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{ticket.User?.name || 'Usuário'}</td>
+                      <td className="px-4 py-4">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${ticket.status === 'open' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200' : ticket.status === 'pending' ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : ticket.status === 'closed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-900/50 dark:text-slate-200'}`}>
+                          {ticket.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{ticket.priority}</td>
+                      <td className="px-4 py-4 text-slate-500 dark:text-slate-400">{new Date(ticket.updatedAt).toLocaleDateString('pt-PT')}</td>
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => openTicket(ticket)}
+                          className="rounded-full bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
+                        >Ver</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </section>
+      </div>
 
-        {selectedTicket && (
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      {selectedTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-3xl max-h-[calc(100vh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{selectedTicket.subject}</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{selectedTicket.subject}</h2>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Cliente: {selectedTicket.User?.name || 'Desconhecido'}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-3">
                 <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">{selectedTicket.status}</span>
                 <button
                   type="button"
@@ -215,9 +227,9 @@ function AdminTickets() {
                 </button>
               </form>
             </div>
-          </section>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
