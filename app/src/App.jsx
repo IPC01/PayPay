@@ -5,40 +5,41 @@ import { UiProvider } from './contexts/UiContext';
 import { NotificationProvider } from './contexts/NotificationContext';
 import Notifications from './components/Notifications';
 import RequireAuth from './components/RequireAuth';
-import Dashboard from './client/Dashboard';
-import Wallet from './client/Wallet';
-import TokenCreate from './client/TokenCreate';
-import Login from './client/Login';
-import Register from './client/Register';
-import Profile from './client/Profile';
-import Transactions from './client/Transactions';
-import TransactionsC2B from './client/TransactionsC2B';
-import TransactionsB2C from './client/TransactionsB2C';
-import Tickets from './client/Tickets';
-import AdminDashboard from './admin/AdminDashboard';
-import AdminUsers from './admin/AdminUsers';
-import AdminUserDetails from './admin/AdminUserDetails';
-import AdminWallets from './admin/AdminWallets';
-import AdminTransactions from './admin/AdminTransactions';
-import AdminTickets from './admin/AdminTickets';
-import AdminWithdrawals from './admin/AdminWithdrawals';
-import AdminKyc from './admin/AdminKyc';
-import AdminKycDetail from './admin/AdminKycDetail';
-import AdminPackages from './admin/AdminPackages';
-import AdminSubscriptions from './admin/AdminSubscriptions';
-import AdminLegalPages from './admin/AdminLegalPages';
-import AdminSettings from './admin/AdminSettings';
-import Layout from './components/Layout';
-import NotificationsPage from './client/NotificationsPage';
-import Packages from './client/Packages';
-import WalletDetails from './client/WalletDetails';
-import Withdrawals from './client/Withdrawals';
-import CompanyInfo from './client/CompanyInfo';
-import LegalPages from './client/LegalPages';
-import LegalPageView from './client/LegalPageView';
-import Kyc from './client/Kyc';
-import ForgotPassword from './client/ForgotPassword';
-import ResetPassword from './client/ResetPassword';
+import ClientLayout from './client/components/Layout';
+import AdminLayout from './admin/components/Layout';
+import Dashboard from './client/pages/Dashboard';
+import Wallet from './client/pages/Wallet';
+import TokenCreate from './client/pages/TokenCreate';
+import Login from './client/pages/Login';
+import Register from './client/pages/Register';
+import Profile from './client/pages/Profile';
+import Transactions from './client/pages/Transactions';
+import TransactionsC2B from './client/pages/TransactionsC2B';
+import TransactionsB2C from './client/pages/TransactionsB2C';
+import Tickets from './client/pages/Tickets';
+import AdminDashboard from './admin/pages/AdminDashboard';
+import AdminUsers from './admin/pages/AdminUsers';
+import AdminUserDetails from './admin/pages/AdminUserDetails';
+import AdminWallets from './admin/pages/AdminWallets';
+import AdminTransactions from './admin/pages/AdminTransactions';
+import AdminTickets from './admin/pages/AdminTickets';
+import AdminWithdrawals from './admin/pages/AdminWithdrawals';
+import AdminKyc from './admin/pages/AdminKyc';
+import AdminKycDetail from './admin/pages/AdminKycDetail';
+import AdminPackages from './admin/pages/AdminPackages';
+import AdminSubscriptions from './admin/pages/AdminSubscriptions';
+import AdminLegalPages from './admin/pages/AdminLegalPages';
+import AdminSettings from './admin/pages/AdminSettings';
+import NotificationsPage from './client/pages/NotificationsPage';
+import Packages from './client/pages/Packages';
+import WalletDetails from './client/pages/WalletDetails';
+import Withdrawals from './client/pages/Withdrawals';
+import CompanyInfo from './client/pages/CompanyInfo';
+import LegalPages from './client/pages/LegalPages';
+import LegalPageView from './client/pages/LegalPageView';
+import Kyc from './client/pages/Kyc';
+import ForgotPassword from './client/pages/ForgotPassword';
+import ResetPassword from './client/pages/ResetPassword';
 import RequireAdmin from './components/RequireAdmin';
 
 function HomeRoute() {
@@ -48,11 +49,33 @@ function HomeRoute() {
     return null;
   }
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   if (user?.roleId === 1) {
     return <Navigate to="/admin" replace />;
   }
 
-  return <Dashboard />;
+  return <Navigate to="/client" replace />;
+}
+
+function ClientRoute({ children }) {
+  return (
+    <RequireAuth>
+      <ClientLayout>{children}</ClientLayout>
+    </RequireAuth>
+  );
+}
+
+function AdminRoute({ children }) {
+  return (
+    <RequireAuth>
+      <RequireAdmin>
+        <AdminLayout>{children}</AdminLayout>
+      </RequireAdmin>
+    </RequireAuth>
+  );
 }
 
 function App() {
@@ -61,273 +84,261 @@ function App() {
       <AuthProvider>
         <UiProvider>
           <NotificationProvider>
-            <Layout>
             <Routes>
+          <Route path="/" element={<HomeRoute />} />
           <Route
-            path="/"
+            path="/client"
             element={
-              <RequireAuth>
-                <HomeRoute />
-              </RequireAuth>
+              <ClientRoute>
+                <Dashboard />
+              </ClientRoute>
             }
           />
           <Route
-            path="/wallets"
+            path="/client/wallets"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Wallet />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/wallets/:id"
+            path="/client/wallets/:id"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <WalletDetails />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/withdrawals"
+            path="/client/withdrawals"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Withdrawals />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/tokens"
+            path="/client/tokens"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <TokenCreate />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/tickets"
+            path="/client/tickets"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Tickets />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/kyc"
+            path="/client/kyc"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Kyc />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
             path="/admin"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminDashboard />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/users"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminUsers />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/users/:id"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminUserDetails />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminUserDetails />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/wallets"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminWallets />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminWallets />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/transactions"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminTransactions />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminTransactions />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/tickets"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminTickets />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminTickets />
+              </AdminRoute>
             }
           />
           <Route
-            path="/profile"
+            path="/client/profile"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Profile />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/notifications"
+            path="/client/notifications"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <NotificationsPage />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/transactions"
+            path="/client/transactions"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Transactions />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/transactions/c2b"
+            path="/client/transactions/c2b"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <TransactionsC2B />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/transactions/b2c"
+            path="/client/transactions/b2c"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <TransactionsB2C />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
             path="/admin/withdrawals"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminWithdrawals />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminWithdrawals />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/subscriptions"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminSubscriptions />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminSubscriptions />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/packages"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminPackages />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminPackages />
+              </AdminRoute>
             }
           />
           <Route
-            path="/packages"
+            path="/client/packages"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <Packages />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
             path="/admin/kyc"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminKyc />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminKyc />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/kyc/:id"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminKycDetail />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminKycDetail />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/settings"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminSettings />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminSettings />
+              </AdminRoute>
             }
           />
           <Route
             path="/admin/legal-pages"
             element={
-              <RequireAuth>
-                <RequireAdmin>
-                  <AdminLegalPages />
-                </RequireAdmin>
-              </RequireAuth>
+              <AdminRoute>
+                <AdminLegalPages />
+              </AdminRoute>
             }
           />
           <Route
-            path="/company-info"
+            path="/client/company-info"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <CompanyInfo />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/legal"
+            path="/client/legal"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <LegalPages />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
           <Route
-            path="/legal/:slug"
+            path="/client/legal/:slug"
             element={
-              <RequireAuth>
+              <ClientRoute>
                 <LegalPageView />
-              </RequireAuth>
+              </ClientRoute>
             }
           />
+          <Route path="/wallets" element={<Navigate to="/client/wallets" replace />} />
+          <Route path="/wallets/:id" element={<Navigate to="/client/wallets" replace />} />
+          <Route path="/withdrawals" element={<Navigate to="/client/withdrawals" replace />} />
+          <Route path="/tokens" element={<Navigate to="/client/tokens" replace />} />
+          <Route path="/tickets" element={<Navigate to="/client/tickets" replace />} />
+          <Route path="/kyc" element={<Navigate to="/client/kyc" replace />} />
+          <Route path="/profile" element={<Navigate to="/client/profile" replace />} />
+          <Route path="/notifications" element={<Navigate to="/client/notifications" replace />} />
+          <Route path="/transactions" element={<Navigate to="/client/transactions" replace />} />
+          <Route path="/transactions/c2b" element={<Navigate to="/client/transactions/c2b" replace />} />
+          <Route path="/transactions/b2c" element={<Navigate to="/client/transactions/b2c" replace />} />
+          <Route path="/packages" element={<Navigate to="/client/packages" replace />} />
+          <Route path="/company-info" element={<Navigate to="/client/company-info" replace />} />
+          <Route path="/legal" element={<Navigate to="/client/legal" replace />} />
+          <Route path="/legal/:slug" element={<Navigate to="/client/legal" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/client" replace />} />
         </Routes>
-          </Layout>
           <Notifications />
         </NotificationProvider>
       </UiProvider>
