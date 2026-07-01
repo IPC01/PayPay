@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
@@ -6,18 +6,60 @@ import { useUi } from '../../contexts/UiContext';
 
 function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const dropdownRef = useRef(null);
+  const notificationDropdownRef = useRef(null);
   const { user, logout, authRequest } = useAuth();
   const { settings } = useSettings();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
   const navigate = useNavigate();
   const location = useLocation();
 
+  const getNotificationPath = useCallback((notification) => {
+    const text = `${notification.title || ''} ${notification.message || ''}`.toLowerCase();
+
+    if (text.includes('kyc')) {
+      return '/client/kyc';
+    }
+    if (text.includes('ticket')) {
+      return '/client/tickets';
+    }
+    if (text.includes('saque') || text.includes('withdrawal') || text.includes('retirada')) {
+      return '/client/withdrawals';
+    }
+    if (text.includes('carteira') || text.includes('wallet')) {
+      return '/client/wallets';
+    }
+
+    return '/client';
+  }, []);
+
+  const loadUnreadNotifications = useCallback(async () => {
+    if (!user) {
+      setUnreadNotifications([]);
+      return;
+    }
+
+    try {
+      setNotificationsLoading(true);
+      const notifications = await authRequest('/api/notifications');
+      setUnreadNotifications(notifications.filter((notification) => !notification.read));
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [authRequest, user]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
+      }
+      if (notificationDropdownRef.current && !notificationDropdownRef.current.contains(event.target)) {
+        setNotificationDropdownOpen(false);
       }
     };
 
@@ -26,27 +68,21 @@ function Header() {
   }, []);
 
   useEffect(() => {
-    const loadUnreadNotifications = async () => {
-      if (!user) {
-        setUnreadNotifications(0);
-        return;
-      }
-
-      if (location.pathname === '/client/notifications') {
-        setUnreadNotifications(0);
-        return;
-      }
-
-      try {
-        const notifications = await authRequest('/api/notifications');
-        setUnreadNotifications(notifications.filter((notification) => !notification.read).length);
-      } catch (error) {
-        console.error('Failed to load notifications count:', error);
-      }
-    };
-
     loadUnreadNotifications();
-  }, [authRequest, location.pathname, user]);
+  }, [loadUnreadNotifications, location.pathname]);
+
+  const handleNotificationClick = async (notification) => {
+    try {
+      await authRequest(`/api/notifications/${notification.id}/read`, {
+        method: 'PATCH'
+      });
+      setUnreadNotifications((prev) => prev.filter((item) => item.id !== notification.id));
+      setNotificationDropdownOpen(false);
+      navigate(getNotificationPath(notification));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
 
   const getUserInitials = () => {
     if (!user?.name) return 'U';
@@ -69,21 +105,67 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/client/notifications')}
-            className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-            aria-label="Notificações"
-          >
-            {unreadNotifications > 0 && (
-              <span className="absolute right-0 top-0 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold text-white">
-                {unreadNotifications}
-              </span>
+          <div className="relative" ref={notificationDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                const nextState = !notificationDropdownOpen;
+                setNotificationDropdownOpen(nextState);
+                if (nextState) {
+                  loadUnreadNotifications();
+                }
+              }}
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              aria-label="Notificações"
+            >
+              {unreadNotifications.length > 0 && (
+                <span className="absolute right-0 top-0 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-semibold text-white">
+                  {unreadNotifications.length}
+                </span>
+              )}
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+              </svg>
+            </button>
+
+            {notificationDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Notificações</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNotificationDropdownOpen(false);
+                      navigate('/client/notifications');
+                    }}
+                    className="text-xs font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    Ver todas
+                  </button>
+                </div>
+                <div className="max-h-96 overflow-y-auto p-2">
+                  {notificationsLoading ? (
+                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Carregando notificações...</p>
+                  ) : unreadNotifications.length === 0 ? (
+                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Sem novas notificações.</p>
+                  ) : (
+                    unreadNotifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleNotificationClick(notification)}
+                        className="w-full rounded-lg px-3 py-2 text-left transition hover:bg-slate-100 dark:hover:bg-slate-700"
+                      >
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{notification.title}</p>
+                        <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{notification.message}</p>
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">{new Date(notification.createdAt).toLocaleString('pt-PT')}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             )}
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
-            </svg>
-          </button>
+          </div>
 
           <div className="relative" ref={dropdownRef}>
             <button
@@ -171,11 +253,6 @@ function Header() {
           </div>
         </div>
       </div>
-      {unreadNotifications > 0 && location.pathname !== '/client/notifications' && (
-        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
-          Você tem <span className="font-semibold">{unreadNotifications}</span> notificações não lidas.
-        </div>
-      )}
     </header>
   );
 }

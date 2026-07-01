@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { API_BASE } from '../../services/api';
 
 const navigation = [
   { to: '/admin', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -65,6 +66,18 @@ function Sidebar({ collapsed, setCollapsed }) {
               {!collapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
+
+          <a
+            href={`${API_BASE}/api-docs`}
+            target="_blank"
+            rel="noreferrer"
+            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 transition-all hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white ${collapsed ? 'justify-center px-2' : ''}`}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M6 4h12a2 2 0 012 2v14a1 1 0 01-1.447.894L12 18.118l-6.553 3.776A1 1 0 014 20V6a2 2 0 012-2z" />
+            </svg>
+            {!collapsed && <span>Documentação</span>}
+          </a>
         </nav>
       </div>
     </aside>
