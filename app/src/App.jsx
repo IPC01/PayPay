@@ -9,7 +9,6 @@ import ClientLayout from './client/components/Layout';
 import AdminLayout from './admin/components/Layout';
 import Dashboard from './client/pages/Dashboard';
 import Wallet from './client/pages/Wallet';
-import WalletCreate from './client/pages/WalletCreate';
 import TokenCreate from './client/pages/TokenCreate';
 import Login from './client/pages/Login';
 import Register from './client/pages/Register';
@@ -108,14 +107,6 @@ function App() {
             element={
               <ClientRoute>
                 <WalletDetails />
-              </ClientRoute>
-            }
-          />
-          <Route
-            path="/client/wallets/create"
-            element={
-              <ClientRoute>
-                <WalletCreate />
               </ClientRoute>
             }
           />
@@ -336,7 +327,6 @@ function App() {
             }
           />
           <Route path="/wallets" element={<Navigate to="/client/wallets" replace />} />
-          <Route path="/wallets/create" element={<Navigate to="/client/wallets/create" replace />} />
           <Route path="/wallets/:id" element={<Navigate to="/client/wallets" replace />} />
           <Route path="/withdrawals" element={<Navigate to="/client/withdrawals" replace />} />
           <Route path="/tokens" element={<Navigate to="/client/tokens" replace />} />
