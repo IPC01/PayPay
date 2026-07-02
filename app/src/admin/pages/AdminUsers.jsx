@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+
+function formatCurrency(value) {
+  return Number(value || 0).toLocaleString('pt-PT', {
+    style: 'currency',
+    currency: 'MZN'
+  });
+}
 
 function AdminUsers() {
   const { authRequest } = useAuth();
@@ -11,6 +17,9 @@ function AdminUsers() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedUserDetail, setSelectedUserDetail] = useState(null);
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -79,6 +88,35 @@ function AdminUsers() {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  const openUserDetails = async (user) => {
+    try {
+      setDetailLoading(true);
+      setDetailModalOpen(true);
+      const [userData, walletData, transactionData] = await Promise.all([
+        authRequest(`/api/users/${user.id}`),
+        authRequest(`/api/admin/users/${user.id}/wallets`),
+        authRequest(`/api/admin/users/${user.id}/transactions`)
+      ]);
+
+      setSelectedUserDetail({
+        user: userData,
+        wallets: walletData,
+        transactions: transactionData
+      });
+    } catch (err) {
+      console.error(err);
+      setFeedback('Não foi possível carregar os detalhes do utilizador.');
+      setDetailModalOpen(false);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeUserDetails = () => {
+    setDetailModalOpen(false);
+    setSelectedUserDetail(null);
   };
 
   return (
@@ -168,12 +206,13 @@ function AdminUsers() {
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(user.createdAt).toLocaleDateString('pt-PT')}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Link
-                          to={`/admin/users/${user.id}`}
+                        <button
+                          type="button"
+                          onClick={() => openUserDetails(user)}
                           className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-brand-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:border-brand-500"
                         >
                           Ver
-                        </Link>
+                        </button>
                         <button
                           type="button"
                           onClick={() => toggleUserStatus(user)}
@@ -191,6 +230,82 @@ function AdminUsers() {
           </table>
         </div>
       </div>
+
+      {detailModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800">
+            <div className="mb-5 flex items-start justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-700">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Detalhes</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                  {selectedUserDetail?.user?.name || 'Utilizador'}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{selectedUserDetail?.user?.email}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closeUserDetails}
+                className="rounded-full border border-slate-300 p-2 text-slate-600 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <span className="sr-only">Fechar</span>×
+              </button>
+            </div>
+
+            {detailLoading ? (
+              <div className="py-10 text-center text-slate-500 dark:text-slate-400">A carregar detalhes do utilizador...</div>
+            ) : selectedUserDetail ? (
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Perfil</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{selectedUserDetail.user?.Role?.name || 'N/A'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Carteiras</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{selectedUserDetail.wallets.length}</p>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
+                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Transações</p>
+                    <p className="mt-2 text-sm font-semibold text-slate-900 dark:text-white">{selectedUserDetail.transactions.length}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Carteiras</h3>
+                  {selectedUserDetail.wallets.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Sem carteiras para este utilizador.</p>
+                  ) : (
+                    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                      {selectedUserDetail.wallets.slice(0, 6).map((wallet) => (
+                        <div key={wallet.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{wallet.code || wallet.walletCode || 'Carteira'}</p>
+                          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-white">{formatCurrency(wallet.balance)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.24em] text-brand-600">Últimas transações</h3>
+                  {selectedUserDetail.transactions.length === 0 ? (
+                    <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Sem transações registadas.</p>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {selectedUserDetail.transactions.slice(0, 8).map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+                          <span className="text-slate-600 dark:text-slate-300">{transaction.reference || transaction.walletCode || `TX-${transaction.id}`}</span>
+                          <span className="font-semibold text-slate-900 dark:text-white">{formatCurrency(transaction.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

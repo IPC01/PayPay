@@ -99,7 +99,7 @@ function Header() {
       <div className="mx-auto flex max-w-none items-center justify-between px-3 py-2 sm:px-4">
         <div className="flex items-center gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">Plataforma</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">Área do Cliente</p>
             <h1 className="text-lg font-semibold text-slate-900 dark:text-white">{settings?.platformName || 'Gestão'}</h1>
           </div>
         </div>
@@ -131,7 +131,7 @@ function Header() {
             {notificationDropdownOpen && (
               <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Notificações</p>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Notificações do sistema</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -145,9 +145,9 @@ function Header() {
                 </div>
                 <div className="max-h-96 overflow-y-auto p-2">
                   {notificationsLoading ? (
-                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Carregando notificações...</p>
+                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Carregando notificações do sistema...</p>
                   ) : unreadNotifications.length === 0 ? (
-                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Sem novas notificações.</p>
+                    <p className="px-2 py-3 text-sm text-slate-500 dark:text-slate-400">Sem novas notificações do sistema.</p>
                   ) : (
                     unreadNotifications.map((notification) => (
                       <button

@@ -464,12 +464,13 @@ function Wallets() {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      <Link
-                        to={`/wallets/${wallet.id}`}
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(wallet)}
                         className="text-sm font-medium text-slate-900 transition hover:text-brand-600 dark:text-white dark:hover:text-brand-400"
                       >
                         {wallet.walletName}
-                      </Link>
+                      </button>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -512,8 +513,9 @@ function Wallets() {
                           </svg>
                         </button>
                         
-                        <Link
-                          to={`/wallets/${wallet.id}`}
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(wallet)}
                           className="rounded-lg p-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                           title="Ver carteira"
                         >
@@ -521,7 +523,7 @@ function Wallets() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
-                        </Link>
+                        </button>
                         <Link
                           to={`/withdrawals?walletId=${wallet.id}`}
                           className="rounded-lg p-2 text-teal-600 transition hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950"

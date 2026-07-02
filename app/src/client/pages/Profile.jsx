@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react';
+import { API_BASE } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useSettings } from '../../contexts/SettingsContext';
+
+function normalizeImageUrl(url) {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('//')) {
+    const scheme = API_BASE.startsWith('https') ? 'https:' : 'http:';
+    return `${scheme}${url}`;
+  }
+  if (url.startsWith('/')) return `${API_BASE}${url}`;
+  return `${API_BASE}/${url}`;
+}
 
 function Profile() {
   const { user, authRequest } = useAuth();
   const { notify } = useNotification();
+  const { settings: appSettings } = useSettings();
   const [kycStatus, setKycStatus] = useState(null);
+  const [companyInfo, setCompanyInfo] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -68,16 +83,24 @@ function Profile() {
   };
 
   useEffect(() => {
-    const loadKyc = async () => {
+    const loadDashboardData = async () => {
       try {
-        const response = await authRequest('/api/kyc');
-        setKycStatus(response?.kyc?.status || 'DRAFT');
+        const [kycResponse, settingsResponse] = await Promise.all([
+          authRequest('/api/kyc'),
+          authRequest('/api/settings')
+        ]);
+
+        setKycStatus(kycResponse?.kyc?.status || 'DRAFT');
+        setCompanyInfo({
+          ...settingsResponse,
+          logoImg: normalizeImageUrl(settingsResponse?.logoImg)
+        });
       } catch (err) {
         console.error(err);
       }
     };
 
-    loadKyc();
+    loadDashboardData();
   }, [authRequest]);
 
   const handleDeleteAccount = async () => {
@@ -150,6 +173,54 @@ function Profile() {
         </div>
         <div className={`rounded-full px-3 py-1 text-xs font-medium ${kycStatus === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
           {kycStatus === 'APPROVED' ? 'KYC aprovado' : kycStatus ? `KYC ${kycStatus.toLowerCase()}` : 'KYC pendente'}
+        </div>
+      </div>
+
+      {/* Seção: Informações da Empresa */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Informações da Empresa</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Detalhes oficiais da plataforma associados ao seu perfil</p>
+          </div>
+          {companyInfo?.logoImg ? (
+            <img src={companyInfo.logoImg} alt="Logo da empresa" className="h-12 w-12 rounded-2xl object-contain" />
+          ) : null}
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Nome</p>
+            <p className="mt-1 text-base font-medium text-slate-900 dark:text-white">{companyInfo?.platformName || appSettings?.platformName || 'Não definido'}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Proprietário</p>
+            <p className="mt-1 text-base font-medium text-slate-900 dark:text-white">{companyInfo?.ownerName || 'Não definido'}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Contato</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{companyInfo?.contacts || 'Nenhum contacto disponível.'}</p>
+          </div>
+          <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+            <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Endereço</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{companyInfo?.address || 'Nenhum endereço cadastrado.'}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+          <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">E-mails</p>
+          <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{companyInfo?.emails || 'Nenhum e-mail cadastrado.'}</p>
+        </div>
+
+        <div className="mt-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
+          <p className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">Mais informações</p>
+          <div className="mt-2 space-y-2 text-sm leading-7 text-slate-700 dark:text-slate-300">
+            {companyInfo?.additionalInfo ? (
+              companyInfo.additionalInfo.split(/\r?\n/).map((line, index) => <p key={index}>{line}</p>)
+            ) : (
+              <p>Não há informações adicionais publicadas.</p>
+            )}
+          </div>
         </div>
       </div>
 

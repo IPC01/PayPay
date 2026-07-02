@@ -37,7 +37,7 @@ function Header() {
       <div className="mx-auto flex max-w-none items-center justify-between px-3 py-2 sm:px-4">
         <div className="flex items-center gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">Administração</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">Área Administrativa</p>
             <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
               {settings?.platformName || 'Painel Administrativo'}
             </h1>

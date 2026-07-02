@@ -19,22 +19,18 @@ import TransactionsB2C from './client/pages/TransactionsB2C';
 import Tickets from './client/pages/Tickets';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
-import AdminUserDetails from './admin/pages/AdminUserDetails';
 import AdminWallets from './admin/pages/AdminWallets';
 import AdminTransactions from './admin/pages/AdminTransactions';
 import AdminTickets from './admin/pages/AdminTickets';
 import AdminWithdrawals from './admin/pages/AdminWithdrawals';
 import AdminKyc from './admin/pages/AdminKyc';
-import AdminKycDetail from './admin/pages/AdminKycDetail';
 import AdminPackages from './admin/pages/AdminPackages';
 import AdminSubscriptions from './admin/pages/AdminSubscriptions';
 import AdminLegalPages from './admin/pages/AdminLegalPages';
 import AdminSettings from './admin/pages/AdminSettings';
 import NotificationsPage from './client/pages/NotificationsPage';
 import Packages from './client/pages/Packages';
-import WalletDetails from './client/pages/WalletDetails';
 import Withdrawals from './client/pages/Withdrawals';
-import CompanyInfo from './client/pages/CompanyInfo';
 import LegalPages from './client/pages/LegalPages';
 import LegalPageView from './client/pages/LegalPageView';
 import Kyc from './client/pages/Kyc';
@@ -104,11 +100,7 @@ function App() {
           />
           <Route
             path="/client/wallets/:id"
-            element={
-              <ClientRoute>
-                <WalletDetails />
-              </ClientRoute>
-            }
+            element={<Navigate to="/client/wallets" replace />}
           />
           <Route
             path="/client/withdrawals"
@@ -160,11 +152,7 @@ function App() {
           />
           <Route
             path="/admin/users/:id"
-            element={
-              <AdminRoute>
-                <AdminUserDetails />
-              </AdminRoute>
-            }
+            element={<Navigate to="/admin/users" replace />}
           />
           <Route
             path="/admin/wallets"
@@ -280,11 +268,7 @@ function App() {
           />
           <Route
             path="/admin/kyc/:id"
-            element={
-              <AdminRoute>
-                <AdminKycDetail />
-              </AdminRoute>
-            }
+            element={<Navigate to="/admin/kyc" replace />}
           />
           <Route
             path="/admin/settings"
@@ -300,14 +284,6 @@ function App() {
               <AdminRoute>
                 <AdminLegalPages />
               </AdminRoute>
-            }
-          />
-          <Route
-            path="/client/company-info"
-            element={
-              <ClientRoute>
-                <CompanyInfo />
-              </ClientRoute>
             }
           />
           <Route
@@ -338,7 +314,7 @@ function App() {
           <Route path="/transactions/c2b" element={<Navigate to="/client/transactions/c2b" replace />} />
           <Route path="/transactions/b2c" element={<Navigate to="/client/transactions/b2c" replace />} />
           <Route path="/packages" element={<Navigate to="/client/packages" replace />} />
-          <Route path="/company-info" element={<Navigate to="/client/company-info" replace />} />
+          <Route path="/company-info" element={<Navigate to="/client/profile" replace />} />
           <Route path="/legal" element={<Navigate to="/client/legal" replace />} />
           <Route path="/legal/:slug" element={<Navigate to="/client/legal" replace />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
