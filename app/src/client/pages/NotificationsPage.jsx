@@ -78,15 +78,15 @@ function NotificationsPage() {
     const text = `${notification.title} ${notification.message}`.toLowerCase();
 
     if (text.includes('kyc')) {
-      return '/kyc';
+      return '/client/kyc';
     }
     if (text.includes('ticket')) {
-      return user?.roleId === 1 ? '/admin/tickets' : '/tickets';
+      return user?.roleId === 1 ? '/admin/tickets' : '/client/tickets';
     }
     if (text.includes('saque') || text.includes('withdrawal') || text.includes('retirada')) {
-      return user?.roleId === 1 ? '/admin/withdrawals' : '/withdrawals';
+      return user?.roleId === 1 ? '/admin/withdrawals' : '/client/withdrawals';
     }
-    return '/';
+    return user?.roleId === 1 ? '/admin' : '/client';
   };
 
   const handleNotificationClick = async (notification) => {

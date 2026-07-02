@@ -326,15 +326,15 @@ function Wallets() {
             Gerencie todas as suas carteiras e saldos
           </p>
         </div>
-        <button
-          onClick={() => setModalOpen(true)}
+        <Link
+          to="/client/wallets/create"
           className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 dark:shadow-brand-950"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
           Nova Carteira
-        </button>
+        </Link>
       </div>
 
       {/* Cards de Estatísticas */}
@@ -444,15 +444,15 @@ function Wallets() {
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                       Nenhuma carteira encontrada
                     </p>
-                    <button
-                      onClick={() => setModalOpen(true)}
+                    <Link
+                      to="/client/wallets/create"
                       className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                       </svg>
                       Criar primeira carteira
-                    </button>
+                    </Link>
                   </td>
                 </tr>
               ) : (
@@ -465,7 +465,7 @@ function Wallets() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <Link
-                        to={`/wallets/${wallet.id}`}
+                        to={`/client/wallets/${wallet.id}`}
                         className="text-sm font-medium text-slate-900 transition hover:text-brand-600 dark:text-white dark:hover:text-brand-400"
                       >
                         {wallet.walletName}
@@ -513,7 +513,7 @@ function Wallets() {
                         </button>
                         
                         <Link
-                          to={`/wallets/${wallet.id}`}
+                          to={`/client/wallets/${wallet.id}`}
                           className="rounded-lg p-2 text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                           title="Ver carteira"
                         >
@@ -523,7 +523,7 @@ function Wallets() {
                           </svg>
                         </Link>
                         <Link
-                          to={`/withdrawals?walletId=${wallet.id}`}
+                          to={`/client/withdrawals?walletId=${wallet.id}`}
                           className="rounded-lg p-2 text-teal-600 transition hover:bg-teal-50 dark:text-teal-400 dark:hover:bg-teal-950"
                           title="Saque"
                         >

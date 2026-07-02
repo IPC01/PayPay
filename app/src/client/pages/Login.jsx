@@ -21,6 +21,13 @@ function Login() {
   const resolvePostLoginRoute = (requestedPath, roleId) => {
     const safePath = requestedPath && requestedPath !== '/login' ? requestedPath : '/client';
 
+    if (roleId === 1) {
+      if (safePath.startsWith('/admin')) {
+        return safePath;
+      }
+      return '/admin';
+    }
+
     if (roleId !== 1 && safePath.startsWith('/admin')) {
       return '/client';
     }

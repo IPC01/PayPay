@@ -17,9 +17,9 @@ function Dashboard() {
   const [selectedPeriod, setSelectedPeriod] = useState('week');
 
   const actions = [
-    { title: 'Criar nova carteira', description: 'Adicionar uma nova wallet ao sistema', href: '/wallets', icon: '➕', color: 'bg-blue-500' },
-    { title: 'Gerir chaves de acesso', description: 'Criar e eliminar chaves de acesso', href: '/tokens', icon: '🔑', color: 'bg-purple-500' },
-    { title: 'Ver transações', description: 'Histórico de pagamentos e eventos', href: '/transactions', icon: '📊', color: 'bg-green-500' }
+    { title: 'Criar nova carteira', description: 'Adicionar uma nova wallet ao sistema', href: '/client/wallets/create', icon: '➕', color: 'bg-blue-500' },
+    { title: 'Gerir chaves de acesso', description: 'Criar e eliminar chaves de acesso', href: '/client/tokens', icon: '🔑', color: 'bg-purple-500' },
+    { title: 'Ver transações', description: 'Histórico de pagamentos e eventos', href: '/client/transactions', icon: '📊', color: 'bg-green-500' }
   ];
 
   useEffect(() => {

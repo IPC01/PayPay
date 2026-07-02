@@ -70,7 +70,7 @@ function Header() {
               </div>
               <div className="p-2">
                 <NavLink
-                  to="/client/profile"
+                  to="/admin/profile"
                   onClick={() => setDropdownOpen(false)}
                   className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
