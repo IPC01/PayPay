@@ -42,18 +42,6 @@ function Sidebar({ collapsed, setCollapsed }) {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setCollapsed((prev) => !prev)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-600 shadow-sm transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                aria-label={collapsed ? 'Expandir sidebar' : 'Minimizar sidebar'}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  {collapsed ? <path d="M9 6l6 6-6 6" /> : <path d="M15 6l-6 6 6 6" />}
-                </svg>
-              </button>
-            </div>
           </div>
         </div>
 
