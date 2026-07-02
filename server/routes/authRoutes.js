@@ -9,6 +9,11 @@ router.post('/register', (req, res) =>
   AuthController.register(req, res)
 );
 
+// VERIFY CREDENTIALS BEFORE OTP
+router.post('/verify-credentials', (req, res) =>
+  AuthController.verifyCredentials(req, res)
+);
+
 // LOGIN
 router.post('/login', (req, res) =>
   AuthController.login(req, res)

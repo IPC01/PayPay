@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { Link } from 'react-router-dom';
 
 const initialKycState = {
   type: 'INDIVIDUAL',
@@ -84,6 +83,15 @@ const businessDocuments = [
   'BI do Director'
 ];
 
+const kycSteps = [
+  { number: 1, label: 'Tipo' },
+  { number: 2, label: 'Dados básicos' },
+  { number: 3, label: 'Endereço' },
+  { number: 4, label: 'Compliance' },
+  { number: 5, label: 'Documentos' },
+  { number: 6, label: 'Revisão' }
+];
+
 function Kyc() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -112,6 +120,85 @@ function Kyc() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const isFilled = (value) => {
+    if (value === true) return true;
+    if (value === false || value === null || value === undefined) return false;
+    return String(value).trim() !== '';
+  };
+
+  const getRequiredFieldsForStep = (stepNumber) => {
+    const stepFields = {
+      1: ['type'],
+      2: kyc.type === 'INDIVIDUAL'
+        ? ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'documentNumber']
+        : ['businessName', 'companyNuit', 'registrationNumber', 'legalForm'],
+      3: ['country', 'city', 'address'],
+      4: ['sourceOfFunds', 'accountPurpose', 'monthlyVolume', 'annualVolume'],
+      5: ['documents'],
+      6: ['termsAccepted']
+    };
+
+    return stepFields[stepNumber] || [];
+  };
+
+  const isStepComplete = (stepNumber) => {
+    if (stepNumber === 5) {
+      return documents.length > 0;
+    }
+
+    return getRequiredFieldsForStep(stepNumber).every((field) => isFilled(kyc[field]));
+  };
+
+  const getFirstIncompleteStep = () => {
+    for (const stepItem of kycSteps) {
+      if (!isStepComplete(stepItem.number)) {
+        return stepItem.number;
+      }
+    }
+
+    return kycSteps.length;
+  };
+
+  useEffect(() => {
+    const firstIncompleteStep = getFirstIncompleteStep();
+    if (step > firstIncompleteStep) {
+      setStep(firstIncompleteStep);
+    }
+  }, [kyc, documents, step]);
+
+  const canAccessStep = (stepNumber) => stepNumber <= getFirstIncompleteStep();
+
+  const goToStep = (nextStep) => {
+    if (canAccessStep(nextStep)) {
+      setStep(nextStep);
+      return;
+    }
+
+    notify({
+      type: 'warning',
+      title: 'Etapa bloqueada',
+      message: 'Complete os passos anteriores antes de avançar.'
+    });
+  };
+
+  const canAdvanceCurrentStep = () => step < getFirstIncompleteStep();
+
+  const handleNextStep = async () => {
+    if (!canAdvanceCurrentStep()) {
+      notify({
+        type: 'warning',
+        title: 'Etapa incompleta',
+        message: 'Preencha esta etapa antes de continuar.'
+      });
+      return;
+    }
+
+    await saveDraft();
+    if (step < kycSteps.length) {
+      setStep((prev) => Math.min(prev + 1, kycSteps.length));
     }
   };
 
@@ -225,44 +312,9 @@ function Kyc() {
     return config[kyc.status] || config.DRAFT;
   }, [kyc.status]);
 
-  // Calculate progress based on required fields filled
   const calculateProgress = () => {
-    const requiredFields = {
-      1: ['type'],
-      2: kyc.type === 'INDIVIDUAL' 
-        ? ['firstName', 'lastName', 'dateOfBirth', 'nationality', 'documentNumber']
-        : ['businessName', 'companyNuit', 'registrationNumber', 'legalForm'],
-      3: ['country', 'city', 'address'],
-      4: ['sourceOfFunds', 'accountPurpose', 'monthlyVolume', 'annualVolume'],
-      5: [], // Documents step - check if documents are uploaded
-      6: ['termsAccepted']
-    };
-
-    let totalRequired = 0;
-    let filledRequired = 0;
-
-    Object.keys(requiredFields).forEach(stepKey => {
-      const stepNum = parseInt(stepKey);
-      const fields = requiredFields[stepKey];
-      
-      if (stepNum === 5) {
-        // For documents step, check if any documents are uploaded
-        totalRequired += 1;
-        if (documents.length > 0) filledRequired += 1;
-      } else {
-        fields.forEach(field => {
-          totalRequired += 1;
-          const value = kyc[field];
-          if (field === 'termsAccepted') {
-            if (value === true) filledRequired += 1;
-          } else if (value && value.trim() !== '') {
-            filledRequired += 1;
-          }
-        });
-      }
-    });
-
-    return totalRequired > 0 ? Math.round((filledRequired / totalRequired) * 100) : 0;
+    const completedSteps = kycSteps.filter((item) => isStepComplete(item.number)).length;
+    return Math.round((completedSteps / kycSteps.length) * 100);
   };
 
   const progress = calculateProgress();
@@ -309,15 +361,6 @@ function Kyc() {
         </div>
       </div>
 
-      {kyc.status !== 'APPROVED' && (
-        <div className="mx-auto w-full max-w-3xl rounded-3xl border border-orange-200 bg-orange-50 p-6 text-center text-sm text-orange-700 dark:border-orange-700/40 dark:bg-orange-950/20 dark:text-orange-200">
-          <p className="font-semibold">A sua conta ainda não foi verificada.</p>
-          <p className="mt-2">
-            Complete o processo KYC e submeta para desbloquear carteiras, levantamentos, transferências e integrações API.
-          </p>
-        </div>
-      )}
-
       {kyc.status === 'REJECTED' && kyc.rejectionReason && (
         <div className="rounded-3xl border border-red-200 bg-red-50 p-5 text-sm text-red-700 dark:border-red-700/40 dark:bg-red-950/20 dark:text-red-200">
           Motivo de rejeição: {kyc.rejectionReason}
@@ -328,26 +371,24 @@ function Kyc() {
         <aside className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Progresso</p>
           <div className="mt-6 space-y-3">
-            {[
-              { number: 1, label: 'Tipo' },
-              { number: 2, label: 'Dados básicos' },
-              { number: 3, label: 'Endereço' },
-              { number: 4, label: 'Compliance' },
-              { number: 5, label: 'Documentos' },
-              { number: 6, label: 'Revisão' }
-            ].map((item) => (
+            {kycSteps.map((item) => (
               <button
                 key={item.number}
                 type="button"
-                onClick={() => setStep(item.number)}
+                onClick={() => goToStep(item.number)}
+                disabled={!canAccessStep(item.number)}
                 className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm transition ${
                   step === item.number 
                     ? 'border-brand-500 bg-brand-50 text-brand-900 dark:border-brand-500/40 dark:bg-brand-900/20 dark:text-white' 
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
+                    : canAccessStep(item.number)
+                      ? 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800'
+                      : 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400 opacity-70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-500'
                 }`}
               >
                 <span>{item.number}. {item.label}</span>
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{item.number <= step ? '✓' : item.number}</span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {isStepComplete(item.number) ? '✓' : item.number}
+                </span>
               </button>
             ))}
           </div>
@@ -624,18 +665,18 @@ function Kyc() {
                 >
                   Submeter para aprovação
                 </button>
-                <button
-                  type="button"
-                  onClick={saveDraft}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                >
-                  Salvar rascunho
-                </button>
               </div>
             </div>
           )}
 
           <div className="mt-8 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={saveDraft}
+              className="rounded-2xl border border-brand-200 bg-brand-50 px-5 py-3 text-sm font-semibold text-brand-700 transition hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-900/20 dark:text-brand-300"
+            >
+              Guardar rascunho
+            </button>
             {step > 1 && (
               <button
                 type="button"
@@ -646,8 +687,9 @@ function Kyc() {
             {step < 6 && (
               <button
                 type="button"
-                onClick={() => setStep(step + 1)}
-                className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700"
+                onClick={handleNextStep}
+                disabled={!canAdvanceCurrentStep()}
+                className="rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
               >Próximo</button>
             )}
           </div>

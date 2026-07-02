@@ -5,6 +5,26 @@ const { User, Role } = require('../models');
 
 class AuthService {
 
+  async verifyCredentials(email, password) {
+    const user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    const match = await bcrypt.compare(password, user.passwordHash);
+
+    if (!match) {
+      throw new Error('Invalid credentials');
+    }
+
+    return {
+      userId: user.id,
+      roleId: user.roleId,
+      email: user.email
+    };
+  }
+
   async register(name, email, password) {
     const exists = await User.findOne({ where: { email } });
 

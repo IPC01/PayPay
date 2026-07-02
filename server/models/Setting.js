@@ -13,7 +13,7 @@ Setting.init(
     platformName: {
       type: DataTypes.STRING,
       allowNull: false,
-      defaultValue: ''
+      defaultValue: 'SAMPAY'
     },
     logoImg: {
       type: DataTypes.STRING,

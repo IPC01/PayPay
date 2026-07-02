@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { request } from '../../services/api';
 
 const SIMULATED_OTP = '123456';
 
@@ -10,6 +11,7 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [credentialsVerified, setCredentialsVerified] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +42,28 @@ function Login() {
     setError(null);
 
     if (step === 'credentials') {
-      setStep('otp');
+      setLoading(true);
+
+      try {
+        await request('/api/auth/verify-credentials', {
+          method: 'POST',
+          body: { email, password }
+        });
+
+        setCredentialsVerified(true);
+        setStep('otp');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+
+      return;
+    }
+
+    if (!credentialsVerified) {
+      setError('Valide as credenciais antes de continuar.');
+      setStep('credentials');
       return;
     }
 
@@ -115,7 +138,7 @@ function Login() {
           
           <div className="mt-8 pt-8 border-t border-white/20">
             <p className="text-sm text-white/70">
-              © {new Date().getFullYear()} {settings?.platformName || 'Sua Empresa'}. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.platformName || 'SAMPAY'}. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -135,7 +158,7 @@ function Login() {
               )}
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">Faça login na sua conta</h1>
-            <p className="text-slate-500">Aceda ao {settings?.platformName || 'sistema'} com as suas credenciais.</p>
+            <p className="text-slate-500">Aceda ao {settings?.platformName || 'SAMPAY'} com as suas credenciais.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -148,7 +171,10 @@ function Login() {
                   <input 
                     type="email" 
                     value={email} 
-                    onChange={e => setEmail(e.target.value)} 
+                    onChange={e => {
+                      setEmail(e.target.value);
+                      setCredentialsVerified(false);
+                    }} 
                     required 
                     className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-slate-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     placeholder="seu@email.com"
@@ -161,7 +187,10 @@ function Login() {
                   <input 
                     type="password" 
                     value={password} 
-                    onChange={e => setPassword(e.target.value)} 
+                    onChange={e => {
+                      setPassword(e.target.value);
+                      setCredentialsVerified(false);
+                    }} 
                     required 
                     className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-slate-900 transition-all focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
                     placeholder="••••••••"
@@ -228,9 +257,7 @@ function Login() {
               disabled={loading} 
               className="w-full rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-700 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-slate-300 disabled:hover:shadow-none"
             >
-              {step === 'credentials' ? (
-                'Continuar'
-              ) : loading ? (
+              {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -238,8 +265,10 @@ function Login() {
                   </svg>
                   <span>Verificando...</span>
                 </div>
+              ) : step === 'credentials' ? (
+                'Continuar'
               ) : (
-                'Verificar código'
+                'Entrar'
               )}
             </button>
           </form>

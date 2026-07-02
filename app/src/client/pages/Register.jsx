@@ -98,7 +98,7 @@ function Register() {
           
           <div className="mt-8 pt-8 border-t border-white/20">
             <p className="text-sm text-white/70">
-              © {new Date().getFullYear()} {settings?.platformName || 'Sua Empresa'}. Todos os direitos reservados.
+              © {new Date().getFullYear()} {settings?.platformName || 'SAMPAY'}. Todos os direitos reservados.
             </p>
           </div>
         </div>
@@ -117,7 +117,7 @@ function Register() {
                 </svg>
               )}
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">Crie a conta no {settings?.platformName || 'sistema'}</h1>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Crie a conta no {settings?.platformName || 'SAMPAY'}</h1>
             <p className="text-slate-500">Insira os seus dados e verifique o código 2FA para começar.</p>
           </div>
 

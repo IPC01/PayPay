@@ -9,7 +9,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-4 text-center sm:flex-row sm:text-left">
           <div className="text-sm text-slate-600 dark:text-slate-400">
-            © {currentYear} {settings?.platformName || 'Payments System'}. Todos os direitos reservados.
+            © {currentYear} {settings?.platformName || 'SAMPAY'}. Todos os direitos reservados.
           </div>
           <div className="flex gap-6">
             <a href="#" className="text-sm text-slate-600 dark:text-slate-400 transition hover:text-brand-600 dark:hover:text-brand-400">

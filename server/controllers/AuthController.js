@@ -6,6 +6,25 @@ const { createAuditLog } = require('../helpers/auditLogger');
 const tokenBlacklist = new Set();
 
 class AuthController {
+  async verifyCredentials(req, res) {
+    try {
+      const { email, password } = req.body;
+
+      const result = await AuthService.verifyCredentials(email, password);
+
+      return res.json({
+        message: 'Credentials valid',
+        userId: result.userId,
+        roleId: result.roleId,
+        email: result.email
+      });
+    } catch (err) {
+      return res.status(401).json({
+        error: err.message
+      });
+    }
+  }
+
   async register(req, res) {
     try {
       const { name, email, password } = req.body;

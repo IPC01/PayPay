@@ -9,6 +9,8 @@ function Header() {
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [kycStatus, setKycStatus] = useState('DRAFT');
+  const [kycAlertLoading, setKycAlertLoading] = useState(false);
   const dropdownRef = useRef(null);
   const notificationDropdownRef = useRef(null);
   const { user, logout, authRequest } = useAuth();
@@ -53,6 +55,24 @@ function Header() {
     }
   }, [authRequest, user]);
 
+  const loadKycStatus = useCallback(async () => {
+    if (!user) {
+      setKycStatus('DRAFT');
+      return;
+    }
+
+    try {
+      setKycAlertLoading(true);
+      const response = await authRequest('/api/kyc');
+      setKycStatus(response?.kyc?.status || 'DRAFT');
+    } catch (error) {
+      console.error('Failed to load KYC status:', error);
+      setKycStatus('DRAFT');
+    } finally {
+      setKycAlertLoading(false);
+    }
+  }, [authRequest, user]);
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -70,6 +90,10 @@ function Header() {
   useEffect(() => {
     loadUnreadNotifications();
   }, [loadUnreadNotifications, location.pathname]);
+
+  useEffect(() => {
+    loadKycStatus();
+  }, [loadKycStatus, location.pathname]);
 
   const handleNotificationClick = async (notification) => {
     try {
@@ -96,15 +120,37 @@ function Header() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-md dark:border-slate-700 dark:bg-slate-900/95">
-      <div className="mx-auto flex max-w-none items-center justify-between px-3 py-2 sm:px-4">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex max-w-none items-center gap-3 px-3 py-2 sm:px-4">
+        <div className="flex shrink-0 items-center gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-brand-600 dark:text-brand-400">Área do Cliente</p>
-            <h1 className="text-lg font-semibold text-slate-900 dark:text-white">{settings?.platformName || 'Gestão'}</h1>
+            <h1 className="text-lg font-semibold text-slate-900 dark:text-white">{settings?.platformName || 'SAMPAY'}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          {kycStatus !== 'APPROVED' && (
+            <button
+              type="button"
+              onClick={() => navigate('/client/kyc')}
+              className="hidden min-w-0 items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 shadow-sm animate-pulse transition hover:bg-rose-100 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50 md:inline-flex"
+              aria-label="Ir para o KYC"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-200">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 9v4m0 4h.01M10.29 3.86l-8.1 14A2 2 0 003.92 21h16.16a2 2 0 001.73-3.14l-8.1-14a2 2 0 00-3.42 0z" />
+                </svg>
+              </span>
+              <div className="min-w-0 max-w-[28rem]">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] truncate">A sua conta ainda não foi verificada</p>
+                <p className="truncate text-xs">
+                  Complete o KYC para desbloquear carteiras, levantamentos, transferências e integrações API.
+                </p>
+              </div>
+              {kycAlertLoading && <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em]">Atualizando</span>}
+            </button>
+          )}
+
           <div className="relative" ref={notificationDropdownRef}>
             <button
               type="button"
@@ -131,7 +177,7 @@ function Header() {
             {notificationDropdownOpen && (
               <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Notificações do sistema</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">Notificações do sistema</p>
                   <button
                     type="button"
                     onClick={() => {

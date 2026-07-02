@@ -97,7 +97,7 @@ function Layout({ children }) {
                     {settings?.platformName ? 'Plataforma' : 'Painel'}
                   </p>
                   <h1 className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {settings?.platformName || 'Gestão'}
+                    {settings?.platformName || 'SAMPAY'}
                   </h1>
                 </div>
               </div>

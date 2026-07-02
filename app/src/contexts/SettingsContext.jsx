@@ -25,6 +25,7 @@ export function SettingsProvider({ children }) {
       const data = await request('/api/settings');
       setSettings({
         ...data,
+        platformName: data.platformName || 'SAMPAY',
         logoImg: normalizeImageUrl(data.logoImg)
       });
       setError(null);

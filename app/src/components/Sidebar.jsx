@@ -83,7 +83,7 @@ function Sidebar({ open, setOpen }) {
               {!collapsed && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">
-                    {settings?.platformName || 'Payments System'}
+                    {settings?.platformName || 'SAMPAY'}
                   </p>
                   <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">
                     {settings?.ownerName || 'Gestão Financeira'}

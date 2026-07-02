@@ -5,7 +5,7 @@ class SettingsController {
     try {
       let settings = await Setting.findOne();
       if (!settings) {
-        settings = await Setting.create({});
+        settings = await Setting.create({ platformName: 'SAMPAY' });
       }
       return res.json(settings);
     } catch (error) {
@@ -17,7 +17,7 @@ class SettingsController {
     try {
       let settings = await Setting.findOne();
       if (!settings) {
-        settings = await Setting.create({});
+        settings = await Setting.create({ platformName: 'SAMPAY' });
       }
       return res.json(settings);
     } catch (error) {
