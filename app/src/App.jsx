@@ -163,6 +163,10 @@ function App() {
             }
           />
           <Route
+            path="/admin/wallets/:id"
+            element={<Navigate to="/admin/wallets" replace />}
+          />
+          <Route
             path="/admin/transactions"
             element={
               <AdminRoute>
@@ -200,6 +204,14 @@ function App() {
               <ClientRoute>
                 <NotificationsPage />
               </ClientRoute>
+            }
+          />
+          <Route
+            path="/admin/notifications"
+            element={
+              <AdminRoute>
+                <NotificationsPage />
+              </AdminRoute>
             }
           />
           <Route

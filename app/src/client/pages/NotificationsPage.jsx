@@ -78,7 +78,7 @@ function NotificationsPage() {
     const text = `${notification.title} ${notification.message}`.toLowerCase();
 
     if (text.includes('kyc')) {
-      return '/kyc';
+      return user?.roleId === 1 ? '/admin/kyc' : '/kyc';
     }
     if (text.includes('ticket')) {
       return user?.roleId === 1 ? '/admin/tickets' : '/tickets';

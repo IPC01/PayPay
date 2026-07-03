@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
@@ -10,6 +10,7 @@ function Header() {
   const { user, logout } = useAuth();
   const { settings } = useSettings();
   const { theme, language, toggleTheme, toggleLanguage } = useUi();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -44,7 +45,20 @@ function Header() {
           </div>
         </div>
 
-        <div className="relative" ref={dropdownRef}>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/notifications')}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            aria-label="Notificações"
+            title="Notificações"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+            </svg>
+          </button>
+
+          <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setDropdownOpen((prev) => !prev)}
@@ -127,6 +141,7 @@ function Header() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
     </header>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -19,6 +20,7 @@ function Profile() {
   const { user, authRequest } = useAuth();
   const { notify } = useNotification();
   const { settings: appSettings } = useSettings();
+  const navigate = useNavigate();
   const [kycStatus, setKycStatus] = useState(null);
   const [companyInfo, setCompanyInfo] = useState(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -168,11 +170,24 @@ function Profile() {
             Gerencie suas informações pessoais e configurações de segurança
           </p>
         </div>
-        <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-          {user?.role === 'admin' ? 'Administrador' : 'Utilizador'}
-        </div>
-        <div className={`rounded-full px-3 py-1 text-xs font-medium ${kycStatus === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
-          {kycStatus === 'APPROVED' ? 'KYC aprovado' : kycStatus ? `KYC ${kycStatus.toLowerCase()}` : 'KYC pendente'}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/client/notifications')}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            aria-label="Abrir notificações"
+            title="Notificações"
+          >
+            <svg className="h-4.5 w-4.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+            </svg>
+          </button>
+          <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
+            {user?.role === 'admin' ? 'Administrador' : 'Utilizador'}
+          </div>
+          <div className={`rounded-full px-3 py-1 text-xs font-medium ${kycStatus === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
+            {kycStatus === 'APPROVED' ? 'KYC aprovado' : kycStatus ? `KYC ${kycStatus.toLowerCase()}` : 'KYC pendente'}
+          </div>
         </div>
       </div>
 
