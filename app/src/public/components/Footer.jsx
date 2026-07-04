@@ -1,4 +1,4 @@
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../../contexts/SettingsContext';
 
 function Footer() {
   const currentYear = new Date().getFullYear();

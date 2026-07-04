@@ -184,7 +184,7 @@ function Kyc() {
     });
   };
 
-  const canAdvanceCurrentStep = () => step < getFirstIncompleteStep();
+  const canAdvanceCurrentStep = () => isStepComplete(step);
 
   const handleNextStep = async () => {
     if (!canAdvanceCurrentStep()) {

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useSettings } from '../contexts/SettingsContext';
-import { useUi } from '../contexts/UiContext';
-import { API_BASE } from '../services/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useUi } from '../../contexts/UiContext';
+import { API_BASE } from '../../services/api';
 
 function Sidebar({ open, setOpen }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);

@@ -91,6 +91,32 @@ function AdminKyc() {
     }
   };
 
+  const formatLabel = (key) => {
+    return key
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/_/g, ' ')
+      .replace(/^./, (char) => char.toUpperCase());
+  };
+
+  const formatValue = (key, value) => {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    if (typeof value === 'boolean') return value ? 'Sim' : 'Não';
+
+    const lowerKey = String(key).toLowerCase();
+    if (lowerKey.includes('date') || lowerKey.includes('at') || lowerKey.includes('dob')) {
+      const parsed = new Date(value);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed.toLocaleString('pt-PT');
+      }
+    }
+
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+
+    return String(value);
+  };
+
   const KycDetailsModal = ({
     open,
     loading,
@@ -182,6 +208,32 @@ function AdminKyc() {
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Dados completos do cliente</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {Object.entries(kyc.User || {}).map(([key, value]) => (
+                  <div key={`user-${key}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">{formatLabel(key)}</p>
+                    <p className="mt-1 text-sm text-slate-900 break-words dark:text-white">{formatValue(key, value)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Dados completos do KYC</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {Object.entries(kyc)
+                  .filter(([key]) => key !== 'User' && key !== 'KycDocuments')
+                  .map(([key, value]) => (
+                    <div key={`kyc-${key}`} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800">
+                      <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-500">{formatLabel(key)}</p>
+                      <p className="mt-1 text-sm text-slate-900 break-words dark:text-white">{formatValue(key, value)}</p>
+                    </div>
+                  ))}
               </div>
             </div>
 

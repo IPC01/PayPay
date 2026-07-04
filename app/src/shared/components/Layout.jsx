@@ -1,10 +1,10 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useSettings } from '../contexts/SettingsContext';
-import { useUi } from '../contexts/UiContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useSettings } from '../../contexts/SettingsContext';
+import { useUi } from '../../contexts/UiContext';
 import Sidebar from './Sidebar';
-import Footer from '../public/components/Footer';
+import Footer from '../../public/components/Footer';
 
 function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

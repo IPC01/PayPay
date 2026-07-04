@@ -3,15 +3,14 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { UiProvider } from './contexts/UiContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-import Notifications from './components/Notifications';
-import RequireAuth from './components/RequireAuth';
+import Notifications from './shared/components/Notifications';
+import RequireAuth from './shared/components/RequireAuth';
 import ClientLayout from './client/components/Layout';
 import AdminLayout from './admin/components/Layout';
 import Dashboard from './client/pages/Dashboard';
 import Wallet from './client/pages/Wallet';
 import TokenCreate from './client/pages/TokenCreate';
-import Login from './client/pages/Login';
-import Register from './client/pages/Register';
+import Auth from './public/pages/Auth';
 import Profile from './client/pages/Profile';
 import Transactions from './client/pages/Transactions';
 import TransactionsC2B from './client/pages/TransactionsC2B';
@@ -34,9 +33,10 @@ import Withdrawals from './client/pages/Withdrawals';
 import LegalPages from './client/pages/LegalPages';
 import LegalPageView from './client/pages/LegalPageView';
 import Kyc from './client/pages/Kyc';
-import ForgotPassword from './client/pages/ForgotPassword';
-import ResetPassword from './client/pages/ResetPassword';
-import RequireAdmin from './components/RequireAdmin';
+import HomePage from './public/pages/HomePage';
+import TarifasPage from './public/pages/TarifasPage';
+import TermosCondicaoPage from './public/pages/TermosCondicaoPage';
+import RequireAdmin from './shared/components/RequireAdmin';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -46,7 +46,7 @@ function HomeRoute() {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/inicio" replace />;
   }
 
   if (user?.roleId === 1) {
@@ -82,6 +82,10 @@ function App() {
           <NotificationProvider>
             <Routes>
           <Route path="/" element={<HomeRoute />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/inicio" element={<HomePage />} />
+          <Route path="/tarifas" element={<TarifasPage />} />
+          <Route path="/termos-de-condicao" element={<TermosCondicaoPage />} />
           <Route
             path="/client"
             element={
@@ -329,10 +333,10 @@ function App() {
           <Route path="/company-info" element={<Navigate to="/client/profile" replace />} />
           <Route path="/legal" element={<Navigate to="/client/legal" replace />} />
           <Route path="/legal/:slug" element={<Navigate to="/client/legal" replace />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<Auth />} />
+          <Route path="/reset-password" element={<Auth />} />
+          <Route path="/login" element={<Auth />} />
+          <Route path="/register" element={<Auth />} />
           <Route path="*" element={<Navigate to="/client" replace />} />
         </Routes>
           <Notifications />

@@ -1,4 +1,4 @@
-import { useNotification } from '../contexts/NotificationContext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 const styles = {
   success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
