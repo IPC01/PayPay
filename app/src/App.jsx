@@ -14,6 +14,7 @@ import Auth from './public/pages/Auth';
 import Profile from './client/pages/Profile';
 import Transactions from './client/pages/Transactions';
 import TransactionsC2B from './client/pages/TransactionsC2B';
+import TransactionsC2BTest from './client/pages/TransactionsC2BTest';
 import TransactionsB2C from './client/pages/TransactionsB2C';
 import Tickets from './client/pages/Tickets';
 import AdminDashboard from './admin/pages/AdminDashboard';
@@ -235,6 +236,14 @@ function App() {
             }
           />
           <Route
+            path="/client/transactions/c2b-test"
+            element={
+              <ClientRoute>
+                <TransactionsC2BTest />
+              </ClientRoute>
+            }
+          />
+          <Route
             path="/client/transactions/b2c"
             element={
               <ClientRoute>
@@ -328,6 +337,7 @@ function App() {
           <Route path="/notifications" element={<Navigate to="/client/notifications" replace />} />
           <Route path="/transactions" element={<Navigate to="/client/transactions" replace />} />
           <Route path="/transactions/c2b" element={<Navigate to="/client/transactions/c2b" replace />} />
+          <Route path="/transactions/c2b-test" element={<Navigate to="/client/transactions/c2b-test" replace />} />
           <Route path="/transactions/b2c" element={<Navigate to="/client/transactions/b2c" replace />} />
           <Route path="/packages" element={<Navigate to="/client/packages" replace />} />
           <Route path="/company-info" element={<Navigate to="/client/profile" replace />} />

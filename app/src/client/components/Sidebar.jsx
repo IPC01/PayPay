@@ -9,6 +9,7 @@ const navigation = [
   { to: '/client/tokens', label: 'Chaves de Acesso', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
   { to: '/client/transactions', label: 'Transações', icon: 'M4 6h16M4 12h16M4 18h16', children: [
     { to: '/client/transactions/c2b', label: 'C2B' },
+    { to: '/client/transactions/c2b-test', label: 'C2B teste' },
     { to: '/client/transactions/b2c', label: 'B2C' }
   ] },
   { to: '/client/tickets', label: 'Tickets', icon: 'M4 4h16v16H4z' },

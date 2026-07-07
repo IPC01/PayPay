@@ -1,6 +1,28 @@
 const mpesa = require('mpesa-node-api');
 const db = require('../models/index.js');
 
+const normalizePhoneNumberForMpesa = (phoneNumber) => {
+    const digits = String(phoneNumber || '').replace(/\D/g, '');
+
+    if (!digits) {
+        return '';
+    }
+
+    let localPhone = digits;
+
+    if (localPhone.startsWith('258')) {
+        localPhone = localPhone.slice(3);
+    } else if (localPhone.startsWith('0')) {
+        localPhone = localPhone.slice(1);
+    }
+
+    if (!/^(84|85)\d{7}$/.test(localPhone)) {
+        throw new Error('Número de telefone inválido para M-Pesa. Use 84/85 seguido de 7 dígitos.');
+    }
+
+    return `258${localPhone}`;
+};
+
 /**
  * Gera uma referência de transação única para M-Pesa
  * @param {number} length - Comprimento da referência (mínimo 4)
@@ -21,7 +43,7 @@ const transactionReference = (length = 10) => {
 /**
  * Realiza o pagamento via M-Pesa (C2B)
  * @param {number|string} amount - Valor a ser pago
- * @param {string} phoneNumber - Número do celular (sem o código do país)
+ * @param {string} phoneNumber - Número do celular em formato local ou com prefixo 258
  * @returns {Promise<Object>} - Resposta da API do M-Pesa
  */
 const pagamentoMpesa = async (amount, phoneNumber) => {
@@ -32,14 +54,14 @@ const pagamentoMpesa = async (amount, phoneNumber) => {
             throw new Error('Valor inválido informado');
         }
 
-        if (!phoneNumber || phoneNumber.length < 8) {
+        if (!phoneNumber) {
             throw new Error('Número de telefone inválido');
         }
 
-        const fullPhoneNumber = `258${phoneNumber}`;
+        const fullPhoneNumber = normalizePhoneNumberForMpesa(phoneNumber);
 
         const response = await mpesa.initiate_c2b(
-            amount,
+            Number(amount),
             fullPhoneNumber,
             'T12344C', // Código da conta
             reference
@@ -67,5 +89,6 @@ const pagamentoMpesa = async (amount, phoneNumber) => {
 
 // Exportação no estilo CommonJS
 module.exports = {
-    pagamentoMpesa
+    pagamentoMpesa,
+    normalizePhoneNumberForMpesa
 };
