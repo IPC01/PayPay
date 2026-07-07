@@ -23,6 +23,7 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const legalPageRoutes = require('./routes/legalPageRoutes');
 const packageRoutes = require('./routes/packageRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
+const mpesaServiceTestRoutes = require('./routes/mpesaServiceTestRoutes');
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/legal-pages', legalPageRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/mpesa-service-test', mpesaServiceTestRoutes);
 
 // payment routes v1
 app.use('/api/v1/mpesa/', PaymentRoutes);

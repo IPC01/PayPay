@@ -24,6 +24,7 @@ class PaymentController {
     return Number.isFinite(feeAmount) ? Math.max(0, feeAmount) : 0;
   }
   async c2b(req, res) {
+    let transaction = null;
     try {
       const {
         walletCode,
@@ -77,7 +78,6 @@ class PaymentController {
       }
 
       const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'c2b', amount);
-      let transaction = null;
       transaction = await Transaction.create({
         fromWalletId: wallet.id,
         toWalletId: null,
@@ -96,47 +96,44 @@ class PaymentController {
       let providerResponse;
       let success = false;
 
-      // Simulação local: não chamar o gateway M-Pesa, forçar sucesso.
-      // try {
-      //   providerResponse = await PaymentService.createC2B({
-      //     provider,
-      //     phone,
-      //     amount,
-      //     reference,
-      //     mode: req.mpesaMode
-      //   });
-      // } catch (err) {
-      //   await transaction.update({
-      //     status: 'failed',
-      //     providerResponse: JSON.stringify({
-      //       error: err.message
-      //     }),
-      //     systemErrorCode: 'SYS-1001',
-      //     systemErrorMessage: err.message
-      //   });
-      //
-      //   await createAuditLog({
-      //     userId: wallet.userId || null,
-      //     action: 'transaction_c2b_failed',
-      //     entity: 'Transaction',
-      //     entityId: transaction.id,
-      //     ip: req.ip,
-      //     userAgent: req.headers['user-agent']
-      //   });
-      //
-      //   return res.status(400).json({
-      //     success: false,
-      //     error: err.message
-      //   });
-      // }
+      try {
+        providerResponse = await PaymentService.createC2B({
+          provider,
+          phone,
+          amount,
+          reference,
+          mode: req.mpesaMode
+        });
+      } catch (err) {
+        await transaction.update({
+          status: 'failed',
+          providerResponse: JSON.stringify({
+            error: err.message
+          }),
+          systemErrorCode: 'SYS-1001',
+          systemErrorMessage: err.message
+        });
 
-      providerResponse = {
-        output_ResponseCode: 'INS-0',
-        output_ResponseDescription: 'Request processed successfully',
-        output_ConversationID: `SIM-${transaction.id}`,
-        output_TransactionID: `SIMTX-${transaction.id}`
-      };
-      success = true;
+        await createAuditLog({
+          userId: wallet.userId || null,
+          action: 'transaction_c2b_failed',
+          entity: 'Transaction',
+          entityId: transaction.id,
+          ip: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+
+        return res.status(400).json({
+          success: false,
+          error: err.message
+        });
+      }
+
+      success = providerResponse?.output_ResponseCode === 'INS-0';
+      const providerResponseMessage =
+        providerResponse?.output_ResponseDescription ||
+        providerResponse?.output_ResponseDesc ||
+        null;
 
       await transaction.update({
         status: success ? 'success' : 'failed',
@@ -144,7 +141,7 @@ class PaymentController {
         providerTransactionId: providerResponse?.output_TransactionID,
         providerResponse: JSON.stringify(providerResponse),
         providerResponseCode: providerResponse?.output_ResponseCode,
-        providerResponseMessage: providerResponse?.output_ResponseDescription
+        providerResponseMessage
       });
 
       if (success) {
@@ -204,6 +201,7 @@ class PaymentController {
   }
 
   async b2c(req, res) {
+    let transaction = null;
     try {
       const {
         walletCode,
@@ -256,7 +254,6 @@ class PaymentController {
         });
       }
 
-      let transaction = null;
       const amountValue = parseFloat(amount) || 0;
       const feeAmount = await this.getFeeAmount(wallet.walletTypeId, 'b2c', amountValue);
       transaction = await Transaction.create({
@@ -299,45 +296,44 @@ class PaymentController {
       let providerResponse;
       let success = false;
 
-      // Simulação local: não chamar o gateway M-Pesa, forçar sucesso.
-      // try {
-      //   providerResponse = await PaymentService.createB2C({
-      //     provider,
-      //     phone,
-      //     amount,
-      //     reference,
-      //     mode: req.mpesaMode
-      //   });
-      // } catch (err) {
-      //   await transaction.update({
-      //     status: 'failed',
-      //     providerResponse: JSON.stringify({
-      //       error: err.message
-      //     })
-      //   });
-      //
-      //   await createAuditLog({
-      //     userId: wallet.userId || null,
-      //     action: 'transaction_b2c_failed',
-      //     entity: 'Transaction',
-      //     entityId: transaction.id,
-      //     ip: req.ip,
-      //     userAgent: req.headers['user-agent']
-      //   });
-      //
-      //   return res.status(400).json({
-      //     success: false,
-      //     error: err.message
-      //   });
-      // }
+      try {
+        providerResponse = await PaymentService.createB2C({
+          provider,
+          phone,
+          amount,
+          reference,
+          mode: req.mpesaMode
+        });
+      } catch (err) {
+        await transaction.update({
+          status: 'failed',
+          providerResponse: JSON.stringify({
+            error: err.message
+          }),
+          systemErrorCode: 'SYS-1001',
+          systemErrorMessage: err.message
+        });
 
-      providerResponse = {
-        output_ResponseCode: 'INS-0',
-        output_ResponseDescription: 'Request processed successfully',
-        output_ConversationID: `SIM-${transaction.id}`,
-        output_TransactionID: `SIMTX-${transaction.id}`
-      };
-      success = true;
+        await createAuditLog({
+          userId: wallet.userId || null,
+          action: 'transaction_b2c_failed',
+          entity: 'Transaction',
+          entityId: transaction.id,
+          ip: req.ip,
+          userAgent: req.headers['user-agent']
+        });
+
+        return res.status(400).json({
+          success: false,
+          error: err.message
+        });
+      }
+
+      success = providerResponse?.output_ResponseCode === 'INS-0';
+      const providerResponseMessage =
+        providerResponse?.output_ResponseDescription ||
+        providerResponse?.output_ResponseDesc ||
+        null;
 
       await transaction.update({
         status: success ? 'success' : 'failed',
@@ -345,7 +341,7 @@ class PaymentController {
         providerTransactionId: providerResponse?.output_TransactionID,
         providerResponse: JSON.stringify(providerResponse),
         providerResponseCode: providerResponse?.output_ResponseCode,
-        providerResponseMessage: providerResponse?.output_ResponseDescription
+        providerResponseMessage
       });
 
       if (success) {

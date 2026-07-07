@@ -215,7 +215,7 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  */
 router.post(
   '/c2b',
-  mpesaRequestMode(),
+  mpesaRequestMode({ forceMode: 'mock' }),
   apiKeyMiddleware,
   authorizeWalletAction('wallet:deposit'),
   PaymentController.c2b
@@ -223,27 +223,10 @@ router.post(
 
 router.post(
   '/b2c',
-  mpesaRequestMode(),
-  apiKeyMiddleware,
-  authorizeWalletAction('wallet:withdraw'),
-  PaymentController.b2c
-);
-
-router.post(
-  '/mock/c2b',
-  mpesaRequestMode({ forceMode: 'mock' }),
-  apiKeyMiddleware,
-  authorizeWalletAction('wallet:deposit'),
-  PaymentController.c2b
-);
-
-router.post(
-  '/mock/b2c',
   mpesaRequestMode({ forceMode: 'mock' }),
   apiKeyMiddleware,
   authorizeWalletAction('wallet:withdraw'),
   PaymentController.b2c
 );
-
 
 module.exports = router;

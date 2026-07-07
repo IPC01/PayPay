@@ -23,12 +23,6 @@ Mock mode headers:
 x-mpesa-mode: mock
 ```
 
-Live mode headers:
-
-```http
-x-mpesa-mode: live
-```
-
 You can also use:
 
 ```http
@@ -101,7 +95,7 @@ curl -X POST http://localhost:8000/api/v1/mpesa/c2b \
     "walletCode": "000005",
     "amount": 10,
     "phone": "258841234567",
-    "reference": "C2B-POSTMAN"
+    "reference": "C2B-MOCK"
   }'
 ```
 
@@ -116,37 +110,7 @@ curl -X POST http://localhost:8000/api/v1/mpesa/b2c \
     "walletCode": "000005",
     "amount": 10,
     "phone": "258841234567",
-    "reference": "B2C-POSTMAN"
-  }'
-```
-
-## 6) C2B Live
-
-```bash
-curl -X POST http://localhost:8000/api/v1/mpesa/c2b \
-  -H "x-api-key: <RAW_API_KEY>" \
-  -H "x-mpesa-mode: live" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "walletCode": "000005",
-    "amount": 10,
-    "phone": "258841234567",
-    "reference": "C2B-LIVE"
-  }'
-```
-
-## 7) B2C Live
-
-```bash
-curl -X POST http://localhost:8000/api/v1/mpesa/b2c \
-  -H "x-api-key: <RAW_API_KEY>" \
-  -H "x-mpesa-mode: live" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "walletCode": "000005",
-    "amount": 10,
-    "phone": "258841234567",
-    "reference": "B2C-LIVE"
+    "reference": "B2C-MOCK"
   }'
 ```
 

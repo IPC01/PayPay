@@ -75,7 +75,7 @@ async function authorizeUserWalletAction(req, res, next) {
 router.post(
   '/c2b',
   authMiddleware,
-  mpesaRequestMode(),
+  mpesaRequestMode({ forceMode: 'mock' }),
   authorizeUserWalletAction,
   PaymentController.c2b.bind(PaymentController)
 );
@@ -121,7 +121,7 @@ router.post(
 router.post(
   '/b2c',
   authMiddleware,
-  mpesaRequestMode(),
+  mpesaRequestMode({ forceMode: 'mock' }),
   authorizeUserWalletAction,
   PaymentController.b2c.bind(PaymentController)
 );
