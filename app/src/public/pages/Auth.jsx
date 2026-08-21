@@ -11,8 +11,11 @@ const SIMULATED_OTP = '123456';
 const BackButton = ({ onClick, to }) => {
   if (to) {
     return (
-      <Link to={to} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors duration-200">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <Link 
+        to={to} 
+        className="group inline-flex items-center gap-2 text-sm text-[#64748B] hover:text-[#1D4ED8] transition-all duration-200"
+      >
+        <svg className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
         Voltar
@@ -23,15 +26,44 @@ const BackButton = ({ onClick, to }) => {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-600 transition-colors duration-200"
+      className="group inline-flex items-center gap-2 text-sm text-[#64748B] hover:text-[#1D4ED8] transition-all duration-200"
     >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg className="w-4 h-4 transition-transform duration-200 group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
       Voltar
     </button>
   );
 };
+
+// Componente de input reutilizável
+const InputField = ({ label, type, value, onChange, placeholder, required, className = '', ...props }) => (
+  <div className={className}>
+    <label className="block text-sm font-medium text-[#0F172A] mb-1.5">
+      {label}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      required={required}
+      className="w-full rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2.5 text-[#0F172A] placeholder:text-[#94A3B8] transition-all duration-200 focus:border-[#3B82F6] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#3B82F6]/20"
+      placeholder={placeholder}
+      {...props}
+    />
+  </div>
+);
+
+// Componente de loading
+const LoadingSpinner = () => (
+  <span className="flex items-center justify-center gap-2">
+    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
+    Processando...
+  </span>
+);
 
 function LoginView() {
   const [step, setStep] = useState('credentials');
@@ -123,193 +155,123 @@ function LoginView() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 bg-white rounded-3xl shadow-2xl overflow-hidden">
-        {/* Lado esquerdo - Ilustração */}
-        <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-brand-600 to-brand-800 text-white">
-          <div>
-            <div className="mb-8">
-              <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-            </div>
-            
-            <h2 className="text-4xl font-bold mb-4 leading-tight">
-              Bem-vindo de volta!
-            </h2>
-            <p className="text-lg text-white/90 mb-8 leading-relaxed">
-              Acesse sua conta e gerencie suas atividades de forma segura e eficiente.
-            </p>
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-[#1D4ED8]/5 border border-[#E2E8F0] p-6 sm:p-8">
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-[#1D4ED8]/20">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
-
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 p-4 bg-white/10 rounded-2xl backdrop-blur-sm">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-semibold">Segurança em dois fatores</p>
-                <p className="text-sm text-white/80">Proteção adicional para sua conta</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-4 p-4 bg-white/10 rounded-2xl backdrop-blur-sm">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-semibold">Dados protegidos</p>
-                <p className="text-sm text-white/80">Criptografia de ponta a ponta</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 pt-8 border-t border-white/20">
-            <p className="text-sm text-white/70">
-              © {new Date().getFullYear()} {settings?.platformName || 'SAMPAY'}. Todos os direitos reservados.
-            </p>
-          </div>
+          <h1 className="text-2xl font-bold text-[#0F172A]">
+            {step === 'credentials' ? 'Entrar' : 'Verificação 2FA'}
+          </h1>
+          <p className="mt-1 text-sm text-[#64748B]">
+            {step === 'credentials' 
+              ? `Acesse sua conta ${settings?.platformName || 'PayPay'}`
+              : 'Insira o código de verificação enviado para seu email.'}
+          </p>
         </div>
 
-        {/* Lado direito - Formulário */}
-        <div className="flex flex-col justify-center p-8 lg:p-12">
-          <div className="mb-8">
-            <BackButton to="/" />
-          </div>
-
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
-              {step === 'credentials' ? 'Login' : 'Verificação 2FA'}
-            </h1>
-            <p className="text-slate-500">
-              {step === 'credentials' 
-                ? `Acesse o ${settings?.platformName || 'SAMPAY'} com suas credenciais.`
-                : 'Insira o código de verificação enviado para seu email.'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {step === 'credentials' ? (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => {
-                      setEmail(e.target.value);
-                      setCredentialsVerified(false);
-                    }}
-                    required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                    placeholder="seu@email.com"
-                  />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {step === 'credentials' ? (
+            <>
+              <InputField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  setCredentialsVerified(false);
+                }}
+                placeholder="seu@email.com"
+                required
+              />
+              <div>
+                <InputField
+                  label="Senha"
+                  type="password"
+                  value={password}
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    setCredentialsVerified(false);
+                  }}
+                  placeholder="********"
+                  required
+                />
+                <div className="mt-2 text-right">
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-xs text-[#3B82F6] hover:text-[#1D4ED8] font-medium transition-colors duration-200"
+                  >
+                    Esqueceu a senha?
+                  </Link>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Senha
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={e => {
-                      setPassword(e.target.value);
-                      setCredentialsVerified(false);
-                    }}
-                    required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                    placeholder="********"
-                  />
-                  <div className="mt-3 text-right">
-                    <Link 
-                      to="/forgot-password" 
-                      className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors duration-200"
-                    >
-                      Esqueceu a senha?
-                    </Link>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4">
-                  <p className="font-semibold text-brand-900">Autenticação de dois fatores</p>
-                  <p className="text-sm text-brand-700 mt-1">Insira o código enviado para o seu email.</p>
-                  <p className="text-xs font-mono bg-brand-100 inline-block px-3 py-1 rounded-lg mt-3 text-brand-800">
-                    Código simulado: 123456
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Código 2FA
-                  </label>
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={e => setOtp(e.target.value)}
-                    required
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 text-center text-2xl tracking-[0.5em] placeholder:text-slate-400 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                    placeholder="000000"
-                    maxLength="6"
-                  />
-                </div>
-              </>
-            )}
-
-            {error && (
-              <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3">
-                <p className="text-sm text-red-700">{error}</p>
               </div>
-            )}
+            </>
+          ) : (
+            <>
+              <div className="rounded-lg bg-[#EFF6FF] border border-[#93C5FD] p-3">
+                <p className="text-xs font-semibold text-[#1D4ED8]">Autenticação de dois fatores</p>
+                <p className="text-xs text-[#3B82F6] mt-0.5">Insira o código enviado para seu email.</p>
+                <p className="text-[10px] font-mono bg-[#DBEAFE] inline-block px-2 py-0.5 rounded mt-2 text-[#1D4ED8]">
+                  Código: 123456
+                </p>
+              </div>
+              <InputField
+                label="Código 2FA"
+                type="text"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+                placeholder="000000"
+                required
+                maxLength="6"
+                className="text-center text-xl tracking-[0.5em]"
+              />
+            </>
+          )}
 
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+              <p className="text-xs text-red-700 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </p>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1D4ED8]/25 transition-all duration-200 hover:shadow-lg hover:shadow-[#1D4ED8]/35 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? <LoadingSpinner /> : (step === 'credentials' ? 'Continuar' : 'Entrar')}
+          </button>
+
+          {step === 'otp' && (
             <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-2xl bg-brand-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              type="button"
+              onClick={handleBack}
+              className="w-full text-xs text-[#64748B] hover:text-[#1D4ED8] transition-colors duration-200"
             >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Processando...
-                </span>
-              ) : (
-                step === 'credentials' ? 'Continuar' : 'Entrar'
-              )}
+              ← Voltar para credenciais
             </button>
+          )}
+        </form>
 
-            {step === 'otp' && (
-              <button
-                type="button"
-                onClick={handleBack}
-                className="w-full text-sm text-slate-500 hover:text-brand-600 transition-colors duration-200"
-              >
-                ← Voltar para credenciais
-              </button>
-            )}
-          </form>
-
-          <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500">
-              Não tem conta?{' '}
-              <Link 
-                to="/register" 
-                className="font-semibold text-brand-600 hover:text-brand-700 transition-colors duration-200"
-              >
-                Registrar
-              </Link>
-            </p>
-          </div>
+        <div className="mt-5 text-center">
+          <p className="text-xs text-[#64748B]">
+            Não tem conta?{' '}
+            <Link 
+              to="/register" 
+              className="font-semibold text-[#1D4ED8] hover:text-[#3B82F6] transition-colors duration-200"
+            >
+              Registrar
+            </Link>
+          </p>
         </div>
       </div>
     </div>
@@ -367,128 +329,111 @@ function RegisterView() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-[#1D4ED8]/5 border border-[#E2E8F0] p-6 sm:p-8">
+        <div className="mb-4">
           <BackButton onClick={handleBack} />
         </div>
 
-        <div className="mb-8 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-brand-500 to-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#1D4ED8] to-[#3B82F6] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-[#1D4ED8]/20">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">
+          <h1 className="text-2xl font-bold text-[#0F172A]">
             Criar conta
           </h1>
-          <p className="mt-2 text-slate-500">
+          <p className="mt-1 text-sm text-[#64748B]">
             {step === 'details' 
-              ? `Insira seus dados para começar no ${settings?.platformName || 'SAMPAY'}`
+              ? `Comece no ${settings?.platformName || 'PayPay'}`
               : 'Verifique seu email com o código 2FA'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {step === 'details' ? (
             <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nome completo
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                  placeholder="João Silva"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                  placeholder="seu@email.com"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Senha
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
+              <InputField
+                label="Nome completo"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="João Silva"
+                required
+              />
+              <InputField
+                label="Email"
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="seu@email.com"
+                required
+              />
+              <InputField
+                label="Senha"
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
             </>
           ) : (
-            <div>
-              <div className="rounded-2xl bg-brand-50 border border-brand-200 p-4 mb-5">
-                <p className="font-semibold text-brand-900">Verificação necessária</p>
-                <p className="text-sm text-brand-700 mt-1">Insira o código enviado para seu email.</p>
-                <p className="text-xs font-mono bg-brand-100 inline-block px-3 py-1 rounded-lg mt-3 text-brand-800">
-                  Código simulado: 123456
+            <>
+              <div className="rounded-lg bg-[#EFF6FF] border border-[#93C5FD] p-3">
+                <p className="text-xs font-semibold text-[#1D4ED8]">Verificação necessária</p>
+                <p className="text-xs text-[#3B82F6] mt-0.5">Insira o código enviado para seu email.</p>
+                <p className="text-[10px] font-mono bg-[#DBEAFE] inline-block px-2 py-0.5 rounded mt-2 text-[#1D4ED8]">
+                  Código: 123456
                 </p>
               </div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Código 2FA
-              </label>
-              <input
+              <InputField
+                label="Código 2FA"
                 type="text"
                 value={otp}
                 onChange={e => setOtp(e.target.value)}
+                placeholder="000000"
                 required
                 maxLength="6"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-2xl tracking-[0.5em] focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-                placeholder="000000"
+                className="text-center text-xl tracking-[0.5em]"
               />
-            </div>
+            </>
           )}
 
           {error && (
-            <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+              <p className="text-xs text-red-700 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
+              </p>
             </div>
           )}
           
           {success && (
-            <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3">
-              <p className="text-sm text-emerald-700">{success}</p>
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
+              <p className="text-xs text-emerald-700 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {success}
+              </p>
             </div>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-brand-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1D4ED8]/25 transition-all duration-200 hover:shadow-lg hover:shadow-[#1D4ED8]/35 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Processando...
-              </span>
-            ) : (
-              step === 'details' ? 'Continuar' : 'Confirmar código'
-            )}
+            {loading ? <LoadingSpinner /> : (step === 'details' ? 'Continuar' : 'Confirmar código')}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <Link to="/login" className="text-sm text-slate-500 hover:text-brand-600 transition-colors duration-200">
+        <div className="mt-4 text-center">
+          <Link to="/login" className="text-xs text-[#64748B] hover:text-[#1D4ED8] transition-colors duration-200">
             Já tem conta? <span className="font-semibold">Entrar</span>
           </Link>
         </div>
@@ -525,71 +470,58 @@ function ForgotPasswordView() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-[#1D4ED8]/5 border border-[#E2E8F0] p-6 sm:p-8">
+        <div className="mb-4">
           <BackButton to="/login" />
         </div>
 
-        <div className="mb-8 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-amber-500/20">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">Esqueceu a senha?</h1>
-          <p className="mt-2 text-slate-500">Digite seu email para receber um token de redefinição</p>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Esqueceu a senha?</h1>
+          <p className="mt-1 text-sm text-[#64748B]">Digite seu email para receber um token de redefinição</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-              placeholder="seu@email.com"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <InputField
+            label="Email"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="seu@email.com"
+            required
+          />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-brand-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1D4ED8]/25 transition-all duration-200 hover:shadow-lg hover:shadow-[#1D4ED8]/35 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Enviando...
-              </span>
-            ) : (
-              'Enviar token de redefinição'
-            )}
+            {loading ? <LoadingSpinner /> : 'Enviar token de redefinição'}
           </button>
         </form>
 
         {resetToken && (
-          <div className="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-5">
-            <p className="font-semibold text-brand-900">Token de redefinição</p>
-            <p className="mt-2 break-all font-mono text-sm bg-white p-3 rounded-xl border border-brand-200">{resetToken}</p>
+          <div className="mt-4 rounded-lg border border-[#93C5FD] bg-[#EFF6FF] p-4 animate-in slide-in-from-top-4 fade-in duration-300">
+            <p className="text-xs font-semibold text-[#1D4ED8]">Token de redefinição</p>
+            <p className="mt-1 break-all font-mono text-xs bg-white p-2 rounded border border-[#93C5FD] text-[#0F172A]">
+              {resetToken}
+            </p>
             <Link
               to={`/reset-password?token=${encodeURIComponent(resetToken)}`}
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 transition-all duration-200"
+              className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-4 py-2 text-sm font-semibold text-white shadow-md shadow-[#1D4ED8]/25 transition-all duration-200 hover:shadow-lg hover:shadow-[#1D4ED8]/35 hover:-translate-y-0.5"
             >
               Redefinir senha
             </Link>
           </div>
         )}
 
-        <div className="mt-6 text-center">
-          <Link to="/login" className="text-sm text-slate-500 hover:text-brand-600 transition-colors duration-200">
+        <div className="mt-4 text-center">
+          <Link to="/login" className="text-xs text-[#64748B] hover:text-[#1D4ED8] transition-colors duration-200">
             ← Voltar ao login
           </Link>
         </div>
@@ -640,79 +572,54 @@ function ResetPasswordView() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8">
-        <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-[#F8FAFC] via-white to-[#EFF6FF] flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-[#1D4ED8]/5 border border-[#E2E8F0] p-6 sm:p-8">
+        <div className="mb-4">
           <BackButton to="/login" />
         </div>
 
-        <div className="mb-8 text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-emerald-500/20">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900">Nova senha</h1>
-          <p className="mt-2 text-slate-500">Digite sua nova senha</p>
+          <h1 className="text-2xl font-bold text-[#0F172A]">Nova senha</h1>
+          <p className="mt-1 text-sm text-[#64748B]">Digite sua nova senha</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Token de redefinição
-            </label>
-            <input
-              type="text"
-              value={token}
-              onChange={e => setToken(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-              placeholder="Cole o token recebido"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nova senha
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Confirmar senha
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              required
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all duration-200"
-              placeholder="Digite novamente a senha"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <InputField
+            label="Token de redefinição"
+            type="text"
+            value={token}
+            onChange={e => setToken(e.target.value)}
+            placeholder="Cole o token recebido"
+            required
+          />
+          <InputField
+            label="Nova senha"
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+            required
+          />
+          <InputField
+            label="Confirmar senha"
+            type="password"
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder="Digite novamente a senha"
+            required
+          />
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-2xl bg-brand-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/40 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full rounded-lg bg-gradient-to-r from-[#1D4ED8] to-[#3B82F6] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#1D4ED8]/25 transition-all duration-200 hover:shadow-lg hover:shadow-[#1D4ED8]/35 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#3B82F6] focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Redefinindo...
-              </span>
-            ) : (
-              'Redefinir senha'
-            )}
+            {loading ? <LoadingSpinner /> : 'Redefinir senha'}
           </button>
         </form>
       </div>
