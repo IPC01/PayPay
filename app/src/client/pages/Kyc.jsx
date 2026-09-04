@@ -69,19 +69,7 @@ const initialKycState = {
   beneficialOwnerShare: ''
 };
 
-const individualDocuments = [
-  'BI (frente)',
-  'BI (verso)',
-  'Foto tipo passe',
-  'Comprovativo de residência'
-];
-
-const businessDocuments = [
-  'Certidão Comercial',
-  'NUIT Empresa',
-  'Alvará',
-  'BI do Director'
-];
+const KYC_DOCUMENT_TYPE = 'BI e NUIT (scan)';
 
 const kycSteps = [
   { number: 1, label: 'Tipo' },
@@ -99,7 +87,6 @@ function Kyc() {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
-  const [uploadType, setUploadType] = useState(individualDocuments[0]);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
 
@@ -168,6 +155,17 @@ function Kyc() {
       setStep(firstIncompleteStep);
     }
   }, [kyc, documents, step]);
+
+  // The address step has no direct "address" input; derive it from the individual fields so step 3 can complete.
+  useEffect(() => {
+    const composedAddress = [kyc.street, kyc.houseNumber, kyc.neighborhood, kyc.city, kyc.district, kyc.province, kyc.country]
+      .filter((part) => part && String(part).trim() !== '')
+      .join(', ');
+
+    if (composedAddress && composedAddress !== kyc.address) {
+      setKyc((prev) => ({ ...prev, address: composedAddress }));
+    }
+  }, [kyc.street, kyc.houseNumber, kyc.neighborhood, kyc.city, kyc.district, kyc.province, kyc.country, kyc.address]);
 
   const canAccessStep = (stepNumber) => stepNumber <= getFirstIncompleteStep();
 
@@ -260,6 +258,11 @@ function Kyc() {
       return;
     }
 
+    if (uploadFile.type !== 'application/pdf') {
+      notify({ type: 'error', title: 'Formato inválido', message: 'Submeta o scan do documento em formato PDF.' });
+      return;
+    }
+
     try {
       setUploading(true);
       let kycData = kyc;
@@ -276,7 +279,7 @@ function Kyc() {
         method: 'POST',
         body: {
           kycId: kycData.id,
-          type: uploadType,
+          type: KYC_DOCUMENT_TYPE,
           file: base64,
           fileName: uploadFile.name
         }
@@ -560,29 +563,16 @@ function Kyc() {
           {step === 5 && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Upload de documentos</h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block text-sm text-slate-700 dark:text-slate-200">
-                  <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">Documento</span>
-                  <select
-                    value={uploadType}
-                    onChange={(e) => setUploadType(e.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  >
-                    {(kyc.type === 'INDIVIDUAL' ? individualDocuments : businessDocuments).map((item) => (
-                      <option key={item} value={item}>{item}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm text-slate-700 dark:text-slate-200">
-                  <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">Ficheiro</span>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                    className="mt-2 w-full text-sm text-slate-700 dark:text-slate-200"
-                  />
-                </label>
-              </div>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Submeta um único scan em PDF com o seu BI e o NUIT.</p>
+              <label className="block text-sm text-slate-700 dark:text-slate-200">
+                <span className="block text-xs font-medium text-slate-500 dark:text-slate-400">Submeter scan</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                  className="mt-2 w-full text-sm text-slate-700 dark:text-slate-200"
+                />
+              </label>
               <button
                 type="button"
                 onClick={handleUpload}
@@ -606,10 +596,9 @@ function Kyc() {
                         <div className="flex items-center gap-2">
                           <a
                             href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
+                            download={doc.originalName || true}
                             className="text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                          >Visualizar</a>
+                          >Baixar</a>
                           <button
                             type="button"
                             onClick={() => handleDeleteDocument(doc.id)}

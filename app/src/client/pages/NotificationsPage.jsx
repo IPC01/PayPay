@@ -20,15 +20,6 @@ function NotificationsPage() {
       const data = await authRequest('/api/notifications');
       setNotifications(data);
 
-      if (data.length > 0) {
-        notify({
-          type: 'info',
-          title: 'Notificações',
-          message: `Você tem ${data.length} notificações.`,
-          duration: 4000
-        });
-      }
-
       const unreadItems = data.filter((notification) => !notification.read);
       if (unreadItems.length > 0) {
         await Promise.allSettled(

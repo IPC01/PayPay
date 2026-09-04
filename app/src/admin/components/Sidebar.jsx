@@ -27,7 +27,7 @@ function Sidebar({ collapsed, setCollapsed }) {
   return (
     <aside className={`fixed inset-y-0 left-0 z-40 overflow-y-auto border-r border-slate-200 bg-white/95 backdrop-blur-md shadow-xl transition-all duration-300 dark:border-slate-700 dark:bg-slate-900/95 translate-x-0 ${collapsed ? 'w-20' : 'w-80'}`}>
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-200 p-4 dark:border-slate-700">
+        <div className="border-b border-slate-200 p-3 dark:border-slate-700">
           <div className="flex items-center justify-between gap-2">
             <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
@@ -38,7 +38,6 @@ function Sidebar({ collapsed, setCollapsed }) {
               {!collapsed && (
                 <div>
                   <p className="text-xs font-medium uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">Administração</p>
-                  <p className="mt-2 text-lg font-semibold text-slate-900 dark:text-white">Painel</p>
                 </div>
               )}
             </div>
