@@ -8,13 +8,13 @@ async function seedUsers() {
   const users = [
     {
       name: 'Admin System',
-      email: 'admin@test.com',
+      email: 'admin@gmail.com',
       password: '123456',
       roleId: adminRole.id
     },
     {
-      name: 'John User',
-      email: 'user@test.com',
+      name: 'Stelio Mondlane',
+      email: 'stelio@gmail.com',
       password: '123456',
       roleId: userRole.id
     }
