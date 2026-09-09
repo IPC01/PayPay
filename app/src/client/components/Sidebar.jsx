@@ -39,18 +39,13 @@ function Sidebar({ collapsed, setCollapsed }) {
     <aside className={`fixed inset-y-0 left-0 z-40 overflow-y-auto border-r border-slate-200 bg-white/95 backdrop-blur-md shadow-xl transition-all duration-300 dark:border-slate-700 dark:bg-slate-900/95 translate-x-0 ${collapsed ? 'w-20' : 'w-80'}`}>
       <div className="flex h-full flex-col">
         <div className="border-b border-slate-200 p-3 dark:border-slate-700">
-          <div className="flex items-center justify-between gap-2">
-            <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              {!collapsed && (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">Sampay</p>
-                </div>
-              )}
+            <div className="flex items-center justify-between gap-2">
+            <div className="flex h-10 w-[120px] items-center">
+              <img
+                src="/logo.png"
+                alt={"Logo"}
+                className="w-30 h-20"
+              />
             </div>
           </div>
         </div>

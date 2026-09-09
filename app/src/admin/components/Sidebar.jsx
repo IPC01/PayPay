@@ -18,10 +18,9 @@ const navigation = [
 function Sidebar({ collapsed, setCollapsed }) {
 
   const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${
-      isActive
-        ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950'
-        : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
+    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${isActive
+      ? 'bg-brand-600 text-white shadow-lg shadow-brand-200 dark:shadow-brand-950'
+      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
     } ${collapsed ? 'justify-center px-2' : ''}`;
 
   return (
@@ -29,17 +28,12 @@ function Sidebar({ collapsed, setCollapsed }) {
       <div className="flex h-full flex-col">
         <div className="border-b border-slate-200 p-3 dark:border-slate-700">
           <div className="flex items-center justify-between gap-2">
-            <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-600 text-white">
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </div>
-              {!collapsed && (
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.3em] text-brand-600 dark:text-brand-400">Administração</p>
-                </div>
-              )}
+            <div className="flex h-10 w-[120px] items-center">
+              <img
+                src="/logo.png"
+                alt={"Logo"}
+                className="w-30 h-20"
+              />
             </div>
           </div>
         </div>

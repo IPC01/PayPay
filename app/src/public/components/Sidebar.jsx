@@ -10,17 +10,17 @@ function Sidebar({ open, onClose }) {
       <button
         type="button"
         aria-label="Fechar menu"
-        className="absolute inset-0 bg-slate-900/40"
+        className="absolute inset-0 bg-gray-900/40"
         onClick={onClose}
       />
 
       <aside className="absolute right-0 top-0 h-full w-72 bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <h2 className="text-sm font-semibold text-slate-900">Menu</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 p-4">
+          <h2 className="text-sm font-semibold text-gray-900">Menu</h2>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 text-slate-600"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-600 hover:text-gray-800 transition-all duration-200"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path d="M6 18L18 6M6 6l12 12" />
@@ -28,21 +28,33 @@ function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        <nav className="space-y-2 p-4 text-sm font-medium text-slate-700">
-          <Link to="/inicio" onClick={onClose} className="block rounded-lg px-3 py-2 hover:bg-slate-100">
+        <nav className="space-y-2 p-4 text-sm font-medium text-gray-700">
+          <Link 
+            to="/" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
             Início
           </Link>
-          <Link to="/tarifas" onClick={onClose} className="block rounded-lg px-3 py-2 hover:bg-slate-100">
+          <Link 
+            to="/tarifas" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
             Tarifas
           </Link>
-          <Link to="/termos-de-condicao" onClick={onClose} className="block rounded-lg px-3 py-2 hover:bg-slate-100">
+          <Link 
+            to="/termos-de-condicao" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
             Termos de condição
           </Link>
           <div className="pt-2">
             <Link
               to="/login"
               onClick={onClose}
-              className="inline-flex w-full items-center justify-center rounded-lg bg-brand-600 px-3 py-2 font-semibold text-white"
+              className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-gray-800 to-gray-700 px-3 py-2 font-semibold text-white shadow-md shadow-gray-800/25 transition-all duration-200 hover:shadow-lg hover:shadow-gray-800/35 hover:scale-[1.02]"
             >
               Entrar / Registar
             </Link>
