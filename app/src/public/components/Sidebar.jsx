@@ -1,0 +1,68 @@
+import { Link } from 'react-router-dom';
+
+function Sidebar({ open, onClose }) {
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 md:hidden" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        aria-label="Fechar menu"
+        className="absolute inset-0 bg-gray-900/40"
+        onClick={onClose}
+      />
+
+      <aside className="absolute right-0 top-0 h-full w-72 bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 p-4">
+          <h2 className="text-sm font-semibold text-gray-900">Menu</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-600 hover:text-gray-800 transition-all duration-200"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <nav className="space-y-2 p-4 text-sm font-medium text-gray-700">
+          <Link 
+            to="/" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
+            Início
+          </Link>
+          <Link 
+            to="/tarifas" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
+            Tarifas
+          </Link>
+          <Link 
+            to="/termos-de-condicao" 
+            onClick={onClose} 
+            className="block rounded-lg px-3 py-2 hover:bg-gray-100 hover:text-gray-900 transition-all duration-200"
+          >
+            Termos de condição
+          </Link>
+          <div className="pt-2">
+            <Link
+              to="/login"
+              onClick={onClose}
+              className="inline-flex w-full items-center justify-center rounded-lg bg-gradient-to-r from-gray-800 to-gray-700 px-3 py-2 font-semibold text-white shadow-md shadow-gray-800/25 transition-all duration-200 hover:shadow-lg hover:shadow-gray-800/35 hover:scale-[1.02]"
+            >
+              Entrar / Registar
+            </Link>
+          </div>
+        </nav>
+      </aside>
+    </div>
+  );
+}
+
+export default Sidebar;
