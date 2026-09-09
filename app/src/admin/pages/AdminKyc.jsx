@@ -278,7 +278,6 @@ function AdminKyc() {
     <div className="space-y-6 p-6 bg-slate-50 dark:bg-slate-900 min-h-screen">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Admin</p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Solicitações KYC</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Revise os pedidos de verificação dos clientes e veja todos os detalhes em uma página dedicada.</p>
         </div>

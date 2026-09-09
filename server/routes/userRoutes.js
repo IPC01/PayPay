@@ -16,6 +16,7 @@ function selfOrAdmin(req, res, next) {
 }
 
 router.get('/', authMiddleware, checkPermission('admin:all'), UserController.getAll);
+router.post('/', authMiddleware, checkPermission('admin:all'), UserController.create);
 router.get('/:id', authMiddleware, selfOrAdmin, UserController.getById);
 router.put('/:id', authMiddleware, selfOrAdmin, UserController.update);
 router.delete('/:id', authMiddleware, checkPermission('admin:all'), UserController.delete);

@@ -72,7 +72,6 @@ function AdminSubscriptions() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Admin</p>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Gestão de Subscrições</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             Veja e gerencie todas as subscrições da plataforma.
