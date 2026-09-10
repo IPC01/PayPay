@@ -18,7 +18,7 @@ async function saveBase64Image(dataUrl, targetFolder, baseName) {
   const buffer = Buffer.from(payload, 'base64');
   await fs.promises.writeFile(filePath, buffer);
 
-  return `/uploads/${targetFolder}/${fileName}`;
+  return `/api/uploads/${targetFolder}/${fileName}`;
 }
 
 module.exports = {

@@ -44,7 +44,7 @@ class SettingsController {
 
       const fullPath = require('path').join(uploadDir, sanitizedFileName);
       fs.writeFileSync(fullPath, buffer);
-      const logoUrl = `${req.protocol}://${req.get('host')}/uploads/settings/${sanitizedFileName}`;
+      const logoUrl = `${req.protocol}://${req.get('host')}/api/uploads/settings/${sanitizedFileName}`;
       return res.json({ logoImg: logoUrl });
     } catch (error) {
       return res.status(500).json({ error: error.message });

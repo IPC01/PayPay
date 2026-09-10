@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { API_BASE } from '../../services/api';
+import { apiUrl } from '../../services/api';
 
 const navigation = [
   { 
@@ -176,7 +176,7 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
           ))}
 
           <a
-            href={`${API_BASE}/api-docs`}
+            href={apiUrl('/docs')}
             target="_blank"
             rel="noreferrer"
             className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 ${collapsed ? 'justify-center px-2' : ''}`}

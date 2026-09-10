@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-
+const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 
@@ -27,18 +27,19 @@ const mpesaServiceTestRoutes = require('./routes/mpesaServiceTestRoutes');
 
 const app = express();
 
-app.use(express.json({ limit: '10mb' }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ================= CORS =================
+const corsOptions = {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-api-key'],
+  credentials: true
+};
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, x-api-key');
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
+
+app.use(express.json({ limit: '10mb' }));
+app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // routes
 app.use('/api/auth', authRoutes);
@@ -66,14 +67,14 @@ app.use('/api/emolar', PaymentRoutes);
 app.use('/api/payments', paymentsRoutes);
 
 // Swagger docs 👇 (FALTAVA ISTO)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to the Mobile Money API' });
 });
 
 // health check
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 

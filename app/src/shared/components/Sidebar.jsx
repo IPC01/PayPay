@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
-import { API_BASE } from '../../services/api';
+import api, { apiUrl } from '../../services/api';
 
 function Sidebar({ open, setOpen }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -45,13 +45,7 @@ function Sidebar({ open, setOpen }) {
     const loadLegalPages = async () => {
       if (isAdmin) return;
       try {
-        const response = await fetch(`${API_BASE}/api/legal-pages`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        if (!response.ok) return;
-        const data = await response.json();
+        const data = await api.get('/legal-pages');
         setLegalPages(data);
       } catch (error) {
         console.error('Unable to load legal pages', error);
@@ -598,7 +592,7 @@ function Sidebar({ open, setOpen }) {
           )}
 
           <a
-            href={`${API_BASE}/api-docs`}
+            href={apiUrl('/docs')}
             target="_blank"
             rel="noreferrer"
             onClick={() => setOpen(false)}

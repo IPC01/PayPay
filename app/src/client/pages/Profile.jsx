@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE } from '../../services/api';
+import { assetUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useSettings } from '../../contexts/SettingsContext';
 
 function normalizeImageUrl(url) {
-  if (!url) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('//')) {
-    const scheme = API_BASE.startsWith('https') ? 'https:' : 'http:';
-    return `${scheme}${url}`;
-  }
-  if (url.startsWith('/')) return `${API_BASE}${url}`;
-  return `${API_BASE}/${url}`;
+  return assetUrl(url);
 }
 
 function Profile() {

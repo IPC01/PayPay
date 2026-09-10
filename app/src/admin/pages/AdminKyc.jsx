@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { API_BASE } from '../../services/api';
+import { assetUrl } from '../../services/api';
 
 function AdminKyc() {
   const { authRequest } = useAuth();
@@ -39,9 +39,7 @@ function AdminKyc() {
   };
 
   const resolveUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_BASE}${url}`;
+    return assetUrl(url) || '';
   };
 
   const openKycDetails = async (kycId) => {

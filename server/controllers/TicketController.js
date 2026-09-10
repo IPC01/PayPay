@@ -19,7 +19,7 @@ async function saveTicketAttachment(attachment, filename) {
   const fileData = Buffer.from(matches[2], 'base64');
 
   fs.writeFileSync(filePath, fileData);
-  return `/uploads/tickets/${fileName}`;
+  return `/api/uploads/tickets/${fileName}`;
 }
 
 class TicketController {

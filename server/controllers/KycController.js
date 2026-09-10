@@ -20,7 +20,7 @@ async function saveKycFile(base64, filename) {
 
   fs.writeFileSync(filepath, buffer);
   return {
-    url: `/uploads/kyc/${internalName}`,
+    url: `/api/uploads/kyc/${internalName}`,
     internalName,
     extension,
     mimeType,

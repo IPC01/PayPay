@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { API_BASE } from '../../services/api';
+import { assetUrl } from '../../services/api';
 
 function AdminTickets() {
   const { authRequest } = useAuth();
@@ -10,9 +10,7 @@ function AdminTickets() {
   const [selectedTicket, setSelectedTicket] = useState(null);
 
   const resolveAttachmentUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_BASE}${url}`;
+    return assetUrl(url) || '';
   };
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { API_BASE } from '../../services/api';
+import { assetUrl } from '../../services/api';
 
 function Tickets() {
   const { authRequest } = useAuth();
@@ -9,9 +9,7 @@ function Tickets() {
   const [tickets, setTickets] = useState([]);
 
   const resolveAttachmentUrl = (url) => {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `${API_BASE}${url}`;
+    return assetUrl(url) || '';
   };
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [messages, setMessages] = useState([]);

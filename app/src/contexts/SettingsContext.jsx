@@ -1,17 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { API_BASE, request } from '../services/api';
+import { assetUrl, request } from '../services/api';
 
 const SettingsContext = createContext();
 
 function normalizeImageUrl(url) {
-  if (!url) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  if (url.startsWith('//')) {
-    const scheme = API_BASE.startsWith('https') ? 'https:' : 'http:';
-    return `${scheme}${url}`;
-  }
-  if (url.startsWith('/')) return `${API_BASE}${url}`;
-  return `${API_BASE}/${url}`;
+  return assetUrl(url);
 }
 
 export function SettingsProvider({ children }) {
