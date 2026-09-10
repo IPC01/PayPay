@@ -1,7 +1,13 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
+const { DataTypes } = require('sequelize');
+
+const sequelize = require('./config/database');
+require('./models');
 const swaggerSpec = require('./docs/swagger');
 
 const authRoutes = require('./routes/authRoutes');
@@ -27,7 +33,6 @@ const mpesaServiceTestRoutes = require('./routes/mpesaServiceTestRoutes');
 
 const app = express();
 
-// ================= CORS =================
 const corsOptions = {
   origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -41,7 +46,6 @@ app.options(/.*/, cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/wallets', walletRoutes);
@@ -61,21 +65,100 @@ app.use('/api/legal-pages', legalPageRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/mpesa-service-test', mpesaServiceTestRoutes);
 
-// payment routes v1
 app.use('/api/v1/mpesa/', PaymentRoutes);
 app.use('/api/emolar', PaymentRoutes);
 app.use('/api/payments', paymentsRoutes);
 
-// Swagger docs 👇 (FALTAVA ISTO)
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to the Mobile Money API' });
 });
 
-// health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
+async function ensureSettingsColumns() {
+  try {
+    const queryInterface = sequelize.getQueryInterface();
+    const table = await queryInterface.describeTable('settings').catch(() => null);
+    if (!table) {
+      return;
+    }
+
+    const columns = [
+      {
+        name: 'withdrawalFeePercent',
+        attributes: {
+          type: DataTypes.DECIMAL(5, 2),
+          allowNull: false,
+          defaultValue: 0.0
+        }
+      },
+      {
+        name: 'withdrawalMinValue',
+        attributes: {
+          type: DataTypes.DECIMAL(12, 2),
+          allowNull: false,
+          defaultValue: 0.0
+        }
+      },
+      {
+        name: 'withdrawalMaxValue',
+        attributes: {
+          type: DataTypes.DECIMAL(12, 2),
+          allowNull: false,
+          defaultValue: 0.0
+        }
+      }
+    ];
+
+    for (const column of columns) {
+      if (!table[column.name]) {
+        console.log(`🔧 Adding missing settings column: ${column.name}`);
+        await queryInterface.addColumn('settings', column.name, column.attributes);
+      }
+    }
+  } catch (error) {
+    console.warn('⚠️ Could not verify settings columns:', error.message);
+  }
+}
+
+async function startServer() {
+  const port = process.env.PORT || 3005;
+
+  try {
+    console.log('🔌 Connecting to database...');
+
+    await sequelize.authenticate();
+    console.log('✅ Database connected');
+
+    const syncOptions = {};
+    const enableAlter = String(process.env.DB_SYNC_ALTER).toLowerCase() === 'true';
+    if (enableAlter) {
+      syncOptions.alter = true;
+      console.log('🔧 Sequelize sync alter enabled');
+    } else {
+      console.log('🔧 Sequelize sync alter disabled');
+    }
+
+    await sequelize.sync(syncOptions);
+    await ensureSettingsColumns();
+
+    console.log('📦 Models synced');
+
+    app.listen(port, () => {
+      console.log(`🚀 Server running on http://localhost:${port}`);
+    });
+  } catch (error) {
+    console.error('❌ Server error:', error);
+  }
+}
+
+if (require.main === module) {
+  startServer();
+}
+
 module.exports = app;
+module.exports.startServer = startServer;
