@@ -5,6 +5,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // REGISTER
+router.post('/register/verify-email', (req, res) =>
+  AuthController.requestRegistrationCode(req, res)
+);
+
 router.post('/register', (req, res) =>
   AuthController.register(req, res)
 );

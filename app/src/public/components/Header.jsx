@@ -28,11 +28,10 @@ function Header({ onOpenSidebar, platformName }) {
 
   return (
     <header
-      className={`sticky top-0 z-30 transition-all duration-500 ${
-        isScrolled
+      className={`sticky top-0 z-30 transition-all duration-500 ${isScrolled
           ? 'bg-white/80 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.08)] border-b border-white/20'
           : 'bg-white/60 backdrop-blur-md border-b border-white/10'
-      }`}
+        }`}
     >
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
@@ -56,11 +55,10 @@ function Header({ onOpenSidebar, platformName }) {
             <Link
               key={link.to}
               to={link.to}
-              className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300 ${
-                isActive(link.to)
+              className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300 ${isActive(link.to)
                   ? 'text-gray-900 bg-gray-100/80 backdrop-blur-sm'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50/80'
-              }`}
+                }`}
             >
               {link.label}
               {isActive(link.to) && (
@@ -88,46 +86,12 @@ function Header({ onOpenSidebar, platformName }) {
           <div className="hidden md:block">
             <Link
               to="/login"
-              className="group relative inline-flex items-center gap-3 overflow-hidden rounded-2xl px-6 py-2.5 text-sm font-medium text-white transition-all duration-500 hover:scale-[1.02] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-600"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 hover:bg-gray-100"
             >
-              {/* Fundo animado com gradiente futurista */}
-              <span className="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 bg-[length:200%_100%] transition-all duration-700 group-hover:bg-[length:100%_100%] group-hover:from-gray-900 group-hover:via-gray-800 group-hover:to-gray-900" />
-              
-              {/* Brilho animado */}
-              <span className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full transition-transform duration-1000 ${isHovered ? 'translate-x-full' : ''}`} />
-              
-              {/* Borda brilhante */}
-              <span className="absolute inset-0 rounded-2xl border border-white/10 group-hover:border-white/30 transition-all duration-500" />
-              
-              {/* Glow externo */}
-              <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 shadow-[0_0_30px_rgba(100,100,100,0.3)]" />
-
-              {/* Conteúdo do botão */}
-              <span className="relative z-10 flex items-center gap-3">
-                {/* Ícone com animação */}
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm transition-all duration-500 group-hover:bg-white/20 group-hover:scale-110">
-                  <svg className="h-3.5 w-3.5 transition-transform duration-500 group-hover:rotate-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </span>
-
-                {/* Textos alternados */}
-                <div className="relative overflow-hidden h-5">
-                  <span className={`block transition-all duration-500 ${isHovered ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-                    Acessar Conta
-                  </span>
-                  <span className={`absolute top-0 left-0 transition-all duration-500 ${isHovered ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
-                    Bem-vindo 👋
-                  </span>
-                </div>
-
-                {/* Seta animada */}
-                <svg className={`h-3.5 w-3.5 transition-all duration-500 ${isHovered ? 'translate-x-1 rotate-0' : 'rotate-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </span>
+              Acessar Conta
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
             </Link>
           </div>
 

@@ -6,8 +6,6 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { request } from '../../services/api';
 
-const SIMULATED_OTP = '123456';
-
 // ============================================
 // COMPONENTES REUTILIZÁVEIS
 // ============================================
@@ -107,6 +105,7 @@ function LoginView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState(null);
   const [credentialsVerified, setCredentialsVerified] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -156,7 +155,7 @@ function LoginView() {
       setLoading(true);
 
       try {
-        await request('/api/auth/verify-credentials', {
+        const data = await request('/api/auth/verify-credentials', {
           method: 'POST',
           body: { email, password }
         });
@@ -167,6 +166,7 @@ function LoginView() {
           localStorage.removeItem('romenapay_email');
         }
 
+        setOtpToken(data.otpToken);
         setCredentialsVerified(true);
         setStep('otp');
       } catch (err) {
@@ -184,15 +184,15 @@ function LoginView() {
       return;
     }
 
-    if (otp !== SIMULATED_OTP) {
-      setError('Código 2FA inválido. Use 123456.');
+    if (!otp || otp.length !== 6) {
+      setError('Insira o código de 6 dígitos enviado para seu email.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const userData = await login(email, password);
+      const userData = await login(email, password, { otpToken, otp });
       const requestedPath = location.state?.from?.pathname || '/client';
       const destination = resolvePostLoginRoute(requestedPath, userData?.roleId);
       navigate(destination, { replace: true });
@@ -206,6 +206,7 @@ function LoginView() {
     if (step === 'otp') {
       setStep('credentials');
       setOtp('');
+      setOtpToken(null);
       setError(null);
     } else {
       navigate('/');
@@ -336,9 +337,6 @@ function LoginView() {
                     <div>
                       <p className="text-xs font-semibold text-gray-700">Autenticação de dois fatores</p>
                       <p className="text-xs text-gray-500 mt-0.5">Insira o código de 6 dígitos enviado para seu email.</p>
-                      <p className="text-[10px] font-mono bg-gray-200 inline-block px-2 py-0.5 rounded mt-1.5 text-gray-700">
-                        Código: 123456
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -426,6 +424,7 @@ function RegisterView() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
@@ -445,19 +444,34 @@ function RegisterView() {
         setError('Você precisa aceitar os termos e condições.');
         return;
       }
-      setStep('otp');
+
+      setLoading(true);
+
+      try {
+        const data = await request('/api/auth/register/verify-email', {
+          method: 'POST',
+          body: { name, email }
+        });
+        setOtpToken(data.otpToken);
+        setStep('otp');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+
       return;
     }
 
-    if (otp !== SIMULATED_OTP) {
-      setError('Código 2FA inválido. Use 123456.');
+    if (!otp || otp.length !== 6) {
+      setError('Insira o código de 6 dígitos enviado para seu email.');
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(name, email, password);
+      await register(name, email, password, { otpToken, otp });
       setSuccess('Conta registada com sucesso! Redirecionando...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
@@ -470,6 +484,7 @@ function RegisterView() {
     if (step === 'otp') {
       setStep('details');
       setOtp('');
+      setOtpToken(null);
       setError(null);
     } else {
       navigate('/');
@@ -596,9 +611,6 @@ function RegisterView() {
                     <div>
                       <p className="text-xs font-semibold text-gray-700">Verificação necessária</p>
                       <p className="text-xs text-gray-500 mt-0.5">Insira o código de 6 dígitos enviado para seu email.</p>
-                      <p className="text-[10px] font-mono bg-gray-200 inline-block px-2 py-0.5 rounded mt-1.5 text-gray-700">
-                        Código: 123456
-                      </p>
                     </div>
                   </div>
                 </div>
@@ -682,7 +694,7 @@ function ForgotPasswordView() {
       setLoading(true);
       const data = await forgotPassword(email);
       setResetToken(data.resetToken || null);
-      notify({ type: 'success', title: 'Solicitação enviada', message: 'Verifique o token de redefinição abaixo ou o seu email.' });
+      notify({ type: 'success', title: 'Solicitação enviada', message: data.message || 'Se este email estiver registado, enviaremos as instruções de redefinição.' });
     } catch (err) {
       notify({ type: 'error', title: 'Erro', message: err.message || 'Não foi possível enviar a solicitação.' });
     } finally {

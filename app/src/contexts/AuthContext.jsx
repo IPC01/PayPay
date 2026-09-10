@@ -31,11 +31,11 @@ export function AuthProvider({ children }) {
     loadUser();
   }, [token]);
 
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (email, password, twoFactor = {}) => {
     setError(null);
     const data = await request('/api/auth/login', {
       method: 'POST',
-      body: { email, password }
+      body: { email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
     localStorage.setItem('token', data.token);
@@ -47,12 +47,12 @@ export function AuthProvider({ children }) {
     return userData;
   }, []);
 
-  const register = useCallback(async (name, email, password) => {
+  const register = useCallback(async (name, email, password, twoFactor = {}) => {
     setError(null);
 
     const data = await request('/api/auth/register', {
       method: 'POST',
-      body: { name, email, password }
+      body: { name, email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
     return data;

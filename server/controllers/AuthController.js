@@ -6,6 +6,20 @@ const { createAuditLog } = require('../helpers/auditLogger');
 const tokenBlacklist = new Set();
 
 class AuthController {
+  async requestRegistrationCode(req, res) {
+    try {
+      const { name, email } = req.body;
+
+      const result = await AuthService.requestRegistrationCode(name, email);
+
+      return res.json(result);
+    } catch (err) {
+      return res.status(400).json({
+        error: err.message
+      });
+    }
+  }
+
   async verifyCredentials(req, res) {
     try {
       const { email, password } = req.body;
@@ -13,10 +27,12 @@ class AuthController {
       const result = await AuthService.verifyCredentials(email, password);
 
       return res.json({
-        message: 'Credentials valid',
+        message: 'Credentials valid. Verification code sent.',
         userId: result.userId,
         roleId: result.roleId,
-        email: result.email
+        email: result.email,
+        otpToken: result.otpToken,
+        expiresIn: result.expiresIn
       });
     } catch (err) {
       return res.status(401).json({
@@ -27,9 +43,9 @@ class AuthController {
 
   async register(req, res) {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password, otpToken, otp } = req.body;
 
-      const user = await AuthService.register(name, email, password);
+      const user = await AuthService.register(name, email, password, otpToken, otp);
 
       return res.status(201).json({
         message: 'User created successfully',
@@ -45,9 +61,9 @@ class AuthController {
 
   async login(req, res) {
     try {
-      const { email, password } = req.body;
+      const { email, password, otpToken, otp } = req.body;
 
-      const result = await AuthService.login(email, password);
+      const result = await AuthService.login(email, password, otpToken, otp);
 
       await createAuditLog({
         userId: result.userId || null,
