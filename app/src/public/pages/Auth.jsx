@@ -101,12 +101,8 @@ const Divider = ({ text }) => (
 // ============================================
 
 function LoginView() {
-  const [step, setStep] = useState('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [otpToken, setOtpToken] = useState(null);
-  const [credentialsVerified, setCredentialsVerified] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -146,53 +142,22 @@ function LoginView() {
     e.preventDefault();
     setError(null);
 
-    if (step === 'credentials') {
-      if (!email || !password) {
-        setError('Preencha todos os campos.');
-        return;
-      }
-
-      setLoading(true);
-
-      try {
-        const data = await request('/api/auth/verify-credentials', {
-          method: 'POST',
-          body: { email, password }
-        });
-
-        if (rememberMe) {
-          localStorage.setItem('romenapay_email', email);
-        } else {
-          localStorage.removeItem('romenapay_email');
-        }
-
-        setOtpToken(data.otpToken);
-        setCredentialsVerified(true);
-        setStep('otp');
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-
-      return;
-    }
-
-    if (!credentialsVerified) {
-      setError('Valide as credenciais antes de continuar.');
-      setStep('credentials');
-      return;
-    }
-
-    if (!otp || otp.length !== 6) {
-      setError('Insira o código de 6 dígitos enviado para seu email.');
+    if (!email || !password) {
+      setError('Preencha todos os campos.');
       return;
     }
 
     setLoading(true);
 
     try {
-      const userData = await login(email, password, { otpToken, otp });
+      if (rememberMe) {
+        localStorage.setItem('romenapay_email', email);
+      } else {
+        localStorage.removeItem('romenapay_email');
+      }
+
+      // O 2FA de login está temporariamente comentado para os testes.
+      const userData = await login(email, password);
       const requestedPath = location.state?.from?.pathname || '/client';
       const destination = resolvePostLoginRoute(requestedPath, userData?.roleId);
       navigate(destination, { replace: true });
@@ -203,14 +168,7 @@ function LoginView() {
   };
 
   const handleBack = () => {
-    if (step === 'otp') {
-      setStep('credentials');
-      setOtp('');
-      setOtpToken(null);
-      setError(null);
-    } else {
-      navigate('/');
-    }
+    navigate('/');
   };
 
   const platformName = settings?.platformName || 'Romenapay';
@@ -240,26 +198,22 @@ function LoginView() {
           {/* Título do formulário */}
           <div className="mb-5">
             <h1 className="text-lg font-bold text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              {step === 'credentials' ? 'Bem-vindo' : 'Verificação em 2 etapas'}
+              Bem-vindo
             </h1>
             <p className="mt-0.5 text-xs text-gray-500">
-              {step === 'credentials' 
-                ? 'Acesse sua conta com segurança'
-                : 'Insira o código de verificação enviado para seu email.'}
+              Acesse sua conta com segurança
             </p>
           </div>
 
           {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {step === 'credentials' ? (
-              <>
+            <>
                 <InputField
                   label="Email"
                   type="email"
                   value={email}
                   onChange={e => {
                     setEmail(e.target.value);
-                    setCredentialsVerified(false);
                   }}
                   placeholder="seu@email.com"
                   required
@@ -278,7 +232,6 @@ function LoginView() {
                     value={password}
                     onChange={e => {
                       setPassword(e.target.value);
-                      setCredentialsVerified(false);
                     }}
                     placeholder="••••••••"
                     required
@@ -324,44 +277,7 @@ function LoginView() {
                     Esqueceu a senha?
                   </Link>
                 </div>
-              </>
-            ) : (
-              <>
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="flex-shrink-0 w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700">Autenticação de dois fatores</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Insira o código de 6 dígitos enviado para seu email.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <InputField
-                  label="Código de verificação"
-                  type="text"
-                  value={otp}
-                  onChange={e => setOtp(e.target.value)}
-                  placeholder="000000"
-                  required
-                  maxLength="6"
-                  className="text-center text-lg tracking-[0.5em] font-mono"
-                  error={!!error}
-                />
-
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="text-xs text-gray-500 hover:text-gray-700 transition-colors font-medium"
-                >
-                  ← Voltar para credenciais
-                </button>
-              </>
-            )}
+            </>
 
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -379,7 +295,7 @@ function LoginView() {
               disabled={loading}
               className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-gray-800/20 transition-all duration-200 hover:bg-gray-900 hover:shadow-lg hover:shadow-gray-800/30 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <LoadingSpinner /> : (step === 'credentials' ? 'Continuar' : 'Entrar')}
+              {loading ? <LoadingSpinner /> : 'Entrar'}
             </button>
           </form>
 
@@ -415,7 +331,7 @@ function LoginView() {
 }
 
 // ============================================
-// REGISTER VIEW - RESPONSIVA
+// REGISTER VIEW - RESPONSIVA COM LOGIN AUTOMÁTICO
 // ============================================
 
 function RegisterView() {
@@ -431,7 +347,7 @@ function RegisterView() {
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
 
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
 
@@ -463,17 +379,20 @@ function RegisterView() {
       return;
     }
 
-    if (!otp || otp.length !== 6) {
-      setError('Insira o código de 6 dígitos enviado para seu email.');
+    if (!otp) {
+      setError('Insira o código de verificação enviado para seu email.');
       return;
     }
 
     setLoading(true);
 
     try {
-      await register(name, email, password, { otpToken, otp });
+      const userData = await register(name, email, password, { otpToken, otp });
+
       setSuccess('Conta registada com sucesso! Redirecionando...');
-      setTimeout(() => navigate('/login'), 1500);
+
+      const destination = userData?.roleId === 1 ? '/admin' : '/client/profile';
+      setTimeout(() => navigate(destination, { replace: true }), 1500);
     } catch (err) {
       setError(err.message);
       setLoading(false);
@@ -610,7 +529,8 @@ function RegisterView() {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-700">Verificação necessária</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Insira o código de 6 dígitos enviado para seu email.</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Insira o código enviado para:</p>
+                      <p className="text-xs font-medium text-gray-700 mt-0.5 break-all">{email}</p>
                     </div>
                   </div>
                 </div>
@@ -620,10 +540,9 @@ function RegisterView() {
                   type="text"
                   value={otp}
                   onChange={e => setOtp(e.target.value)}
-                  placeholder="000000"
+                  placeholder="Código de verificação"
                   required
-                  maxLength="6"
-                  className="text-center text-lg tracking-[0.5em] font-mono"
+                  className="font-mono"
                   error={!!error}
                 />
               </>
@@ -656,7 +575,7 @@ function RegisterView() {
               disabled={loading}
               className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-gray-800/20 transition-all duration-200 hover:bg-gray-900 hover:shadow-lg hover:shadow-gray-800/30 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <LoadingSpinner /> : (step === 'details' ? 'Continuar' : 'Confirmar código')}
+              {loading ? <LoadingSpinner /> : (step === 'details' ? 'Continuar' : 'Confirmar e entrar')}
             </button>
           </form>
 

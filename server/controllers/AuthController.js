@@ -45,11 +45,12 @@ class AuthController {
     try {
       const { name, email, password, otpToken, otp } = req.body;
 
-      const user = await AuthService.register(name, email, password, otpToken, otp);
+      const result = await AuthService.register(name, email, password, otpToken, otp);
 
       return res.status(201).json({
         message: 'User created successfully',
-        user
+        user: result.user,
+        token: result.token
       });
 
     } catch (err) {

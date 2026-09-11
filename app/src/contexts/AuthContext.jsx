@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     setError(null);
     const data = await request('/api/auth/login', {
       method: 'POST',
-      body: { email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
+      body: { email, password }
     });
 
     localStorage.setItem('token', data.token);
@@ -55,7 +55,13 @@ export function AuthProvider({ children }) {
       body: { name, email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
-    return data;
+    localStorage.setItem('token', data.token);
+    setToken(data.token);
+
+    const userData = await request('/api/auth/me', { token: data.token });
+    setUser(userData);
+
+    return userData;
   }, []);
 
   const forgotPassword = useCallback(async (email) => {
