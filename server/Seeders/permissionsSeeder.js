@@ -2,17 +2,11 @@ const { Permission } = require('../models');
 
 async function seedPermissions() {
   const permissions = [
-    { name: 'wallet:create' },
-    { name: 'wallet:view' },
-    { name: 'wallet:deposit' },
-    { name: 'wallet:withdraw' },
-    { name: 'wallet:transfer' },
+    { name: 'transaction:c2b', description: 'C2B' },
+    { name: 'transaction:c2b_test', description: 'C2B Teste' },
+    { name: 'transaction:b2c', description: 'B2C' },
 
-    { name: 'user:create' },
-    { name: 'user:view' },
-    { name: 'user:delete' },
-
-    { name: 'admin:all' }
+    { name: 'admin:all', description: 'Administrador' }
   ];
 
   for (const p of permissions) {

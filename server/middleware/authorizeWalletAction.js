@@ -1,4 +1,4 @@
-const { Wallet, ApiKeyScope } = require('../models');
+const { Wallet, ApiKeyScope, ApiKeyWallet } = require('../models');
 
 function authorizeWalletAction(requiredScope) {
   return async (req, res, next) => {
@@ -44,6 +44,17 @@ function authorizeWalletAction(requiredScope) {
       if (wallet.userId !== apiKey.userId) {
         return res.status(403).json({
           error: 'You do not own this wallet'
+        });
+      }
+
+      // 4b. validar que a carteira está associada a esta chave de acesso
+      const walletLink = await ApiKeyWallet.findOne({
+        where: { apiKeyId: apiKey.id, walletId: wallet.id }
+      });
+
+      if (!walletLink) {
+        return res.status(403).json({
+          error: 'This API key is not authorized for this wallet'
         });
       }
 

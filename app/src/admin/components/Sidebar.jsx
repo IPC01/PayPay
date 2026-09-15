@@ -18,6 +18,11 @@ const navigation = [
     icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6' 
   },
   { 
+    to: '/admin/wallet-types', 
+    label: 'Tipos de Carteira', 
+    icon: 'M3 7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 4h18' 
+  },
+  { 
     to: '/admin/transactions', 
     label: 'Transações', 
     icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' 

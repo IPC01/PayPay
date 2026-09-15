@@ -6,6 +6,7 @@ const WalletType = require('./WalletType');
 const Wallet = require('./Wallet');
 const ApiKey = require('./ApiKey');
 const ApiKeyScope = require('./ApiKeyScope');
+const ApiKeyWallet = require('./ApiKeyWallet');
 const AuditLog = require('./AuditLog');
 const Ledger = require('./Ledger');
 const Transaction = require('./Transaction');
@@ -130,6 +131,26 @@ TransactionFee.belongsTo(WalletType, {
   foreignKey: 'walletTypeId'
 });
 
+ApiKey.hasMany(ApiKeyScope, {
+  foreignKey: 'apiKeyId'
+});
+
+ApiKeyScope.belongsTo(ApiKey, {
+  foreignKey: 'apiKeyId'
+});
+
+ApiKey.belongsToMany(Wallet, {
+  through: ApiKeyWallet,
+  foreignKey: 'apiKeyId',
+  otherKey: 'walletId'
+});
+
+Wallet.belongsToMany(ApiKey, {
+  through: ApiKeyWallet,
+  foreignKey: 'walletId',
+  otherKey: 'apiKeyId'
+});
+
 Package.hasMany(Subscription, {
   foreignKey: 'packageId'
 });
@@ -146,6 +167,13 @@ Subscription.belongsTo(User, {
   foreignKey: 'userId'
 });
 
+Subscription.belongsTo(Transaction, {
+  foreignKey: 'paymentReference',
+  targetKey: 'id',
+  as: 'PaymentTransaction',
+  constraints: false
+});
+
 module.exports = {
   User,
   Role,
@@ -155,6 +183,7 @@ module.exports = {
   Wallet,
   ApiKey,
   ApiKeyScope,
+  ApiKeyWallet,
   AuditLog,
   Ledger,
   Transaction,

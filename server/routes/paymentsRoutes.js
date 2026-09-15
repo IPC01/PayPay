@@ -126,4 +126,48 @@ router.post(
   PaymentController.b2c.bind(PaymentController)
 );
 
+/**
+ * @swagger
+ * /api/payments/direct:
+ *   post:
+ *     summary: Pagamento direto na API principal (sem carteira)
+ *     description: Processa um pagamento diretamente na API de pagamentos, sem apontar para nenhuma carteira. Usado por fluxos como subscrições de pacotes.
+ *     tags:
+ *       - Payments
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - phone
+ *               - reference
+ *               - provider
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 example: 500
+ *               phone:
+ *                 type: string
+ *                 example: "258841234567"
+ *               reference:
+ *                 type: string
+ *                 example: SUB-001
+ *               provider:
+ *                 type: string
+ *                 example: mpesa
+ *     responses:
+ *       '200':
+ *         description: Pagamento processado com sucesso.
+ */
+router.post(
+  '/direct',
+  authMiddleware,
+  PaymentController.direct.bind(PaymentController)
+);
+
 module.exports = router;

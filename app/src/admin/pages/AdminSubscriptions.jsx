@@ -74,7 +74,7 @@ function AdminSubscriptions() {
         <div>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Gestão de Subscrições</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Veja e gerencie todas as subscrições da plataforma.
+            Veja e gerencie todas as subscrições da plataforma. Os pagamentos são processados diretamente na API de pagamentos principal, sem debitar nenhuma carteira.
           </p>
         </div>
       </div>
@@ -116,18 +116,19 @@ function AdminSubscriptions() {
                 <th className="px-4 py-4">Expira</th>
                 <th className="px-4 py-4">Auto-renovação</th>
                 <th className="px-4 py-4">Valor pago</th>
+                <th className="px-4 py-4">Pagamento (API direta)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     A carregar subscrições...
                   </td>
                 </tr>
               ) : filteredSubscriptions.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan="8" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                     Nenhuma subscrição encontrada.
                   </td>
                 </tr>
@@ -145,6 +146,20 @@ function AdminSubscriptions() {
                     <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{sub.expiresAt ? new Date(sub.expiresAt).toLocaleDateString('pt-PT') : '-'}</td>
                     <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{sub.autoRenew ? 'Sim' : 'Não'}</td>
                     <td className="px-4 py-4 text-slate-600 dark:text-slate-300">{parseFloat(sub.pricePaid).toFixed(2)} MZN</td>
+                    <td className="px-4 py-4 text-slate-600 dark:text-slate-300">
+                      {sub.PaymentTransaction ? (
+                        <div className="space-y-0.5">
+                          <p className="font-medium text-slate-800 dark:text-slate-100">
+                            {sub.PaymentTransaction.provider?.toUpperCase() || 'N/A'} · {sub.PaymentTransaction.reference}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {sub.PaymentTransaction.providerResponseCode || sub.PaymentTransaction.status}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-400">Sem registo</span>
+                      )}
+                    </td>
                   </tr>
                 ))
               )}

@@ -72,7 +72,7 @@ curl -X POST http://localhost:8000/api/keys/api-keys \
   -H "Content-Type: application/json" \
   -d '{
     "name": "postman-key",
-    "scopes": ["wallet:deposit", "wallet:withdraw"]
+    "scopes": ["transaction:c2b", "transaction:b2c"]
   }'
 ```
 

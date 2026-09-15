@@ -48,6 +48,10 @@ function buildMockResponse(path, payload) {
   };
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function requireLiveConfig() {
   const missing = [];
 
@@ -63,6 +67,9 @@ function requireLiveConfig() {
 class MpesaClient {
   async post(path, payload, options = {}) {
     if (isMockMode(options.mode)) {
+      // simula o tempo de espera pela confirmação do pagamento no telemóvel do utilizador
+      const waitMs = Number(process.env.MPESA_MOCK_DELAY_MS) || 4000;
+      await wait(waitMs);
       return buildMockResponse(path, payload);
     }
 

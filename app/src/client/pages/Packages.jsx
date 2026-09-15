@@ -42,10 +42,10 @@ function Packages() {
   const [walletTypes, setWalletTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [subscribingId, setSubscribingId] = useState(null);
-  const [renewingId, setRenewingId] = useState(null);
   const [autoRenew, setAutoRenew] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [activePackage, setActivePackage] = useState(null);
+  const [renewTarget, setRenewTarget] = useState(null);
   const [modalStep, setModalStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [paymentNumber, setPaymentNumber] = useState('');
@@ -78,68 +78,14 @@ function Packages() {
     }
   };
 
-  const handleSubscribe = async (pack) => {
-    if (!paymentMethods.length) {
-      notify({
-        type: 'error',
-        title: 'Métodos de pagamento indisponíveis',
-        message: 'Não há métodos de pagamento configurados para subscrever.'
-      });
-      return;
-    }
-
-    try {
-      setSubscribingId(pack.id);
-      await authRequest('/api/subscriptions/subscribe', {
-        method: 'POST',
-        body: {
-          packageId: pack.id,
-          autoRenew,
-          paymentMethod,
-          paymentNumber
-        }
-      });
-      notify({
-        type: 'success',
-        title: 'Subscrição realizada',
-        message: `Subscrito no pacote ${pack.name} com sucesso.`
-      });
-      await loadData();
-    } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao subscrever',
-        message: error.message || 'Não foi possível subscrever ao pacote.'
-      });
-    } finally {
-      setSubscribingId(null);
-    }
-  };
-
-  const handleRenew = async (subscriptionId) => {
-    try {
-      setRenewingId(subscriptionId);
-      await authRequest('/api/subscriptions/renew', {
-        method: 'POST',
-        body: {
-          id: subscriptionId
-        }
-      });
-      notify({
-        type: 'success',
-        title: 'Renovação realizada',
-        message: 'A subscrição foi renovada com sucesso.'
-      });
-      await loadData();
-    } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao renovar',
-        message: error.message || 'Não foi possível renovar a subscrição.'
-      });
-    } finally {
-      setRenewingId(null);
-    }
+  const handleRenew = (sub) => {
+    setRenewTarget(sub);
+    setActivePackage(sub.Package || packages.find((pack) => pack.id === sub.packageId) || null);
+    setModalStep(2);
+    const defaultMethod = walletTypes[0]?.code?.toLowerCase() || '';
+    setPaymentMethod(defaultMethod);
+    setPaymentNumber('');
+    setShowModal(true);
   };
 
   const subscriptionByPackage = useMemo(() => {
@@ -312,11 +258,11 @@ function Packages() {
             <button
               type="button"
               onClick={() => openSubscribeModal(pack)}
-              disabled={subscribingId === pack.id || !paymentMethods.length}
+              disabled={subscribingId === pack.id || (!pack.isFree && !paymentMethods.length)}
               className={`inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white transition-all duration-200 ${
                 subscribingId === pack.id
                   ? 'bg-slate-400 cursor-not-allowed'
-                  : !paymentMethods.length
+                  : !pack.isFree && !paymentMethods.length
                     ? 'bg-slate-400 cursor-not-allowed'
                     : 'bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 hover:shadow-lg transform hover:scale-[1.02]'
               }`}
@@ -329,7 +275,12 @@ function Packages() {
               ) : status?.isExpired ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Renovar pacote
+                  {pack.isFree ? 'Reativar pacote' : 'Renovar pacote'}
+                </>
+              ) : pack.isFree ? (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Ativar pacote
                 </>
               ) : (
                 <>
@@ -339,7 +290,7 @@ function Packages() {
               )}
             </button>
           )}
-          {!paymentMethods.length && (
+          {!pack.isFree && !paymentMethods.length && (
             <p className="mt-2 flex items-center gap-1 text-sm text-rose-600 dark:text-rose-400">
               <Wallet className="h-4 w-4" />
               Não há métodos de pagamento configurados para subscrição
@@ -352,6 +303,7 @@ function Packages() {
 
   const openSubscribeModal = (pack) => {
     setActivePackage(pack);
+    setRenewTarget(null);
     setModalStep(1);
     const defaultMethod = walletTypes[0]?.code?.toLowerCase() || '';
     setPaymentMethod(defaultMethod);
@@ -362,51 +314,71 @@ function Packages() {
   const closeModal = () => {
     setShowModal(false);
     setActivePackage(null);
+    setRenewTarget(null);
     setModalStep(1);
   };
 
   const handleConfirmSubscription = async () => {
     if (!activePackage) return;
-    if (!paymentMethod) {
-      notify({
-        type: 'error',
-        title: 'Método de pagamento requerido',
-        message: 'Selecione um método de pagamento para continuar.'
-      });
-      return;
-    }
-    if (!paymentNumber.trim()) {
-      notify({
-        type: 'error',
-        title: 'Número inválido',
-        message: 'Insira o número de pagamento para continuar.'
-      });
-      return;
+    if (!activePackage.isFree) {
+      if (!paymentMethod) {
+        notify({
+          type: 'error',
+          title: 'Método de pagamento requerido',
+          message: 'Selecione um método de pagamento para continuar.'
+        });
+        return;
+      }
+      if (!paymentNumber.trim()) {
+        notify({
+          type: 'error',
+          title: 'Número inválido',
+          message: 'Insira o número de pagamento para continuar.'
+        });
+        return;
+      }
     }
 
     try {
-      setSubscribingId(activePackage.id);
-      await authRequest('/api/subscriptions/subscribe', {
-        method: 'POST',
-        body: {
-          packageId: activePackage.id,
-          autoRenew,
-          paymentMethod,
-          paymentNumber
-        }
-      });
-      notify({
-        type: 'success',
-        title: 'Subscrição realizada',
-        message: `Subscrito no pacote ${activePackage.name} com sucesso.`
-      });
+      setSubscribingId(renewTarget ? renewTarget.id : activePackage.id);
+      const paymentFields = activePackage.isFree ? {} : { paymentMethod, paymentNumber };
+      if (renewTarget) {
+        await authRequest('/api/subscriptions/renew', {
+          method: 'POST',
+          body: {
+            id: renewTarget.id,
+            ...paymentFields
+          }
+        });
+        notify({
+          type: 'success',
+          title: 'Renovação realizada',
+          message: 'A subscrição foi renovada com sucesso.'
+        });
+      } else {
+        await authRequest('/api/subscriptions/subscribe', {
+          method: 'POST',
+          body: {
+            packageId: activePackage.id,
+            autoRenew,
+            ...paymentFields
+          }
+        });
+        notify({
+          type: 'success',
+          title: activePackage.isFree ? 'Pacote ativado' : 'Subscrição realizada',
+          message: activePackage.isFree
+            ? `O pacote ${activePackage.name} foi ativado com sucesso.`
+            : `Subscrito no pacote ${activePackage.name} com sucesso.`
+        });
+      }
       closeModal();
       await loadData();
     } catch (error) {
       notify({
         type: 'error',
-        title: 'Erro ao subscrever',
-        message: error.message || 'Não foi possível subscrever ao pacote.'
+        title: renewTarget ? 'Erro ao renovar' : 'Erro ao subscrever',
+        message: error.message || 'Não foi possível processar o pagamento.'
       });
     } finally {
       setSubscribingId(null);
@@ -462,8 +434,8 @@ function Packages() {
           <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 dark:text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-semibold">Subscrição: {activePackage.name}</h3>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Complete os passos abaixo para pagar a sua subscrição.</p>
+                <h3 className="text-2xl font-semibold">{renewTarget ? 'Renovação' : 'Subscrição'}: {activePackage.name}</h3>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Complete os passos abaixo para pagar diretamente na API de pagamentos.</p>
               </div>
               <button
                 type="button"
@@ -503,6 +475,15 @@ function Packages() {
                         </ul>
                       </div>
                     )}
+                  </div>
+                </div>
+              ) : activePackage.isFree ? (
+                <div className="space-y-4">
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-950">
+                    <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Confirmação de ativação</p>
+                    <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+                      Este é um pacote gratuito. Confirme para ativar o pacote <strong>{activePackage.name}</strong> sem qualquer pagamento.
+                    </p>
                   </div>
                 </div>
               ) : (
@@ -555,19 +536,22 @@ function Packages() {
                         </div>
                       ) : (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-200">
-                          Nenhuma carteira disponível para determinar métodos de pagamento. Crie uma carteira primeiro.
+                          Não há tipos de carteira configurados no sistema para determinar os métodos de pagamento disponíveis.
                         </div>
                       )}
 
                       <div>
-                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Número de pagamento</label>
+                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Número de telemóvel M-Pesa</label>
                         <input
                           type="text"
                           value={paymentNumber}
                           onChange={(event) => setPaymentNumber(event.target.value)}
-                          placeholder="Insira o número de telefone ou referência"
+                          placeholder="Ex: 84xxxxxxx ou 85xxxxxxx"
                           className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                         />
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          Será enviado um pedido de pagamento M-Pesa para este número.
+                        </p>
                       </div>
                     </div>
 
@@ -575,8 +559,8 @@ function Packages() {
                       <div className="flex items-start gap-3">
                         <Clock className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
                         <div>
-                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Simulação de pagamento</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400">Este fluxo simula o pagamento de subscrição com os dados fornecidos.</p>
+                          <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Pagamento direto na API principal</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">Este pagamento é processado diretamente na API de pagamentos da plataforma e não debita nenhuma das suas carteiras.</p>
                         </div>
                       </div>
                     </div>
@@ -602,10 +586,16 @@ function Packages() {
               <button
                 type="button"
                 onClick={modalStep === 1 ? () => setModalStep(2) : handleConfirmSubscription}
-                disabled={modalStep === 2 && (!paymentNumber.trim() || !paymentMethod)}
+                disabled={modalStep === 2 && !activePackage.isFree && (!paymentNumber.trim() || !paymentMethod)}
                 className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {modalStep === 1 ? 'Próximo' : subscribingId === activePackage.id ? 'A processar...' : 'Pagar agora'}
+                {modalStep === 1
+                  ? 'Próximo'
+                  : subscribingId
+                    ? 'A processar...'
+                    : activePackage.isFree
+                      ? 'Confirmar ativação'
+                      : 'Pagar agora'}
               </button>
             </div>
           </div>
@@ -672,15 +662,10 @@ function Packages() {
                     <div className="mt-4">
                       <button
                         type="button"
-                        onClick={() => handleRenew(sub.id)}
-                        disabled={renewingId === sub.id}
-                        className={`inline-flex w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white transition duration-200 ${
-                          renewingId === sub.id
-                            ? 'bg-slate-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800'
-                        }`}
+                        onClick={() => handleRenew(sub)}
+                        className="inline-flex w-full items-center justify-center rounded-2xl bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-3 text-sm font-semibold text-white transition duration-200 hover:from-brand-700 hover:to-brand-800"
                       >
-                        {renewingId === sub.id ? 'A renovar...' : 'Renovar subscrição'}
+                        Renovar subscrição
                       </button>
                     </div>
                   )}

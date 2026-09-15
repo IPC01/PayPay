@@ -13,7 +13,7 @@ Transaction.init(
 
     fromWalletId: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: true
     },
 
     toWalletId: {
@@ -35,7 +35,7 @@ Transaction.init(
     },
     walletCode: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true
     },
 
     paymentMode: {

@@ -20,6 +20,7 @@ import Tickets from './client/pages/Tickets';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
 import AdminWallets from './admin/pages/AdminWallets';
+import AdminWalletTypes from './admin/pages/AdminWalletTypes';
 import AdminTransactions from './admin/pages/AdminTransactions';
 import AdminTickets from './admin/pages/AdminTickets';
 import AdminWithdrawals from './admin/pages/AdminWithdrawals';
@@ -170,6 +171,14 @@ function App() {
           <Route
             path="/admin/wallets/:id"
             element={<Navigate to="/admin/wallets" replace />}
+          />
+          <Route
+            path="/admin/wallet-types"
+            element={
+              <AdminRoute>
+                <AdminWalletTypes />
+              </AdminRoute>
+            }
           />
           <Route
             path="/admin/transactions"

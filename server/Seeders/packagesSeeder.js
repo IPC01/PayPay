@@ -1,32 +1,28 @@
 const { Package } = require('../models');
 
 async function seedPackages() {
+  const legacyCodes = ['teste', 'basico', 'pro'];
+  await Package.update({ active: false }, { where: { code: legacyCodes } });
+
   const packages = [
     {
-      code: 'teste',
-      name: 'Teste',
+      code: 'desenvolvedor',
+      name: 'Desenvolvedor',
       price: 0.0,
-      description: 'Pacote de teste gratuito com acesso básico para avaliação do sistema.',
-      permissionsGranted: 'carteira developer, teste c2b, teste b2c',
-      permissionsDenied: 'acesso_premium,relatorios_avancados',
+      description: 'Pacote gratuito para desenvolvimento e testes. Dá acesso apenas às APIs de teste (mock), sem transações reais.',
+      permissionsGranted: 'transaction:c2b_test',
+      permissionsDenied: 'transaction:c2b,transaction:b2c',
+      isFree: true,
       active: true
     },
     {
-      code: 'basico',
-      name: 'Básico',
-      price: 99.9,
-      description: 'Pacote básico com recursos essenciais para produção.',
-      permissionsGranted: 'carteiras de produção, c2b',
-      permissionsDenied: 'c2c,relatorios_avancados,suporte_prioritario',
-      active: true
-    },
-    {
-      code: 'pro',
-      name: 'Pro',
-      price: 249.9,
-      description: 'Pacote Pro com funcionalidades avançadas e todas as permissões básicas e B2C.',
-      permissionsGranted: 'carteiras de produção, c2b, b2c, suporte_prioritario',
+      code: 'empresa',
+      name: 'Empresa',
+      price: 499.9,
+      description: 'Pacote para produção com acesso a transações reais de C2B e B2C.',
+      permissionsGranted: 'transaction:c2b,transaction:b2c',
       permissionsDenied: '',
+      isFree: false,
       active: true
     }
   ];

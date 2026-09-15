@@ -277,6 +277,10 @@ class AdminController {
           {
             model: User,
             attributes: ['id', 'name', 'email']
+          },
+          {
+            model: Transaction,
+            as: 'PaymentTransaction'
           }
         ]
       });

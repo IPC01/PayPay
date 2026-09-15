@@ -3,9 +3,12 @@ const jwt = require('jsonwebtoken');
 const {
   ApiKey,
   ApiKeyScope,
-  Permission
+  ApiKeyWallet,
+  Permission,
+  Wallet
 } = require('../models');
 const { hasApprovedKyc } = require('../helpers/kycHelper');
+const { hasActivePackage, getAllowedScopesForUser } = require('../helpers/subscriptionHelper');
 
 class ApiKeyController {
 
@@ -18,10 +21,15 @@ class ApiKeyController {
         return res.status(403).json({ error: 'KYC deve ser aprovado para criar chaves de API' });
       }
 
+      if (!(await hasActivePackage(userId, req.user.roleId))) {
+        return res.status(403).json({ error: 'Deve subscrever um pacote para poder criar chaves de API' });
+      }
+
       const {
         name,
         scopes = [],
-        expiresAt
+        expiresAt,
+        walletIds = []
       } = req.body;
 
       if (!name) {
@@ -30,10 +38,37 @@ class ApiKeyController {
         });
       }
 
+      const allowedScopes = await getAllowedScopesForUser(userId, req.user.roleId);
+      if (allowedScopes) {
+        const disallowed = scopes.filter((scope) => !allowedScopes.includes(scope));
+        if (disallowed.length > 0) {
+          return res.status(403).json({
+            error: `O seu pacote não permite os seguintes escopos: ${disallowed.join(', ')}`
+          });
+        }
+      }
+
+      if (!Array.isArray(walletIds) || walletIds.length === 0) {
+        return res.status(400).json({
+          error: 'Selecione pelo menos uma carteira para associar à chave'
+        });
+      }
+
+      const wallets = await Wallet.findAll({
+        where: { id: walletIds, userId }
+      });
+
+      if (wallets.length !== walletIds.length) {
+        return res.status(400).json({
+          error: 'Uma ou mais carteiras selecionadas não pertencem ao utilizador'
+        });
+      }
+
       const payload = {
         userId,
         name,
-        scopes
+        scopes,
+        walletIds
       };
 
       const options = {};
@@ -79,6 +114,13 @@ class ApiKeyController {
         });
       }
 
+      for (const wallet of wallets) {
+        await ApiKeyWallet.create({
+          apiKeyId: apiKey.id,
+          walletId: wallet.id
+        });
+      }
+
       return res.status(201).json({
         message: 'API Key created successfully',
 
@@ -117,6 +159,14 @@ class ApiKeyController {
           'isActive',
           'lastUsedAt',
           'createdAt'
+        ],
+
+        include: [
+          {
+            model: Wallet,
+            attributes: ['id', 'walletCode', 'walletName'],
+            through: { attributes: [] }
+          }
         ]
       });
 

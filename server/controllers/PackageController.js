@@ -39,7 +39,7 @@ class PackageController {
 
   async save(req, res) {
     try {
-      const { id, code, name, price, promoPrice, promoStartDate, promoEndDate, description, permissionsGranted, permissionsDenied, active } = req.body;
+      const { id, code, name, price, promoPrice, promoStartDate, promoEndDate, description, permissionsGranted, permissionsDenied, isFree, active } = req.body;
       const payload = {
         code,
         name,
@@ -50,6 +50,7 @@ class PackageController {
         description: description || null,
         permissionsGranted: permissionsGranted || null,
         permissionsDenied: permissionsDenied || null,
+        isFree: Boolean(isFree),
         active: typeof active !== 'undefined' ? Boolean(active) : true
       };
 

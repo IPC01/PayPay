@@ -8,6 +8,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', WalletTypeController.getAll);
+router.post('/', checkPermission('admin:all'), WalletTypeController.create);
 router.put('/:id', checkPermission('admin:all'), WalletTypeController.update);
 
 module.exports = router;

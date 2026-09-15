@@ -14,9 +14,12 @@ function ApiKeys() {
   const [formData, setFormData] = useState({
     name: '',
     scopes: [],
+    walletIds: [],
     expiresIn: '30'
   });
   const [availableScopes, setAvailableScopes] = useState([]);
+  const [wallets, setWallets] = useState([]);
+  const [walletsLoading, setWalletsLoading] = useState(true);
   const [kyc, setKyc] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
   const { user, authRequest } = useAuth();
@@ -26,7 +29,7 @@ function ApiKeys() {
     async function init() {
       const currentKyc = await loadKyc();
       if (currentKyc?.status === 'APPROVED') {
-        await Promise.all([fetchApiKeys(), fetchAvailableScopes()]);
+        await Promise.all([fetchApiKeys(), fetchAvailableScopes(), fetchWallets()]);
       } else {
         setLoading(false);
       }
@@ -87,8 +90,35 @@ function ApiKeys() {
     }
   };
 
+  const fetchWallets = async () => {
+    try {
+      setWalletsLoading(true);
+      const data = await authRequest('/api/wallets');
+      setWallets(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar carteiras:', error);
+      notify({
+        type: 'error',
+        title: 'Falha ao carregar carteiras',
+        message: 'Não foi possível carregar as suas carteiras.'
+      });
+    } finally {
+      setWalletsLoading(false);
+    }
+  };
+
   const handleCreateKey = async (e) => {
     e.preventDefault();
+
+    if (formData.walletIds.length === 0) {
+      notify({
+        type: 'error',
+        title: 'Selecione uma carteira',
+        message: 'Selecione pelo menos uma carteira para associar à chave de acesso.'
+      });
+      return;
+    }
+
     try {
       const expiresAt = formData.expiresIn === 'never' 
         ? null 
@@ -97,6 +127,7 @@ function ApiKeys() {
       const response = await api.post('/api/keys', {
         name: formData.name,
         scopes: formData.scopes,
+        walletIds: formData.walletIds,
         expiresAt
       });
       
@@ -104,13 +135,13 @@ function ApiKeys() {
       setModalOpen(false);
       setNewTokenModalOpen(true);
       fetchApiKeys();
-      setFormData({ name: '', scopes: [], expiresIn: '30' });
+      setFormData({ name: '', scopes: [], walletIds: [], expiresIn: '30' });
     } catch (error) {
       console.error('Erro ao criar API Key:', error);
       notify({
         type: 'error',
         title: 'Falha ao criar chave de acesso',
-        message: 'Verifique os dados e tente novamente.'
+        message: error?.message || 'Verifique os dados e tente novamente.'
       });
     }
   };
@@ -248,7 +279,8 @@ function ApiKeys() {
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 dark:shadow-brand-950"
+          disabled={!walletsLoading && wallets.length === 0}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-brand-950"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -256,6 +288,12 @@ function ApiKeys() {
           Gerar nova chave de acesso
         </button>
       </div>
+
+      {!walletsLoading && wallets.length === 0 && (
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-700/40 dark:bg-yellow-950/20 dark:text-yellow-300">
+          Você precisa ter pelo menos uma carteira criada para gerar uma chave de acesso.
+        </div>
+      )}
 
       {/* Tabela de API Keys */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
@@ -268,6 +306,9 @@ function ApiKeys() {
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Status
+                </th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Carteiras
                 </th>
                 <th scope="col" className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   Último uso
@@ -286,7 +327,7 @@ function ApiKeys() {
             <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-6 py-12 text-center">
                     <div className="flex justify-center">
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"></div>
                     </div>
@@ -294,7 +335,7 @@ function ApiKeys() {
                 </tr>
               ) : apiKeys.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center">
+                  <td colSpan="7" className="px-6 py-12 text-center">
                     <svg className="mx-auto h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                     </svg>
@@ -303,7 +344,8 @@ function ApiKeys() {
                     </p>
                     <button
                       onClick={() => setModalOpen(true)}
-                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+                      disabled={!walletsLoading && wallets.length === 0}
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       Criar primeira chave de acesso
                     </button>
@@ -319,6 +361,11 @@ function ApiKeys() {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       {getStatusBadge(key.isActive, key.expiresAt)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                      {(key.Wallets && key.Wallets.length > 0)
+                        ? key.Wallets.map((w) => w.walletName || w.walletCode).join(', ')
+                        : 'Nenhuma'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       {key.lastUsedAt ? formatDate(key.lastUsedAt) : 'Nunca usado'}
@@ -404,6 +451,46 @@ function ApiKeys() {
                     className="w-full rounded-xl border border-slate-300 px-4 py-2.5 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-900 dark:text-white"
                     placeholder="Ex: API Produção, API Teste"
                   />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Carteiras *
+                  </label>
+                  <div className="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    {wallets.length === 0 ? (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        Nenhuma carteira disponível.
+                      </p>
+                    ) : (
+                      wallets.map((wallet) => (
+                        <label key={wallet.id} className="flex cursor-pointer items-center gap-3">
+                          <input
+                            type="checkbox"
+                            value={wallet.id}
+                            checked={formData.walletIds.includes(wallet.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData({
+                                  ...formData,
+                                  walletIds: [...formData.walletIds, wallet.id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  walletIds: formData.walletIds.filter((id) => id !== wallet.id)
+                                });
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                          />
+                          <span className="text-sm text-slate-700 dark:text-slate-300">
+                            {wallet.walletName || wallet.walletCode}
+                          </span>
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
 
                 <div>

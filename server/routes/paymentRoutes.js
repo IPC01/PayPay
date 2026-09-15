@@ -217,7 +217,7 @@ router.post(
   '/c2b',
   mpesaRequestMode({ forceMode: 'mock' }),
   apiKeyMiddleware,
-  authorizeWalletAction('wallet:deposit'),
+  authorizeWalletAction('transaction:c2b'),
   PaymentController.c2b
 );
 
@@ -225,7 +225,7 @@ router.post(
   '/b2c',
   mpesaRequestMode({ forceMode: 'mock' }),
   apiKeyMiddleware,
-  authorizeWalletAction('wallet:withdraw'),
+  authorizeWalletAction('transaction:b2c'),
   PaymentController.b2c
 );
 

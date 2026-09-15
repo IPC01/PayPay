@@ -61,7 +61,7 @@ $walletCode = $wallet.body.wallet.walletCode
 
 $apiKeyResp = Invoke-Api -Method 'Post' -Uri 'http://localhost:8000/api/keys/api-keys' -Headers $authHeaders -Body @{
   name = ('key-test-' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
-  scopes = @('wallet:deposit', 'wallet:withdraw')
+  scopes = @('transaction:c2b', 'transaction:b2c')
 }
 if (-not $apiKeyResp.ok) {
   throw "Falha ao criar API key: $($apiKeyResp.body)"

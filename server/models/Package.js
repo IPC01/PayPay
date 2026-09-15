@@ -51,6 +51,10 @@ Package.init(
     active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true
+    },
+    isFree: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false
     }
   },
   {

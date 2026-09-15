@@ -3,6 +3,7 @@ const { Wallet, WalletType, Notification } = require('../models');
 const generateUniqueCode = require('../helpers/generateCode');
 const { createAuditLog } = require('../helpers/auditLogger');
 const { hasApprovedKyc } = require('../helpers/kycHelper');
+const { hasActivePackage } = require('../helpers/subscriptionHelper');
 
 class WalletController {
 
@@ -13,6 +14,10 @@ class WalletController {
 
       if (!(await hasApprovedKyc(userId, req.user.roleId))) {
         return res.status(403).json({ error: 'KYC deve ser aprovado para criar novas carteiras' });
+      }
+
+      if (!(await hasActivePackage(userId, req.user.roleId))) {
+        return res.status(403).json({ error: 'Deve subscrever um pacote para poder criar carteiras' });
       }
 
       const { walletName, walletTypeId, currency, allowC2B, allowB2C, allowWithdraw } = req.body;

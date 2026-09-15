@@ -7,6 +7,7 @@ const {
 } = require('../models');
 const sequelize = require('../config/database');
 const PaymentService = require('../services/PaymentService');
+const { pagamentoMpesa } = require('../services/mpesa');
 const { createAuditLog } = require('../helpers/auditLogger');
 
 class PaymentController {
@@ -395,6 +396,91 @@ class PaymentController {
         stack: process.env.NODE_ENV === 'development'
           ? error.stack
           : undefined
+      });
+    }
+  }
+
+  // Pagamento direto na API principal, sem apontar para nenhuma carteira
+  // (usado por fluxos como subscrições, onde a plataforma é a destinatária do pagamento)
+  // Usa o mesmo fluxo do service legado do /api/mpesa-service-test/c2b para enviar
+  // realmente o pedido de pagamento ao número de telefone indicado
+  async processDirectPayment({ amount, phone, reference, provider, type = 'direct' }) {
+    if (!amount || !phone || !reference || !provider) {
+      throw Object.assign(new Error('amount, phone, reference and provider are required'), { statusCode: 400 });
+    }
+
+    const existingTransaction = await Transaction.findOne({ where: { reference } });
+    if (existingTransaction) {
+      throw Object.assign(new Error('Reference already used for another transaction'), { statusCode: 400 });
+    }
+
+    const transaction = await Transaction.create({
+      fromWalletId: null,
+      toWalletId: null,
+      amount,
+      fee: 0,
+      type,
+      paymentMode: 'C2B',
+      phone: String(phone).trim(),
+      walletCode: null,
+      reference,
+      status: 'pending',
+      apiKeyId: null,
+      provider
+    });
+
+    const result = await pagamentoMpesa(amount, String(phone).trim());
+    const providerResponse = result.data || null;
+    const success = result.success && providerResponse?.output_ResponseCode === 'INS-0';
+    const providerResponseMessage =
+      providerResponse?.output_ResponseDescription ||
+      providerResponse?.output_ResponseDesc ||
+      result.error ||
+      null;
+
+    await transaction.update({
+      status: success ? 'success' : 'failed',
+      providerReference: providerResponse?.output_ConversationID || null,
+      providerTransactionId: providerResponse?.output_TransactionID || null,
+      providerResponse: JSON.stringify(providerResponse || { error: result.error || result.message }),
+      providerResponseCode: providerResponse?.output_ResponseCode || null,
+      providerResponseMessage,
+      systemErrorMessage: success ? null : result.error || result.message || providerResponseMessage
+    });
+
+    if (!success) {
+      throw Object.assign(new Error(providerResponseMessage || 'Payment declined by provider'), {
+        statusCode: 400,
+        transaction
+      });
+    }
+
+    return { transaction, providerResponse };
+  }
+
+  // Rota de pagamento direto na API principal, sem código de carteira
+  async direct(req, res) {
+    try {
+      const { amount, phone, reference, provider } = req.body;
+
+      const { transaction, providerResponse } = await this.processDirectPayment({
+        amount,
+        phone,
+        reference,
+        provider,
+        type: 'direct'
+      });
+
+      return res.status(200).json({
+        success: true,
+        provider,
+        transactionId: transaction.id,
+        response: providerResponse
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        success: false,
+        error: error.message
       });
     }
   }

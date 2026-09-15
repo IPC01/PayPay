@@ -446,7 +446,7 @@ function RegisterView() {
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  placeholder="João Silva"
+                  placeholder="Stelio Mondlane"
                   required
                   icon={
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

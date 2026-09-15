@@ -61,7 +61,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"paypay-postman-key\",\n  \"scopes\": [\"wallet:deposit\", \"wallet:withdraw\"]\n}"
+              "raw": "{\n  \"name\": \"paypay-postman-key\",\n  \"scopes\": [\"transaction:c2b\", \"transaction:b2c\"]\n}"
             },
             "url": "{{baseUrl}}/api/keys/api-keys"
           }

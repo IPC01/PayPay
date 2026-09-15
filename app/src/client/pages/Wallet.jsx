@@ -21,6 +21,8 @@ function Wallets() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kyc, setKyc] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
+  const [hasActivePackage, setHasActivePackage] = useState(false);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   async function loadKyc() {
     try {
@@ -38,6 +40,24 @@ function Wallets() {
     }
   }
 
+  async function loadSubscriptionStatus() {
+    try {
+      setSubscriptionLoading(true);
+      const subscriptions = await authRequest('/api/subscriptions');
+      const active = (subscriptions || []).some(
+        (sub) => sub.status === 'active' && new Date(sub.expiresAt) > new Date()
+      );
+      setHasActivePackage(active);
+      return active;
+    } catch (err) {
+      console.error(err);
+      setHasActivePackage(false);
+      return false;
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function prepare() {
       await authRequest('/api/audit/events', {
@@ -51,7 +71,7 @@ function Wallets() {
 
       const currentKyc = await loadKyc();
       if (currentKyc?.status === 'APPROVED') {
-        await loadData();
+        await Promise.all([loadData(), loadSubscriptionStatus()]);
       } else {
         setLoading(false);
       }
@@ -312,7 +332,8 @@ function Wallets() {
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 dark:shadow-brand-950"
+          disabled={!subscriptionLoading && !hasActivePackage}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-brand-950"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -320,6 +341,15 @@ function Wallets() {
           Nova Carteira
         </button>
       </div>
+
+      {!subscriptionLoading && !hasActivePackage && (
+        <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800 dark:border-yellow-700/40 dark:bg-yellow-950/20 dark:text-yellow-300">
+          Você precisa subscrever um pacote para poder criar carteiras.{' '}
+          <a href="/client/packages" className="font-semibold underline">
+            Ver pacotes disponíveis
+          </a>
+        </div>
+      )}
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -431,7 +461,8 @@ function Wallets() {
                     </p>
                     <button
                       onClick={() => setModalOpen(true)}
-                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                      disabled={!subscriptionLoading && !hasActivePackage}
+                      className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -13,6 +13,7 @@ const initialForm = {
   permissionsGranted: '',
   permissionsDenied: '',
   description: '',
+  isFree: false,
   active: true
 };
 
@@ -62,6 +63,7 @@ function AdminPackages() {
       permissionsGranted: pack.permissionsGranted || '',
       permissionsDenied: pack.permissionsDenied || '',
       description: pack.description || '',
+      isFree: Boolean(pack.isFree),
       active: Boolean(pack.active)
     });
     setShowForm(true);
@@ -120,6 +122,7 @@ function AdminPackages() {
         description: form.description || null,
         permissionsGranted: form.permissionsGranted || null,
         permissionsDenied: form.permissionsDenied || null,
+        isFree: Boolean(form.isFree),
         active: Boolean(form.active)
       };
 
@@ -200,6 +203,7 @@ function AdminPackages() {
                   <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">Preço</th>
+                  <th className="px-4 py-3">Tipo</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Ações</th>
                 </tr>
@@ -207,13 +211,13 @@ function AdminPackages() {
               <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
                 {loading ? (
                   <tr>
-                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                       A carregar pacotes...
                     </td>
                   </tr>
                 ) : packages.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                       Nenhum pacote encontrado.
                     </td>
                   </tr>
@@ -223,6 +227,11 @@ function AdminPackages() {
                       <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{pack.code}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pack.name}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{parseFloat(pack.price).toFixed(2)} MZN</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pack.isFree ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200'}`}>
+                          {pack.isFree ? 'Gratuito' : 'Pago'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pack.active ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
                           {pack.active ? 'Ativo' : 'Inativo'}
@@ -355,6 +364,19 @@ function AdminPackages() {
                 rows={4}
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <input
+                id="package-free"
+                type="checkbox"
+                checked={form.isFree}
+                onChange={(event) => handleChange('isFree', event.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+              />
+              <label htmlFor="package-free" className="text-sm text-slate-700 dark:text-slate-300">
+                Pacote gratuito (sem pagamento, apenas confirmação de ativação)
+              </label>
             </div>
 
             <div className="flex items-center gap-3">

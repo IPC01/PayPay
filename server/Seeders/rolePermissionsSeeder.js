@@ -12,16 +12,12 @@ async function seedRolePermissions() {
 
   const mapping = {
     user: [
-      'wallet:create',
-      'wallet:view',
-      'wallet:deposit',
-      'wallet:transfer'
+      'transaction:c2b',
+      'transaction:c2b_test',
+      'transaction:b2c'
     ],
 
-    support: [
-      'wallet:view',
-      'user:view'
-    ],
+    support: [],
 
     admin: [
       'admin:all'
