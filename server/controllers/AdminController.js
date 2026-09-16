@@ -293,9 +293,20 @@ class AdminController {
 
   async getSubscriptionStats(req, res) {
     try {
+      const now = new Date();
+
       const totalRevenue = await Subscription.sum('pricePaid');
-      const activeSubscriptions = await Subscription.count({ where: { status: 'active' } });
-      const expiredSubscriptions = await Subscription.count({ where: { status: 'expired' } });
+      const activeSubscriptions = await Subscription.count({
+        where: { status: 'active', expiresAt: { [Op.gt]: now } }
+      });
+      const expiredSubscriptions = await Subscription.count({
+        where: {
+          [Op.or]: [
+            { status: 'expired' },
+            { status: 'active', expiresAt: { [Op.lte]: now } }
+          ]
+        }
+      });
       const cancelledSubscriptions = await Subscription.count({ where: { status: 'cancelled' } });
       const monthlyRevenue = await Subscription.sum('pricePaid', {
         where: {
@@ -305,12 +316,41 @@ class AdminController {
         }
       });
 
+      const activeCustomers = await Subscription.count({
+        where: { status: 'active', expiresAt: { [Op.gt]: now } },
+        distinct: true,
+        col: 'userId'
+      });
+
+      const packages = await Package.findAll({ attributes: ['id', 'name', 'code', 'isFree'] });
+      const byPackage = await Promise.all(
+        packages.map(async (pack) => {
+          const [activeCount, revenue] = await Promise.all([
+            Subscription.count({
+              where: { packageId: pack.id, status: 'active', expiresAt: { [Op.gt]: now } }
+            }),
+            Subscription.sum('pricePaid', { where: { packageId: pack.id } })
+          ]);
+
+          return {
+            packageId: pack.id,
+            name: pack.name,
+            code: pack.code,
+            isFree: pack.isFree,
+            activeCount,
+            revenue: revenue || 0
+          };
+        })
+      );
+
       return res.json({
         totalRevenue: totalRevenue || 0,
         activeSubscriptions,
         expiredSubscriptions,
         cancelledSubscriptions,
-        monthlyRevenue: monthlyRevenue || 0
+        monthlyRevenue: monthlyRevenue || 0,
+        activeCustomers,
+        byPackage
       });
     } catch (error) {
       return res.status(500).json({ error: error.message });

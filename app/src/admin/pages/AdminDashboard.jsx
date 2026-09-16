@@ -27,6 +27,7 @@ const DEFAULT_TRANSACTIONS = [4, 6, 5, 9, 11, 13, 16];
 function AdminDashboard() {
   const { authRequest } = useAuth();
   const [stats, setStats] = useState(null);
+  const [packageStats, setPackageStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,8 +37,12 @@ function AdminDashboard() {
   const loadStats = async () => {
     try {
       setLoading(true);
-      const data = await authRequest('/api/admin/stats');
+      const [data, subscriptionData] = await Promise.all([
+        authRequest('/api/admin/stats'),
+        authRequest('/api/admin/subscription-stats')
+      ]);
       setStats(data);
+      setPackageStats(subscriptionData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -180,6 +185,75 @@ function AdminDashboard() {
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Sistemas ativos agora</p>
         </div>
       </div>
+
+      {/* Métricas de Pacotes */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Receita total de pacotes</p>
+          <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+            {loading ? '...' : Number(packageStats?.totalRevenue || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'MZN' })}
+          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Valor acumulado em subscrições</p>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Receita últimos 30 dias</p>
+          <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+            {loading ? '...' : Number(packageStats?.monthlyRevenue || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'MZN' })}
+          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Faturação recente da plataforma</p>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Clientes com pacote ativo</p>
+          <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+            {loading ? '...' : packageStats?.activeCustomers ?? 0}
+          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{packageStats?.activeSubscriptions ?? 0} subscrições ativas</p>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Expiradas / Canceladas</p>
+          <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+            {loading ? '...' : (packageStats?.expiredSubscriptions ?? 0) + (packageStats?.cancelledSubscriptions ?? 0)}
+          </p>
+          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+            {packageStats?.expiredSubscriptions ?? 0} expiradas · {packageStats?.cancelledSubscriptions ?? 0} canceladas
+          </p>
+        </div>
+      </div>
+
+      {/* Detalhe por pacote */}
+      {packageStats?.byPackage?.length > 0 && (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Desempenho por pacote</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
+              <thead className="bg-slate-50 text-left uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+                <tr>
+                  <th className="px-4 py-3">Pacote</th>
+                  <th className="px-4 py-3">Tipo</th>
+                  <th className="px-4 py-3">Clientes ativos</th>
+                  <th className="px-4 py-3">Receita gerada</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                {packageStats.byPackage.map((pack) => (
+                  <tr key={pack.packageId}>
+                    <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{pack.name}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${pack.isFree ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200'}`}>
+                        {pack.isFree ? 'Gratuito' : 'Pago'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{pack.activeCount}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                      {Number(pack.revenue || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'MZN' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Gráficos Principais */}
       <div className="grid gap-4 xl:grid-cols-2">
