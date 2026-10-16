@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+﻿import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { UiProvider } from './contexts/UiContext';
@@ -14,8 +14,6 @@ import Auth from './public/pages/Auth';
 import Profile from './client/pages/Profile';
 import Transactions from './client/pages/Transactions';
 import TransactionsC2B from './client/pages/TransactionsC2B';
-import TransactionsC2BTest from './client/pages/TransactionsC2BTest';
-import TransactionsB2C from './client/pages/TransactionsB2C';
 import Tickets from './client/pages/Tickets';
 import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminUsers from './admin/pages/AdminUsers';
@@ -237,29 +235,16 @@ function App() {
             }
           />
           <Route
-            path="/client/transactions/c2b"
+            path="/client/c2b"
             element={
               <ClientRoute>
                 <TransactionsC2B />
               </ClientRoute>
             }
           />
-          <Route
-            path="/client/transactions/c2b-test"
-            element={
-              <ClientRoute>
-                <TransactionsC2BTest />
-              </ClientRoute>
-            }
-          />
-          <Route
-            path="/client/transactions/b2c"
-            element={
-              <ClientRoute>
-                <TransactionsB2C />
-              </ClientRoute>
-            }
-          />
+          <Route path="/client/transactions/c2b" element={<Navigate to="/client/c2b" replace />} />
+          <Route path="/client/transactions/c2b-test" element={<Navigate to="/client/c2b" replace />} />
+          <Route path="/client/transactions/b2c" element={<Navigate to="/client/withdrawals" replace />} />
           <Route
             path="/admin/withdrawals"
             element={
@@ -345,9 +330,9 @@ function App() {
           <Route path="/profile" element={<Navigate to="/client/profile" replace />} />
           <Route path="/notifications" element={<Navigate to="/client/notifications" replace />} />
           <Route path="/transactions" element={<Navigate to="/client/transactions" replace />} />
-          <Route path="/transactions/c2b" element={<Navigate to="/client/transactions/c2b" replace />} />
-          <Route path="/transactions/c2b-test" element={<Navigate to="/client/transactions/c2b-test" replace />} />
-          <Route path="/transactions/b2c" element={<Navigate to="/client/transactions/b2c" replace />} />
+          <Route path="/transactions/c2b" element={<Navigate to="/client/c2b" replace />} />
+          <Route path="/transactions/c2b-test" element={<Navigate to="/client/c2b" replace />} />
+          <Route path="/transactions/b2c" element={<Navigate to="/client/withdrawals" replace />} />
           <Route path="/packages" element={<Navigate to="/client/packages" replace />} />
           <Route path="/company-info" element={<Navigate to="/client/profile" replace />} />
           <Route path="/legal" element={<Navigate to="/client/legal" replace />} />

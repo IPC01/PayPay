@@ -1,12 +1,17 @@
-const { WalletType } = require('../models');
+﻿const { WalletType } = require('../models');
 const { saveBase64Image } = require('../helpers/imageStorage');
+const { PREFIX_PATTERN } = require('../helpers/mpesaPayment');
 
 class WalletTypeController {
 
   // CREATE WALLET TYPE (admin only)
   async create(req, res) {
     try {
-      const { code, name, provider, isExternal } = req.body;
+      const { code, name, provider, referencePrefix, isExternal } = req.body;
+
+      if (referencePrefix && !PREFIX_PATTERN.test(referencePrefix)) {
+        return res.status(400).json({ error: 'A referência inicial deve ter de 1 a 8 caracteres, apenas letras e números (exigência do M-Pesa)' });
+      }
 
       const exists = await WalletType.findOne({
         where: { code }
@@ -22,6 +27,7 @@ class WalletTypeController {
         code,
         name,
         provider,
+        referencePrefix: referencePrefix ? referencePrefix.toUpperCase() : null,
         isExternal: isExternal || false,
         status: true
       });
@@ -53,7 +59,7 @@ class WalletTypeController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { status, name, provider, imageBase64 } = req.body;
+      const { status, name, provider, referencePrefix, isExternal, imageBase64 } = req.body;
 
       const type = await WalletType.findByPk(id);
 
@@ -68,6 +74,13 @@ class WalletTypeController {
       }
       if (name) type.name = name;
       if (provider) type.provider = provider;
+      if (typeof referencePrefix !== 'undefined') {
+        if (referencePrefix && !PREFIX_PATTERN.test(referencePrefix)) {
+          return res.status(400).json({ error: 'A referência inicial deve ter de 1 a 8 caracteres, apenas letras e números (exigência do M-Pesa)' });
+        }
+        type.referencePrefix = referencePrefix ? referencePrefix.toUpperCase() : null;
+      }
+      if (typeof isExternal !== 'undefined') type.isExternal = Boolean(isExternal);
 
       if (imageBase64) {
         try {

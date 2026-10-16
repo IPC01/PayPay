@@ -11,6 +11,11 @@ function TarifasPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const platformName = settings?.platformName || 'Romenapay';
+  const withdrawalFeeAmount = Number(settings?.withdrawalFeeAmount) || 0;
+  const formatWithdrawalFee = new Intl.NumberFormat('pt-PT', {
+    style: 'currency',
+    currency: 'MZN'
+  }).format(withdrawalFeeAmount);
 
   const plans = [
     {
@@ -39,8 +44,7 @@ function TarifasPage() {
   const feeTable = [
     { service: 'Transferência interna', fee: 'Grátis', time: 'Instantâneo' },
     { service: 'Depósito via M-Pesa', fee: 'Grátis', time: 'Instantâneo' },
-    { service: 'Depósito via e-Mola', fee: 'Grátis', time: 'Instantâneo' },
-    { service: 'Levantamento', fee: '100 MT', time: 'Instantâneo' },
+    { service: 'Saque (B2C)', fee: withdrawalFeeAmount > 0 ? formatWithdrawalFee : 'Grátis', time: 'Instantâneo' },
   
   ];
 

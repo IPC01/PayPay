@@ -5,12 +5,10 @@ import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
 
 const PAGE_TITLES = [
-  { path: '/client/transactions/c2b-test', label: 'C2B teste' },
-  { path: '/client/transactions/c2b', label: 'C2B' },
-  { path: '/client/transactions/b2c', label: 'B2C' },
+  { path: '/client/c2b', label: 'C2B (Depósito)' },
   { path: '/client/transactions', label: 'Transações' },
   { path: '/client/wallets', label: 'Carteiras' },
-  { path: '/client/withdrawals', label: 'Saques' },
+  { path: '/client/withdrawals', label: 'Saque' },
   { path: '/client/tokens', label: 'Chaves de Acesso' },
   { path: '/client/tickets', label: 'Tickets' },
   { path: '/client/packages', label: 'Pacotes' },

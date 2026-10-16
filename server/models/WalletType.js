@@ -27,6 +27,11 @@ WalletType.init(
       allowNull: true
     },
 
+    referencePrefix: {
+      type: DataTypes.STRING(32),
+      allowNull: true
+    },
+
     imageUrl: {
       type: DataTypes.STRING,
       allowNull: true

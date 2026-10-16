@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^Set-Location app; npm run build$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

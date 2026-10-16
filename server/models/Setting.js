@@ -39,8 +39,8 @@ Setting.init(
       type: DataTypes.TEXT,
       allowNull: true
     },
-    withdrawalFeePercent: {
-      type: DataTypes.DECIMAL(5, 2),
+    withdrawalFeeAmount: {
+      type: DataTypes.DECIMAL(12, 2),
       allowNull: false,
       defaultValue: 0.0
     },

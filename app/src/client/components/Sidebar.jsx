@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+﻿import { NavLink } from 'react-router-dom';
 import { apiUrl } from '../../services/api';
 
 const navigation = [
@@ -14,24 +13,24 @@ const navigation = [
     icon: 'M12 6v6m0 0v6m0-6h6m-6 0H6' 
   },
   { 
+    to: '/client/transactions', 
+    label: 'Transações', 
+    icon: 'M4 6h16M4 12h16M4 18h16' 
+  },
+  { 
+    to: '/client/c2b', 
+    label: 'C2B (Depósito)', 
+    icon: 'M12 4v12m0 0l-4-4m4 4l4-4M4 20h16' 
+  },
+  { 
     to: '/client/withdrawals', 
-    label: 'Saques', 
-    icon: 'M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 6v6m0-6H9m3 0h3' 
+    label: 'Saque', 
+    icon: 'M12 20V8m0 0l-4 4m4-4l4 4M4 4h16' 
   },
   { 
     to: '/client/tokens', 
     label: 'Chaves de Acesso', 
     icon: 'M13 10V3L4 14h7v7l9-11h-7z' 
-  },
-  { 
-    to: '/client/transactions', 
-    label: 'Transações', 
-    icon: 'M4 6h16M4 12h16M4 18h16', 
-    children: [
-      { to: '/client/transactions/c2b', label: 'C2B' },
-      { to: '/client/transactions/c2b-test', label: 'C2B teste' },
-      { to: '/client/transactions/b2c', label: 'B2C' }
-    ] 
   },
   { 
     to: '/client/tickets', 
@@ -56,15 +55,6 @@ const navigation = [
 ];
 
 function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
-  const location = useLocation();
-  const [transactionsOpen, setTransactionsOpen] = useState(location.pathname.startsWith('/client/transactions'));
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/client/transactions')) {
-      setTransactionsOpen(true);
-    }
-  }, [location.pathname]);
-
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
       isActive
@@ -120,61 +110,13 @@ function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
 
         <nav className="flex-1 space-y-1 p-4">
           {navigation.map((item) => (
-            <div key={item.to} className="space-y-1">
-              {item.children ? (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <NavLink to={item.to} className={navLinkClass} end={item.to === '/client'} onClick={() => setMobileOpen(false)}>
-                      <svg className="h-5 w-5 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                      </svg>
-                      {!collapsed && <span>{item.label}</span>}
-                    </NavLink>
-                    {!collapsed && (
-                      <button
-                        type="button"
-                        onClick={() => setTransactionsOpen((prev) => !prev)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-800"
-                        aria-label={transactionsOpen ? 'Recolher transações' : 'Expandir transações'}
-                      >
-                        <svg className={`h-4 w-4 transition-transform duration-200 ${transactionsOpen ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  {!collapsed && transactionsOpen && (
-                    <div className="ml-9 space-y-1 border-l border-gray-200 pl-3">
-                      {item.children.map((child) => (
-                        <NavLink
-                          key={child.to}
-                          to={child.to}
-                          onClick={() => setMobileOpen(false)}
-                          className={({ isActive }) =>
-                            `block rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${
-                              isActive 
-                                ? 'bg-gray-100 text-gray-900' 
-                                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                            }`
-                          }
-                        >
-                          {child.label}
-                        </NavLink>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <NavLink to={item.to} className={navLinkClass} end={item.to === '/client'} onClick={() => setMobileOpen(false)}>
-                  <svg className="h-5 w-5 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-                  </svg>
-                  {!collapsed && <span>{item.label}</span>}
-                </NavLink>
-              )}
-            </div>
+            <NavLink key={item.to} to={item.to} className={navLinkClass} end onClick={() => setMobileOpen(false)}>
+              <svg className="h-5 w-5 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+              </svg>
+              {!collapsed && <span>{item.label}</span>}
+            </NavLink>
           ))}
-
           <a
             href={apiUrl('/docs')}
             target="_blank"

@@ -53,6 +53,12 @@ class SettingsController {
 
   async saveSettings(req, res) {
     try {
+      const withdrawalFeeAmount = Number(req.body.withdrawalFeeAmount ?? 0);
+      if (!Number.isFinite(withdrawalFeeAmount) || withdrawalFeeAmount < 0 ||
+          withdrawalFeeAmount > 99999999.99 ||
+          Math.abs(withdrawalFeeAmount - Number(withdrawalFeeAmount.toFixed(2))) > 0.000001) {
+        return res.status(400).json({ error: 'O custo do saque deve ser um valor não negativo com até duas casas decimais.' });
+      }
       const payload = {
         platformName: req.body.platformName || '',
         logoImg: req.body.logoImg || null,
@@ -61,7 +67,7 @@ class SettingsController {
         emails: req.body.emails || null,
         ownerName: req.body.ownerName || null,
         additionalInfo: req.body.additionalInfo || null,
-        withdrawalFeePercent: Number.isFinite(parseFloat(req.body.withdrawalFeePercent)) ? parseFloat(req.body.withdrawalFeePercent) : 0.0,
+        withdrawalFeeAmount,
         withdrawalMinValue: Number.isFinite(parseFloat(req.body.withdrawalMinValue)) ? parseFloat(req.body.withdrawalMinValue) : 0.0,
         withdrawalMaxValue: Number.isFinite(parseFloat(req.body.withdrawalMaxValue)) ? parseFloat(req.body.withdrawalMaxValue) : 0.0
       };

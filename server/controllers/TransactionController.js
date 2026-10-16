@@ -1,5 +1,6 @@
-const { Op } = require('sequelize');
+﻿const { Op } = require('sequelize');
 const { Transaction, Wallet, WalletType } = require('../models');
+const TransactionReversalService = require('../services/TransactionReversalService');
 
 class TransactionController {
 
@@ -79,6 +80,22 @@ class TransactionController {
 
     } catch (error) {
       return res.status(500).json({ error: error.message });
+    }
+  }
+
+  // Owner reversal (/api/transactions/:id/reverse) or admin reversal (/api/admin/transactions/:id/reverse).
+  async reverse(req, res) {
+    try {
+      const result = await TransactionReversalService.execute({
+        transactionId: req.params.id,
+        userId: req.user.userId,
+        isAdmin: Boolean(req.isAdminReversal),
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.status(result.success ? 200 : result.pending ? 202 : 400).json(result);
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({ success: false, error: error.message, message: error.message });
     }
   }
 }

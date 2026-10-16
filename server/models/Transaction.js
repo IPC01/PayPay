@@ -102,6 +102,12 @@ Transaction.init(
     apiKeyId: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+
+    // Set on reversal transactions: the successful C2B/B2C transaction being reversed.
+    originalTransactionId: {
+      type: DataTypes.UUID,
+      allowNull: true
     }
   },
   {

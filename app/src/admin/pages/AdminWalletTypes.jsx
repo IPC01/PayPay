@@ -7,6 +7,7 @@ const initialForm = {
   code: '',
   name: '',
   provider: '',
+  referencePrefix: '',
   isExternal: false
 };
 
@@ -54,6 +55,18 @@ function AdminWalletTypes() {
     setShowForm(false);
   };
 
+  const handleEdit = (type) => {
+    setForm({
+      id: type.id,
+      code: type.code || '',
+      name: type.name || '',
+      provider: type.provider || '',
+      referencePrefix: type.referencePrefix || '',
+      isExternal: Boolean(type.isExternal)
+    });
+    setShowForm(true);
+  };
+
   const toggleTypeStatus = async (type) => {
     try {
       setStatusLoading(type.id);
@@ -92,20 +105,21 @@ function AdminWalletTypes() {
 
     try {
       setSaving(true);
-      await authRequest('/api/wallet-types', {
-        method: 'POST',
+      await authRequest(form.id ? `/api/wallet-types/${form.id}` : '/api/wallet-types', {
+        method: form.id ? 'PUT' : 'POST',
         body: {
           code: form.code,
           name: form.name,
           provider: form.provider || null,
+          referencePrefix: form.referencePrefix.trim() || null,
           isExternal: Boolean(form.isExternal)
         }
       });
 
       notify({
         type: 'success',
-        title: 'Tipo de carteira criado',
-        message: `O tipo de carteira ${form.name} foi criado com sucesso.`
+        title: form.id ? 'Tipo de carteira atualizado' : 'Tipo de carteira criado',
+        message: `O tipo de carteira ${form.name} foi ${form.id ? 'atualizado' : 'criado'} com sucesso.`
       });
 
       setForm(initialForm);
@@ -163,6 +177,7 @@ function AdminWalletTypes() {
                   <th className="px-4 py-3">Código</th>
                   <th className="px-4 py-3">Nome</th>
                   <th className="px-4 py-3">Provedor</th>
+                  <th className="px-4 py-3">Referência inicial</th>
                   <th className="px-4 py-3">Externa</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3">Ações</th>
@@ -171,13 +186,13 @@ function AdminWalletTypes() {
               <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                       A carregar tipos de carteira...
                     </td>
                   </tr>
                 ) : types.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
+                    <td colSpan="7" className="px-4 py-8 text-center text-slate-500 dark:text-slate-400">
                       Nenhum tipo de carteira encontrado.
                     </td>
                   </tr>
@@ -187,6 +202,7 @@ function AdminWalletTypes() {
                       <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">{type.code}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{type.name}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{type.provider || 'N/A'}</td>
+                      <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{type.referencePrefix || '—'}</td>
                       <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{type.isExternal ? 'Sim' : 'Não'}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${type.status ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
@@ -194,6 +210,13 @@ function AdminWalletTypes() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(type)}
+                          className="mr-2 inline-flex rounded-2xl border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                        >
+                          Editar
+                        </button>
                         <button
                           type="button"
                           onClick={() => toggleTypeStatus(type)}
@@ -212,7 +235,9 @@ function AdminWalletTypes() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Adicionar tipo de carteira</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {form.id ? 'Editar tipo de carteira' : 'Adicionar tipo de carteira'}
+          </h2>
 
           <div className="mt-5 space-y-4">
             <div>
@@ -221,6 +246,7 @@ function AdminWalletTypes() {
                 type="text"
                 value={form.code}
                 onChange={(event) => handleChange('code', event.target.value)}
+                disabled={Boolean(form.id)}
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
@@ -244,6 +270,21 @@ function AdminWalletTypes() {
                 placeholder="Ex: M-Pesa, e-Mola"
                 className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Referência inicial</label>
+              <input
+                type="text"
+                value={form.referencePrefix}
+                onChange={(event) => handleChange('referencePrefix', event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())}
+                maxLength={8}
+                placeholder="Ex: PAY"
+                className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+              />
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Até 8 letras ou números. Será o início da referência única (20 caracteres) gerada em cada transação.
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
@@ -272,7 +313,7 @@ function AdminWalletTypes() {
                 disabled={saving}
                 className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
               >
-                {saving ? 'Guardando...' : 'Criar tipo de carteira'}
+                {saving ? 'Guardando...' : form.id ? 'Guardar alterações' : 'Criar tipo de carteira'}
               </button>
             </div>
           </div>

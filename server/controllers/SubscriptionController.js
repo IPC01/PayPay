@@ -51,13 +51,14 @@ class SubscriptionController {
 
   // Encaminha o pagamento da subscri\u00e7\u00e3o para a rota de pagamento direto na API
   // principal (POST /api/payments/direct), sem apontar para nenhuma carteira
-  async _processSubscriptionPayment({ price, paymentMethod, paymentNumber, reference }) {
+  async _processSubscriptionPayment({ price, paymentMethod, paymentNumber, reference, userId }) {
     const { transaction } = await PaymentController.processDirectPayment({
       amount: price,
       phone: paymentNumber,
       reference,
       provider: paymentMethod,
-      type: 'subscription'
+      type: 'subscription',
+      userId
     });
     return transaction;
   }
@@ -88,7 +89,8 @@ class SubscriptionController {
           price,
           paymentMethod,
           paymentNumber,
-          reference
+          reference,
+          userId
         });
 
       const subscription = await Subscription.create({
@@ -140,7 +142,8 @@ class SubscriptionController {
           price,
           paymentMethod,
           paymentNumber,
-          reference
+          reference,
+          userId
         });
 
       await subscription.update({

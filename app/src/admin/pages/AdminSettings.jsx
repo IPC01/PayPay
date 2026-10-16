@@ -8,11 +8,6 @@ function normalizeImageUrl(url) {
   return assetUrl(url);
 }
 
-const TRANSACTION_TYPES = [
-  { value: 'c2b', label: 'C2B' },
-  { value: 'b2c', label: 'B2C' }
-];
-
 function AdminSettings() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -25,16 +20,12 @@ function AdminSettings() {
     emails: '',
     ownerName: '',
     additionalInfo: '',
-    withdrawalFeePercent: '',
+    withdrawalFeeAmount: '',
     withdrawalMinValue: '',
     withdrawalMaxValue: ''
   });
-  const [fees, setFees] = useState([]);
-  const [walletTypes, setWalletTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [feesLoading, setFeesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingFees, setSavingFees] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
@@ -43,7 +34,6 @@ function AdminSettings() {
 
   const loadSettings = async () => {
     setLoading(true);
-    setFeesLoading(true);
 
     try {
       const data = await authRequest('/api/admin/settings');
@@ -55,7 +45,7 @@ function AdminSettings() {
         emails: data.emails || '',
         ownerName: data.ownerName || '',
         additionalInfo: data.additionalInfo || '',
-        withdrawalFeePercent: data.withdrawalFeePercent != null ? String(data.withdrawalFeePercent) : '',
+        withdrawalFeeAmount: data.withdrawalFeeAmount != null ? String(data.withdrawalFeeAmount) : '',
         withdrawalMinValue: data.withdrawalMinValue != null ? String(data.withdrawalMinValue) : '',
         withdrawalMaxValue: data.withdrawalMaxValue != null ? String(data.withdrawalMaxValue) : ''
       });
@@ -67,29 +57,6 @@ function AdminSettings() {
       });
     } finally {
       setLoading(false);
-    }
-
-    try {
-      const [feesData, walletTypeData] = await Promise.all([
-        authRequest('/api/admin/transaction-fees'),
-        authRequest('/api/wallet-types')
-      ]);
-
-      setFees(
-        feesData.map((fee) => ({
-          ...fee,
-          feePercent: fee.feePercent != null ? String(fee.feePercent) : ''
-        }))
-      );
-      setWalletTypes(walletTypeData);
-    } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar taxas',
-        message: 'Não foi possível carregar as taxas de transação.'
-      });
-    } finally {
-      setFeesLoading(false);
     }
   };
 
@@ -109,7 +76,7 @@ function AdminSettings() {
         emails: data.emails || '',
         ownerName: data.ownerName || '',
         additionalInfo: data.additionalInfo || '',
-        withdrawalFeePercent: data.withdrawalFeePercent != null ? String(data.withdrawalFeePercent) : '',
+        withdrawalFeeAmount: data.withdrawalFeeAmount != null ? String(data.withdrawalFeeAmount) : '',
         withdrawalMinValue: data.withdrawalMinValue != null ? String(data.withdrawalMinValue) : '',
         withdrawalMaxValue: data.withdrawalMaxValue != null ? String(data.withdrawalMaxValue) : ''
       });
@@ -130,107 +97,8 @@ function AdminSettings() {
     }
   };
 
-  const handleSaveFees = async () => {
-    if (!walletTypes.length) {
-      notify({
-        type: 'error',
-        title: 'Sem tipos de carteira',
-        message: 'Não há tipos de carteira carregados para definir as taxas.'
-      });
-      return;
-    }
-
-    const normalizedFees = fees.map((fee) => ({
-      ...fee,
-      feePercent: String(fee.feePercent).replace(',', '.')
-    }));
-
-    const invalidRow = normalizedFees.some(
-      (fee) => !fee.walletTypeId || !fee.type || fee.feePercent === '' || Number.isNaN(parseFloat(fee.feePercent))
-    );
-
-    if (invalidRow) {
-      notify({
-        type: 'error',
-        title: 'Campos em falta',
-        message: 'Preencha todos os campos de cada taxa antes de guardar.'
-      });
-      return;
-    }
-
-    try {
-      setSavingFees(true);
-      const saved = await authRequest('/api/admin/transaction-fees', {
-        method: 'POST',
-        body: { fees: normalizedFees }
-      });
-      setFees(
-        saved.map((fee) => ({
-          ...fee,
-          feePercent: fee.feePercent != null ? String(fee.feePercent) : ''
-        }))
-      );
-      notify({
-        type: 'success',
-        title: 'Taxas salvas',
-        message: 'As taxas de transação foram atualizadas com sucesso.'
-      });
-    } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao guardar taxas',
-        message: 'Não foi possível guardar as taxas de transação. Tente novamente.'
-      });
-    } finally {
-      setSavingFees(false);
-    }
-  };
-
-  const removeFeeRow = async (index) => {
-    const fee = fees[index];
-    if (!fee) return;
-
-    if (fee.id) {
-      try {
-        await authRequest(`/api/admin/transaction-fees/${fee.id}`, {
-          method: 'DELETE'
-        });
-      } catch (error) {
-        notify({
-          type: 'error',
-          title: 'Erro ao remover taxa',
-          message: 'Não foi possível remover a taxa selecionada.'
-        });
-        return;
-      }
-    }
-
-    setFees((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const addFeeRow = () => {
-    const defaultWalletType = walletTypes[0]?.id || '';
-    setFees((prev) => [
-      ...prev,
-      {
-        id: null,
-        walletTypeId: defaultWalletType,
-        type: 'c2b',
-        feePercent: ''
-      }
-    ]);
-  };
-
   const updateField = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const updateFeeField = (index, field, value) => {
-    setFees((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
   };
 
   return (
@@ -239,154 +107,56 @@ function AdminSettings() {
         <div>
           <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Configurações de Pagamentos</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Atualize as regras de pagamento, taxas e limites de saque para a plataforma.
+            Configure as definições da plataforma e os limites e custos aplicáveis aos saques.
           </p>
         </div>
       </div>
-       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Taxas de Transação</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Registe, altere e mantenha as taxas de transação por tipo e por carteira.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={addFeeRow}
-            disabled={feesLoading || !walletTypes.length}
-            className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            Adicionar taxa
-          </button>
+      <form onSubmit={handleSave} className="space-y-6">
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Limites e custos de saque</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Depósitos C2B são gratuitos. Apenas saques, processados como B2C, têm o custo fixo configurado abaixo.
+          </p>
         </div>
-
-        <div className="mt-6 space-y-4">
-          {feesLoading ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">Carregando taxas de transação...</p>
-          ) : fees.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">Ainda não existem taxas definidas. Adicione uma nova taxa para começar.</p>
-          ) : (
-            fees.map((fee, index) => (
-              <div
-                key={`${fee.id || 'new'}-${index}`}
-                className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900 sm:grid-cols-[2fr_1fr_1fr_auto]"
-              >
-                <label className="block text-sm text-slate-700 dark:text-slate-300">
-                  Carteira
-                  <select
-                    value={fee.walletTypeId}
-                    onChange={(event) => updateFeeField(index, 'walletTypeId', event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  >
-                    <option value="">Selecione uma carteira</option>
-                    {walletTypes.map((walletType) => (
-                      <option key={walletType.id} value={walletType.id}>
-                        {walletType.name || walletType.code}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block text-sm text-slate-700 dark:text-slate-300">
-                  Tipo de Transação
-                  <select
-                    value={fee.type}
-                    onChange={(event) => updateFeeField(index, 'type', event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  >
-                    {TRANSACTION_TYPES.map((transactionType) => (
-                      <option key={transactionType.value} value={transactionType.value}>
-                        {transactionType.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block text-sm text-slate-700 dark:text-slate-300">
-                  Percentual (%)
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={fee.feePercent}
-                    onChange={(event) => updateFeeField(index, 'feePercent', event.target.value)}
-                    className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  />
-                </label>
-
-                <div className="flex items-end justify-end">
-                  <button
-                    type="button"
-                    onClick={() => removeFeeRow(index)}
-                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:hover:bg-slate-900"
-                  >
-                    Remover
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-900">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Limites e Taxas de Saque</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Defina as regras e limites de valor para pedidos de saque.</p>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="block text-sm text-slate-700 dark:text-slate-300">
-              Taxa de Saque (%)
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={settings.withdrawalFeePercent}
-                onChange={(event) => updateField('withdrawalFeePercent', event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </label>
-            <label className="block text-sm text-slate-700 dark:text-slate-300">
-              Valor mínimo de saque
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={settings.withdrawalMinValue}
-                onChange={(event) => updateField('withdrawalMinValue', event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </label>
-            <label className="block text-sm text-slate-700 dark:text-slate-300">
-              Valor máximo de saque
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={settings.withdrawalMaxValue}
-                onChange={(event) => updateField('withdrawalMaxValue', event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSaveFees}
-            disabled={feesLoading || savingFees}
-            className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-400"
-          >
-            {savingFees ? 'Guardando taxas...' : 'Guardar taxas de transação'}
-          </button>
+        <div className="grid gap-4 md:grid-cols-3">
+          <label className="block text-sm text-slate-700 dark:text-slate-300">
+            Custo fixo por saque (MZN)
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={settings.withdrawalFeeAmount}
+              onChange={(event) => updateField('withdrawalFeeAmount', event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </label>
+          <label className="block text-sm text-slate-700 dark:text-slate-300">
+            Valor mínimo de saque
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={settings.withdrawalMinValue}
+              onChange={(event) => updateField('withdrawalMinValue', event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </label>
+          <label className="block text-sm text-slate-700 dark:text-slate-300">
+            Valor máximo de saque
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={settings.withdrawalMaxValue}
+              onChange={(event) => updateField('withdrawalMaxValue', event.target.value)}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            />
+          </label>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Nome da Plataforma</label>
@@ -512,9 +282,9 @@ function AdminSettings() {
             {saving ? 'Guardando...' : 'Guardar definições'}
           </button>
         </div>
+        </div>
       </form>
 
-     
     </div>
   );
 }

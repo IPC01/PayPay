@@ -34,14 +34,18 @@ function Withdrawals() {
       ]);
 
       setRequests(withdrawals);
-      setWallets(walletsData);
+      const availableWallets = walletsData.filter((wallet) =>
+        wallet.status === 'ACTIVE' && wallet.allowWithdraw !== false && wallet.allowB2C !== false &&
+        wallet.WalletType?.code?.toLowerCase() === 'mpesa'
+      );
+      setWallets(availableWallets);
 
       const queryWalletId = searchParams.get('walletId');
-      const selectedWallet = walletsData.find((wallet) => wallet.id === queryWalletId);
+      const selectedWallet = availableWallets.find((wallet) => wallet.id === queryWalletId);
       if (selectedWallet) {
         setForm((prev) => ({ ...prev, walletId: selectedWallet.id }));
-      } else if (!form.walletId && walletsData.length > 0) {
-        setForm((prev) => ({ ...prev, walletId: walletsData[0].id }));
+      } else if (!form.walletId && availableWallets.length > 0) {
+        setForm((prev) => ({ ...prev, walletId: availableWallets[0].id }));
       }
     } catch (err) {
       console.error(err);
@@ -71,13 +75,13 @@ function Withdrawals() {
 
   const selectedWallet = wallets.find((wallet) => wallet.id === form.walletId);
   const walletTypeCode = selectedWallet?.WalletType?.code || selectedWallet?.WalletType?.name || '';
-  const withdrawalFeePercent = Number(settings?.withdrawalFeePercent) || 0;
+  const withdrawalFeeAmount = Number(settings?.withdrawalFeeAmount) || 0;
   const withdrawalMinValue = Number(settings?.withdrawalMinValue) || 0;
   const withdrawalMaxValue = Number(settings?.withdrawalMaxValue) || 0;
   const currentBalance = Number(selectedWallet?.balance) || 0;
   const requestedAmount = Number(form.amount || 0);
-  const feeAmount = Number(((requestedAmount * withdrawalFeePercent) / 100).toFixed(2));
-  const totalRequired = requestedAmount > 0 ? requestedAmount + feeAmount : 0;
+  const feeAmount = Number(withdrawalFeeAmount.toFixed(2));
+  const totalRequired = requestedAmount > 0 ? Number((requestedAmount + feeAmount).toFixed(2)) : 0;
 
   const formatCurrency = (value, currency = 'MZN') =>
     new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(Number(value || 0));
@@ -173,7 +177,7 @@ function Withdrawals() {
 
     try {
       setSubmitting(true);
-      await authRequest('/api/withdrawals', {
+      const result = await authRequest('/api/withdrawals', {
         method: 'POST',
         body: {
           walletId: form.walletId,
@@ -184,14 +188,16 @@ function Withdrawals() {
       });
 
       notify({
-        type: 'success',
-        title: 'Pedido enviado',
-        message: 'Seu pedido de saque foi enviado e o admin será notificado.'
+        type: result.pending ? 'warning' : 'success',
+        title: result.pending ? 'Saque em confirmação' : 'Saque concluído',
+        message: result.pending
+          ? `${result.message} Referência: ${result.reference}. O saldo está reservado; não repita o saque.`
+          : `O M-Pesa confirmou a transferência B2C. Referência: ${result.reference}.`
       });
 
       setForm({ walletId: form.walletId, amount: '', phone: '', note: '' });
       closeModal();
-      loadData();
+      await loadData();
     } catch (err) {
       console.error(err);
       notify({
@@ -216,9 +222,9 @@ function Withdrawals() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Saques</p>
-          <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Seus pedidos de saque</h1>
+          <h1 className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">Seus saques</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Envie solicitações de saque e acompanhe o status. Quando o admin responder, você receberá uma notificação.
+            Transfira o saldo disponível para um número M-Pesa via B2C, sem aprovação administrativa.
           </p>
         </div>
 
@@ -227,7 +233,7 @@ function Withdrawals() {
           onClick={openModal}
           className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Solicitar saque
+          Levantar saldo
         </button>
       </div>
 
@@ -237,11 +243,11 @@ function Withdrawals() {
           <p className="mt-3 text-3xl font-bold text-slate-900 dark:text-white">{requestCount}</p>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-500">Pendente</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-500">Em confirmação</p>
           <p className="mt-3 text-3xl font-bold text-yellow-700 dark:text-yellow-300">{summary.pending}</p>
         </div>
         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-500">Aprovado</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.32em] text-slate-500">Processado</p>
           <p className="mt-3 text-3xl font-bold text-emerald-700 dark:text-emerald-300">{summary.approved}</p>
         </div>
       </div>
@@ -251,8 +257,8 @@ function Withdrawals() {
           <div className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar pedidos de saque...</div>
         ) : requestCount === 0 ? (
           <div className="p-8 text-center text-slate-600 dark:text-slate-300">
-            <p className="text-lg font-semibold">Nenhum pedido de saque encontrado.</p>
-            <p className="mt-2 text-sm">Clique em Solicitar saque para criar sua primeira solicitação.</p>
+            <p className="text-lg font-semibold">Nenhum saque encontrado.</p>
+            <p className="mt-2 text-sm">Use “Levantar saldo” para fazer o seu primeiro saque.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -262,6 +268,7 @@ function Withdrawals() {
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Carteira</th>
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Valor</th>
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Telefone</th>
+                  <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Referência</th>
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Status</th>
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Data</th>
                   <th className="px-6 py-4 text-left font-semibold uppercase tracking-[0.16em]">Resposta</th>
@@ -280,13 +287,14 @@ function Withdrawals() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-900 dark:text-white">{formatCurrency(request.amount, request.Wallet?.currency)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-300">{request.phone}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-600 dark:text-slate-300">{request.reference || '—'}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles[request.status] || 'bg-slate-100 text-slate-700'}`}>
-                        {request.status === 'pending' ? 'Pendente' : request.status === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                        {request.status === 'pending' ? 'Em confirmação' : request.status === 'approved' ? 'Concluído' : 'Não realizado'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{new Date(request.createdAt).toLocaleString('pt-PT')}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{request.adminMessage || 'Aguardando administrador'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-slate-500 dark:text-slate-400">{request.adminMessage || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -300,8 +308,8 @@ function Withdrawals() {
           <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-700">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Novo pedido</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Solicitação de saque</h2>
+                <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Saque automático</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Levantar saldo</h2>
               </div>
               <button
                 type="button"
@@ -386,14 +394,14 @@ function Withdrawals() {
               </div>
 
               <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-300">
-                <p className="font-semibold text-slate-900 dark:text-white">Simulação B2C</p>
+                <p className="font-semibold text-slate-900 dark:text-white">Processamento do saque</p>
                 <p className="mt-2">
-                  Este pedido criará uma solicitação de saque e, quando aprovada, o sistema simulará o envio para o número informado.
-                  Nenhum endpoint real de pagamento será chamado aqui.
+                  O valor e o custo fixo serão reservados e o M-Pesa enviará o valor solicitado via B2C.
+                  Uma rejeição confirmada devolve a reserva. Em caso de timeout, aguarde a confirmação e não repita o saque.
                 </p>
-                {withdrawalFeePercent > 0 && form.amount && (
+                {form.amount && (
                   <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
-                    Taxa de saque: {withdrawalFeePercent.toFixed(2)}% — Total exigido: {formatCurrency(totalRequired, selectedWallet?.currency || 'MZN')}.
+                    Taxa fixa de saque: {formatCurrency(feeAmount, selectedWallet?.currency || 'MZN')} — Total exigido: {formatCurrency(totalRequired, selectedWallet?.currency || 'MZN')}.
                   </p>
                 )}
               </div>
@@ -411,7 +419,7 @@ function Withdrawals() {
                   disabled={submitting}
                   className="inline-flex justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? 'Enviando...' : 'Enviar solicitação'}
+                  {submitting ? 'A processar...' : 'Confirmar saque'}
                 </button>
               </div>
             </form>
@@ -422,7 +430,7 @@ function Withdrawals() {
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <p className="text-sm text-slate-500 dark:text-slate-400">Dica:</p>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          Após o envio, o administrador receberá a notificação automaticamente. Quando o pedido for respondido, você verá o status e uma notificação no sistema.
+          Cada saque é registado com uma referência única, disponível no histórico acima.
         </p>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           Caso ainda não tenha carteira ativa, crie ou ative uma em <Link to="/client/wallets" className="font-semibold text-brand-600 hover:text-brand-700">Carteiras</Link>.

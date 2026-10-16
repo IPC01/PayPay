@@ -39,7 +39,7 @@ async function authorizeUserWalletAction(req, res, next) {
  * /api/payments/c2b:
  *   post:
  *     summary: Customer to Business payment (C2B) authenticated
- *     description: Processa um pagamento C2B usando a carteira do utilizador autenticado.
+ *     description: Recebe um pagamento C2B M-Pesa, sem taxa. A referência é opcional. HTTP 202 indica confirmação pendente.
  *     tags:
  *       - Payments
  *     security:
@@ -54,7 +54,6 @@ async function authorizeUserWalletAction(req, res, next) {
  *               - walletCode
  *               - amount
  *               - phone
- *               - reference
  *             properties:
  *               walletCode:
  *                 type: string
@@ -75,7 +74,7 @@ async function authorizeUserWalletAction(req, res, next) {
 router.post(
   '/c2b',
   authMiddleware,
-  mpesaRequestMode({ forceMode: 'mock' }),
+  mpesaRequestMode({ forceMode: 'live' }),
   authorizeUserWalletAction,
   PaymentController.c2b.bind(PaymentController)
 );
@@ -85,7 +84,7 @@ router.post(
  * /api/payments/b2c:
  *   post:
  *     summary: Business to Customer payment (B2C) authenticated
- *     description: Processa um pagamento B2C usando a carteira do utilizador autenticado.
+ *     description: Executa um saque B2C M-Pesa com custo fixo e reserva de saldo. A referência é opcional. HTTP 202 indica confirmação pendente.
  *     tags:
  *       - Payments
  *     security:
@@ -100,7 +99,6 @@ router.post(
  *               - walletCode
  *               - amount
  *               - phone
- *               - reference
  *             properties:
  *               walletCode:
  *                 type: string
@@ -121,7 +119,7 @@ router.post(
 router.post(
   '/b2c',
   authMiddleware,
-  mpesaRequestMode({ forceMode: 'mock' }),
+  mpesaRequestMode({ forceMode: 'live' }),
   authorizeUserWalletAction,
   PaymentController.b2c.bind(PaymentController)
 );

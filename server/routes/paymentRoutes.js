@@ -4,7 +4,9 @@
  *   post:
  *     summary: Customer to Business payment (C2B)
  *     description: |-
- *       Processa um pagamento C2B usando a carteira especificada.
+ *       Recebe um pagamento C2B M-Pesa sem taxa e credita o valor integral na carteira.
+ *       A referência é opcional; quando omitida, a plataforma gera uma referência única.
+ *       HTTP 202 indica um resultado ainda não confirmado; não repita o pagamento.
  *       
  *       A resposta pode incluir códigos M-Pesa como INS-0, INS-1, INS-2, INS-4, INS-5, INS-6, INS-9,
  *       INS-10, INS-13, INS-14, INS-15, INS-16, INS-17, INS-18, INS-19, INS-20, INS-21, INS-22,
@@ -14,7 +16,7 @@
  *     tags:
  *       - Payments
  *     security:
- *       - bearerAuth: []
+ *       - apiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -25,7 +27,6 @@
  *               - walletCode
  *               - amount
  *               - phone
- *               - reference
  *             properties:
  *               walletCode:
  *                 type: string
@@ -112,7 +113,9 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  *   post:
  *     summary: Business to Customer payment (B2C)
  *     description: |-
- *       Processa um pagamento B2C a partir da carteira especificada.
+ *       Executa um saque B2C M-Pesa, reservando o valor mais o custo fixo de saque.
+ *       A referência é opcional; quando omitida, a plataforma gera uma referência única.
+ *       HTTP 202 mantém a reserva até reconciliação; não repita a transferência.
  *       
  *       A resposta pode incluir códigos M-Pesa como INS-0, INS-1, INS-2, INS-4, INS-5, INS-6, INS-9,
  *       INS-10, INS-13, INS-14, INS-15, INS-16, INS-17, INS-18, INS-19, INS-20, INS-21, INS-22,
@@ -122,7 +125,7 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  *     tags:
  *       - Payments
  *     security:
- *       - bearerAuth: []
+ *       - apiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -133,7 +136,6 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  *               - walletCode
  *               - amount
  *               - phone
- *               - reference
  *             properties:
  *               walletCode:
  *                 type: string
@@ -215,7 +217,7 @@ const mpesaRequestMode = require('../middleware/mpesaRequestMode');
  */
 router.post(
   '/c2b',
-  mpesaRequestMode({ forceMode: 'mock' }),
+  mpesaRequestMode({ forceMode: 'live' }),
   apiKeyMiddleware,
   authorizeWalletAction('transaction:c2b'),
   PaymentController.c2b
@@ -223,7 +225,7 @@ router.post(
 
 router.post(
   '/b2c',
-  mpesaRequestMode({ forceMode: 'mock' }),
+  mpesaRequestMode({ forceMode: 'live' }),
   apiKeyMiddleware,
   authorizeWalletAction('transaction:b2c'),
   PaymentController.b2c

@@ -2,7 +2,7 @@
   "info": {
     "name": "PayPay - M-Pesa C2B/B2C",
     "_postman_id": "7f1c8d3d-5d0f-4f2c-b6cb-6a1d4f0c4d61",
-    "description": "Collection with auth, wallet, API key and M-Pesa payment examples for mock and live modes.",
+    "description": "M-Pesa C2B and B2C requests. These endpoints contact M-Pesa; they do not simulate payments. C2B is free; B2C is a withdrawal with the configured fixed cost. HTTP 202 means unconfirmed: do not resend.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -69,43 +69,6 @@
       ]
     },
     {
-      "name": "M-Pesa Mock",
-      "item": [
-        {
-          "name": "C2B Mock",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "x-api-key", "value": "{{apiKey}}" },
-              { "key": "x-mpesa-mode", "value": "mock" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"C2B-POSTMAN\"\n}"
-            },
-            "url": "{{baseUrl}}/api/v1/mpesa/c2b"
-          }
-        },
-        {
-          "name": "B2C Mock",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "x-api-key", "value": "{{apiKey}}" },
-              { "key": "x-mpesa-mode", "value": "mock" },
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"B2C-POSTMAN\"\n}"
-            },
-            "url": "{{baseUrl}}/api/v1/mpesa/b2c"
-          }
-        }
-      ]
-    },
-    {
       "name": "M-Pesa Live",
       "item": [
         {
@@ -114,7 +77,6 @@
             "method": "POST",
             "header": [
               { "key": "x-api-key", "value": "{{apiKey}}" },
-              { "key": "x-mpesa-mode", "value": "live" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
@@ -130,7 +92,6 @@
             "method": "POST",
             "header": [
               { "key": "x-api-key", "value": "{{apiKey}}" },
-              { "key": "x-mpesa-mode", "value": "live" },
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {

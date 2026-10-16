@@ -26,6 +26,10 @@ WithdrawalRequest.init(
       type: DataTypes.STRING,
       allowNull: false
     },
+    reference: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     note: {
       type: DataTypes.TEXT,
       allowNull: true

@@ -1,21 +1,16 @@
 const MpesaClient = require('./MpesaClient');
+const { buildPayload } = require('../../helpers/mpesaPayment');
 
 class MpesaC2B {
   async execute({
     phone,
     amount,
     reference,
+    thirdPartyReference = reference,
     mode,
   }) {
 
-    const payload = {
-      input_TransactionReference: reference,
-      input_CustomerMSISDN: phone,
-      input_Amount: String(amount),
-      input_ThirdPartyReference: reference,
-      input_ServiceProviderCode:
-        process.env.MPESA_SERVICE_PROVIDER_CODE,
-    };
+    const payload = buildPayload({ phone, amount, reference, thirdPartyReference });
 
     const response = await MpesaClient.post(
       '/ipg/v1x/c2bPayment/singleStage/',

@@ -1,10 +1,21 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotification } from '../../contexts/NotificationContext';
+import { canReverseTransaction, reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
+
+const STATUS_LABELS = {
+  success: 'Sucesso',
+  pending: 'Pendente',
+  failed: 'Falhou',
+  reversed: 'Estornada'
+};
 
 function AdminTransactions() {
   const { authRequest } = useAuth();
+  const { notify } = useNotification();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reversingId, setReversingId] = useState(null);
 
   useEffect(() => {
     loadTransactions();
@@ -19,6 +30,24 @@ function AdminTransactions() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const reverseTransaction = async (transaction) => {
+    if (!window.confirm(reversalConfirmMessage(transaction))) return;
+    try {
+      setReversingId(transaction.id);
+      const result = await authRequest(`/api/admin/transactions/${transaction.id}/reverse`, { method: 'POST' });
+      notify(reversalResultNotification(result));
+    } catch (err) {
+      notify({
+        type: 'error',
+        title: 'Estorno não realizado',
+        message: err.message || 'Não foi possível estornar a transação.'
+      });
+    } finally {
+      setReversingId(null);
+      await loadTransactions();
     }
   };
 
@@ -43,16 +72,17 @@ function AdminTransactions() {
               <th className="px-6 py-4">Montante</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4">Data</th>
+              <th className="px-6 py-4">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-200 bg-white text-sm dark:divide-slate-700 dark:bg-slate-800">
             {loading ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar transações...</td>
+                <td colSpan="7" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">A carregar transações...</td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Nenhuma transação encontrada.</td>
+                <td colSpan="7" className="px-6 py-8 text-center text-slate-500 dark:text-slate-400">Nenhuma transação encontrada.</td>
               </tr>
             ) : (
               transactions.map((transaction) => (
@@ -63,8 +93,20 @@ function AdminTransactions() {
                   <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                     {Number(transaction.amount || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'MZN' })}
                   </td>
-                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{transaction.status}</td>
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-300">{STATUS_LABELS[transaction.status] || transaction.status}{transaction.type === 'reversal' ? ' (estorno)' : ''}</td>
                   <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{new Date(transaction.createdAt).toLocaleDateString('pt-PT')}</td>
+                  <td className="px-6 py-4">
+                    {canReverseTransaction(transaction) ? (
+                      <button
+                        type="button"
+                        onClick={() => reverseTransaction(transaction)}
+                        disabled={reversingId === transaction.id}
+                        className="rounded-xl border border-purple-300 px-3 py-1.5 text-xs font-medium text-purple-700 transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-900/20"
+                      >
+                        {reversingId === transaction.id ? 'A estornar...' : 'Estornar'}
+                      </button>
+                    ) : '—'}
+                  </td>
                 </tr>
               ))
             )}

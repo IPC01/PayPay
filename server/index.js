@@ -66,7 +66,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/mpesa-service-test', mpesaServiceTestRoutes);
 
 app.use('/api/v1/mpesa/', PaymentRoutes);
-app.use('/api/emolar', PaymentRoutes);
 app.use('/api/payments', paymentsRoutes);
 
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -92,6 +91,14 @@ async function ensureSettingsColumns() {
         name: 'withdrawalFeePercent',
         attributes: {
           type: DataTypes.DECIMAL(5, 2),
+          allowNull: false,
+          defaultValue: 0.0
+        }
+      },
+      {
+        name: 'withdrawalFeeAmount',
+        attributes: {
+          type: DataTypes.DECIMAL(12, 2),
           allowNull: false,
           defaultValue: 0.0
         }
@@ -125,6 +132,35 @@ async function ensureSettingsColumns() {
   }
 }
 
+async function ensureWithdrawalReferenceColumns() {
+  const queryInterface = sequelize.getQueryInterface();
+
+  for (const [tableName, columnName, attributes] of [
+    ['wallet_types', 'referencePrefix', { type: DataTypes.STRING(32), allowNull: true }],
+    ['withdrawal_requests', 'reference', { type: DataTypes.STRING, allowNull: true }],
+    ['transactions', 'originalTransactionId', { type: DataTypes.UUID, allowNull: true }]
+  ]) {
+    const table = await queryInterface.describeTable(tableName);
+    if (!table[columnName]) {
+      console.log(`🔧 Adding missing ${tableName} column: ${columnName}`);
+      await queryInterface.addColumn(tableName, columnName, attributes);
+    }
+  }
+
+  const indexes = await queryInterface.showIndex('transactions');
+  const hasUniqueReferenceIndex = indexes.some((index) =>
+    index.unique &&
+    index.fields.length === 1 &&
+    (index.fields[0].attribute || index.fields[0].name) === 'reference'
+  );
+  if (!hasUniqueReferenceIndex) {
+    await queryInterface.addIndex('transactions', ['reference'], {
+      unique: true,
+      name: 'transactions_reference_unique'
+    });
+  }
+}
+
 async function startServer() {
   const port = process.env.PORT || 3005;
 
@@ -145,6 +181,7 @@ async function startServer() {
 
     await sequelize.sync(syncOptions);
     await ensureSettingsColumns();
+    await ensureWithdrawalReferenceColumns();
 
     console.log('📦 Models synced');
 

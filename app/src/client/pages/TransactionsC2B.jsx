@@ -30,7 +30,9 @@ function TransactionsC2B() {
     try {
       setLoading(true);
       const data = await authRequest('/api/wallets');
-      const filtered = data.filter((wallet) => wallet.allowC2B && wallet.status === 'ACTIVE');
+      const filtered = data.filter((wallet) =>
+        wallet.allowC2B && wallet.status === 'ACTIVE' && wallet.WalletType?.code?.toLowerCase() === 'mpesa'
+      );
       setWallets(filtered);
       setSelectedWalletCode(filtered[0]?.walletCode || '');
     } catch (err) {
@@ -72,18 +74,9 @@ function TransactionsC2B() {
       });
       return;
     }
-    if (!reference.trim()) {
-      notify({
-        type: 'error',
-        title: 'Referência obrigatória',
-        message: 'Insira uma referência para o pagamento.'
-      });
-      return;
-    }
-
     try {
       setSubmitting(true);
-      await authRequest('/api/payments/c2b', {
+      const result = await authRequest('/api/payments/c2b', {
         method: 'POST',
         body: {
           walletCode: selectedWalletCode,
@@ -94,9 +87,11 @@ function TransactionsC2B() {
       });
 
       notify({
-        type: 'success',
-        title: 'C2B realizado',
-        message: 'Transação C2B simulada com sucesso e saldo atualizado.'
+        type: result.pending ? 'warning' : 'success',
+        title: result.pending ? 'Pagamento em confirmação' : 'C2B realizado',
+        message: result.pending
+          ? `${result.message} Referência: ${result.reference}. Não repita o pagamento.`
+          : `Pagamento confirmado pelo M-Pesa e valor integral creditado. Referência: ${result.reference}.`
       });
       setAmount('');
       setPhone('');
@@ -119,7 +114,7 @@ function TransactionsC2B() {
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Transações C2B</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Selecione uma carteira ativa e complete o formulário para simular uma transação C2B.
+            Receba pagamentos M-Pesa sem custo de transação. O cliente autoriza o pagamento no seu telefone por USSD.
           </p>
         </div>
       </div>
@@ -168,12 +163,13 @@ function TransactionsC2B() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Referência</label>
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Referência (opcional)</label>
               <input
                 type="text"
                 value={reference}
-                onChange={(event) => setReference(event.target.value)}
-                placeholder="Insira uma referência"
+                onChange={(event) => setReference(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                maxLength={20}
+                placeholder="Gerada automaticamente se não for informada (até 20 letras/números)"
                 className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>

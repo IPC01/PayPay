@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { canReverseTransaction, reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
 
 function Transactions({ adminView = false }) {
   const { authRequest } = useAuth();
@@ -12,6 +13,7 @@ function Transactions({ adminView = false }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [reversingId, setReversingId] = useState(null);
 
   useEffect(() => {
     loadTransactions();
@@ -35,8 +37,38 @@ function Transactions({ adminView = false }) {
     }
   };
 
+  const reverseTransaction = async (tx) => {
+    if (!window.confirm(reversalConfirmMessage(tx))) return;
+    try {
+      setReversingId(tx.id);
+      const endpoint = adminView ? `/api/admin/transactions/${tx.id}/reverse` : `/api/transactions/${tx.id}/reverse`;
+      const result = await authRequest(endpoint, { method: 'POST' });
+      notify(reversalResultNotification(result));
+      setModalOpen(false);
+      await loadTransactions();
+    } catch (err) {
+      notify({
+        type: 'error',
+        title: 'Estorno não realizado',
+        message: err.message || 'Não foi possível estornar a transação.'
+      });
+      await loadTransactions();
+    } finally {
+      setReversingId(null);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const statusConfig = {
+      reversed: {
+        label: 'Estornada',
+        className: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+        icon: (
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+        )
+      },
       success: {
         label: 'Sucesso',
         className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -90,7 +122,8 @@ function Transactions({ adminView = false }) {
       b2c: { label: 'B2C', icon: '➡️', className: 'text-blue-600 dark:text-blue-400' },
       deposit: { label: 'Depósito', className: 'text-green-600 dark:text-green-400' },
       withdrawal: { label: 'Levantamento', className: 'text-red-600 dark:text-red-400' },
-      transfer: { label: 'Transferência', className: 'text-blue-600 dark:text-blue-400' }
+      transfer: { label: 'Transferência', className: 'text-blue-600 dark:text-blue-400' },
+      reversal: { label: 'Estorno', icon: '↩️', className: 'text-purple-600 dark:text-purple-400' }
     };
 
     const config = typeMap[type] || { label: type?.toString().toUpperCase() || 'Desconhecido', className: 'text-slate-600' };
@@ -533,7 +566,16 @@ function Transactions({ adminView = false }) {
               </div>
             </div>
 
-            <div className="border-t border-slate-200 p-6 dark:border-slate-700">
+            <div className="flex gap-3 border-t border-slate-200 p-6 dark:border-slate-700">
+              {canReverseTransaction(selectedTransaction) && (
+                <button
+                  onClick={() => reverseTransaction(selectedTransaction)}
+                  disabled={reversingId === selectedTransaction.id}
+                  className="w-full rounded-xl border border-purple-300 px-4 py-2.5 text-sm font-medium text-purple-700 transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-900/20"
+                >
+                  {reversingId === selectedTransaction.id ? 'A estornar...' : 'Estornar'}
+                </button>
+              )}
               <button
                 onClick={() => setModalOpen(false)}
                 className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700"
