@@ -1,6 +1,19 @@
 const { Package } = require('../models');
 
 class PackageController {
+  async getPublic(req, res) {
+    try {
+      const packages = await Package.findAll({
+        where: { active: true },
+        attributes: ['id', 'name', 'price', 'isFree', 'description', 'promoPrice', 'promoStartDate', 'promoEndDate'],
+        order: [['price', 'ASC']]
+      });
+      return res.json(packages);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
   async getAll(req, res) {
     try {
       const packages = await Package.findAll({

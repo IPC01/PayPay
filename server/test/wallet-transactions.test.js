@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { Op } = require('sequelize');
 const { Wallet, Transaction } = require('../models');
 const controller = require('../controllers/AdminController');
+const clientController = require('../controllers/TransactionController');
 
 function response() {
   return {
@@ -68,4 +69,56 @@ test('history database failures return an explicit server error', async (t) => {
   await controller.getWalletTransactions({ params: { id: 'selected' } }, res);
   assert.equal(res.statusCode, 500);
   assert.equal(res.body.error, 'Database unavailable');
+});
+
+test('client wallet history verifies ownership and includes incoming, outgoing and code-linked transactions in every status', async (t) => {
+  t.mock.method(Wallet, 'findOne', async ({ where }) => {
+    assert.deepEqual(where, { id: 'selected', userId: 2 });
+    return { id: 'selected', walletCode: '000001', WalletType: { name: 'M-Pesa', code: 'MPESA' } };
+  });
+  const fixtures = [
+    { id: 'credit', toWalletId: 'selected', status: 'success' },
+    { id: 'debit', fromWalletId: 'selected', status: 'pending' },
+    { id: 'legacy', walletCode: '000001', status: 'failed' },
+    { id: 'reversal', fromWalletId: 'selected', walletCode: '000001', status: 'reversed' },
+    { id: 'other', toWalletId: 'other', walletCode: '000002', status: 'success' }
+  ];
+  t.mock.method(Transaction, 'findAll', async ({ where, order }) => {
+    assert.deepEqual(Reflect.ownKeys(where), [Op.or]);
+    assert.deepEqual(where[Op.or], [{ fromWalletId: 'selected' }, { toWalletId: 'selected' }, { walletCode: '000001' }]);
+    assert.deepEqual(order, [['createdAt', 'DESC']]);
+    return fixtures.filter((tx) => where[Op.or].some((condition) => Object.entries(condition).every(([key, value]) => tx[key] === value)))
+      .map((tx) => ({ toJSON: () => tx }));
+  });
+  const res = response();
+  await clientController.getUserTransactions({ user: { userId: 2 }, query: { walletId: 'selected' } }, res);
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body.map((tx) => tx.id), ['credit', 'debit', 'legacy', 'reversal']);
+  assert.equal(res.body[0].walletTypeName, 'M-Pesa');
+});
+
+test('client cannot fetch history from another user wallet or a missing wallet', async (t) => {
+  t.mock.method(Wallet, 'findOne', async ({ where }) => {
+    assert.equal(where.userId, 2);
+    return null;
+  });
+  const find = t.mock.method(Transaction, 'findAll', async () => []);
+  for (const walletId of ['other-user-wallet', 'missing']) {
+    const res = response();
+    await clientController.getUserTransactions({ user: { userId: 2 }, query: { walletId } }, res);
+    assert.equal(res.statusCode, 404);
+    assert.match(res.body.error, /Carteira/);
+  }
+  assert.equal(find.mock.callCount(), 0);
+});
+
+test('empty client wallet history does not match null wallet codes', async (t) => {
+  t.mock.method(Wallet, 'findOne', async () => ({ id: 'selected', walletCode: null }));
+  t.mock.method(Transaction, 'findAll', async ({ where }) => {
+    assert.deepEqual(where[Op.or], [{ fromWalletId: 'selected' }, { toWalletId: 'selected' }]);
+    return [];
+  });
+  const res = response();
+  await clientController.getUserTransactions({ user: { userId: 2 }, query: { walletId: 'selected' } }, res);
+  assert.deepEqual(res.body, []);
 });

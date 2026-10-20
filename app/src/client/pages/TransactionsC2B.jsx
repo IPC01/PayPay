@@ -1,12 +1,30 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
 
-const renderTypeLogo = (logo, provider) => {
-  if (!logo) return null;
+function formatCurrency(value, currency = 'MZN') {
+  return Number(value || 0).toLocaleString('pt-PT', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 2
+  });
+}
+
+const renderTypeLogo = (logo, provider, size = 'md') => {
+  const sizes = { sm: 'h-7 w-7', md: 'h-9 w-9', lg: 'h-10 w-10' };
+  const cls = `${sizes[size]} rounded-lg object-contain`;
+  if (!logo) {
+    return (
+      <div
+        className={`flex ${sizes[size]} items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300`}
+      >
+        {provider?.slice(0, 2)?.toUpperCase() || 'CT'}
+      </div>
+    );
+  }
   if (typeof logo === 'string') {
-    return <img src={logo} alt={provider || 'Logo'} className="h-8 w-8 rounded-full" />;
+    return <img src={logo} alt={provider || 'Logo'} className={cls} />;
   }
   return logo;
 };
@@ -30,11 +48,18 @@ function TransactionsC2B() {
     try {
       setLoading(true);
       const data = await authRequest('/api/wallets');
-      const filtered = data.filter((wallet) =>
-        wallet.allowC2B && wallet.status === 'ACTIVE' && wallet.WalletType?.code?.toLowerCase() === 'mpesa'
+      const filtered = data.filter(
+        (wallet) =>
+          wallet.allowC2B &&
+          wallet.status === 'ACTIVE' &&
+          wallet.WalletType?.code?.toLowerCase() === 'mpesa'
       );
       setWallets(filtered);
-      setSelectedWalletCode(filtered[0]?.walletCode || '');
+      setSelectedWalletCode((prev) =>
+        filtered.some((w) => w.walletCode === prev)
+          ? prev
+          : filtered[0]?.walletCode || ''
+      );
     } catch (err) {
       console.error(err);
       notify({
@@ -44,6 +69,22 @@ function TransactionsC2B() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const selectedWallet = useMemo(
+    () => wallets.find((w) => w.walletCode === selectedWalletCode) || null,
+    [wallets, selectedWalletCode]
+  );
+
+  const handleSelectWallet = (code) => {
+    setSelectedWalletCode(code);
+  };
+
+  const handleWalletKeyDown = (event, code) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setSelectedWalletCode(code);
     }
   };
 
@@ -108,103 +149,194 @@ function TransactionsC2B() {
     }
   };
 
+  // ── Card de carteira selecionável ────────────────────────────────────────
+  const WalletOption = ({ wallet, isSelected, onSelect }) => (
+    <div
+      role="radio"
+      aria-checked={isSelected}
+      tabIndex={0}
+      onClick={() => onSelect(wallet.walletCode)}
+      onKeyDown={(event) => handleWalletKeyDown(event, wallet.walletCode)}
+      className={`cursor-pointer rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
+        isSelected
+          ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 dark:border-brand-500 dark:bg-brand-900/20'
+          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        {renderTypeLogo(
+          getWalletTypeLogo({
+            imageUrl: wallet.WalletType?.imageUrl,
+            code: wallet.WalletType?.code
+          }),
+          wallet.WalletType?.provider
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+            {wallet.walletName || wallet.walletCode}
+          </p>
+          <p className="truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">
+            {wallet.walletCode}
+          </p>
+          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+            {wallet.WalletType?.name || 'Tipo desconhecido'}
+          </p>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="text-xs font-semibold text-slate-900 dark:text-white">
+            {formatCurrency(wallet.balance, wallet.currency || 'MZN')}
+          </p>
+          {isSelected && (
+            <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Selecionada
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Transações C2B</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Transações C2B
+          </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Receba pagamentos M-Pesa sem custo de transação. O cliente autoriza o pagamento no seu telefone por USSD.
+            Receba pagamentos M-Pesa sem custo de transação. O cliente autoriza o pagamento no
+            seu telefone por USSD.
           </p>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Formulário C2B</h3>
+        {/* Coluna: formulário (ordem 2 em mobile, 1 em desktop) */}
+        <div className="order-2 space-y-4 rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm lg:order-1 dark:border-slate-700 dark:bg-slate-800">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Formulário C2B
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Selecione uma carteira à direita (ou abaixo em mobile) e preencha os dados.
+            </p>
+          </div>
+
+          {selectedWallet && (
+            <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                Carteira selecionada
+              </p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  {selectedWallet.walletName || selectedWallet.walletCode}
+                </p>
+                <span className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(selectedWallet.balance, selectedWallet.currency || 'MZN')}
+                </span>
+              </div>
+            </div>
+          )}
+
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Carteira</label>
-              <select
-                value={selectedWalletCode}
-                onChange={(event) => setSelectedWalletCode(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              >
-                {wallets.map((wallet) => (
-                  <option key={wallet.id} value={wallet.walletCode}>
-                    {wallet.walletName || wallet.walletCode} ({wallet.WalletType?.name || wallet.walletTypeName || 'N/A'}) - {parseFloat(wallet.balance || 0).toFixed(2)} {wallet.currency}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Valor</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Valor <span className="text-rose-600">*</span>
+              </label>
               <input
                 type="number"
                 min="0"
                 step="0.01"
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                required
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                 placeholder="Insira o valor"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Número de transferência</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Número de transferência <span className="text-rose-600">*</span>
+              </label>
               <input
                 type="text"
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
-                placeholder="Insira o número de telefone"
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                required
+                placeholder="Ex: 84xxxxxxx"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">Referência (opcional)</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Referência <span className="text-slate-400">(opcional)</span>
+              </label>
               <input
                 type="text"
                 value={reference}
-                onChange={(event) => setReference(event.target.value.replace(/[^A-Za-z0-9]/g, ''))}
+                onChange={(event) =>
+                  setReference(event.target.value.replace(/[^A-Za-z0-9]/g, ''))
+                }
                 maxLength={20}
-                placeholder="Gerada automaticamente se não for informada (até 20 letras/números)"
-                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                placeholder="Gerada automaticamente (até 20 letras/números)"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
 
             <button
               type="submit"
-              disabled={submitting}
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={submitting || !selectedWalletCode}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? 'Processando...' : 'Realizar C2B'}
             </button>
           </form>
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Carteiras C2B disponíveis</h3>
+        {/* Coluna: carteiras (ordem 1 em mobile, 2 em desktop) */}
+        <div className="order-1 space-y-3 rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm lg:order-2 dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                Carteiras C2B
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {wallets.length} disponíve{wallets.length === 1 ? 'l' : 'is'}
+              </p>
+            </div>
+            {selectedWalletCode && (
+              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                1 selecionada
+              </span>
+            )}
+          </div>
+
           {loading ? (
-            <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">A carregar carteiras...</p>
+            <div className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              A carregar carteiras...
+            </div>
           ) : wallets.length === 0 ? (
-            <p className="mt-4 text-sm text-rose-600 dark:text-rose-400">Nenhuma carteira C2B ativa disponível.</p>
+            <div className="rounded-xl border border-dashed border-rose-200 bg-rose-50 px-4 py-6 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+              Nenhuma carteira C2B ativa disponível.
+            </div>
           ) : (
-            <div className="mt-4 space-y-3">
+            <div
+              role="radiogroup"
+              aria-label="Selecionar carteira C2B"
+              className="space-y-2"
+            >
               {wallets.map((wallet) => (
-                <div key={wallet.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      {renderTypeLogo(getWalletTypeLogo({ imageUrl: wallet.WalletType?.imageUrl, code: wallet.WalletType?.code }), wallet.WalletType?.provider)}
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{wallet.walletName || wallet.walletCode}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">{wallet.WalletType?.name || 'Tipo desconhecido'}</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{parseFloat(wallet.balance || 0).toFixed(2)} {wallet.currency}</span>
-                  </div>
-                </div>
+                <WalletOption
+                  key={wallet.id}
+                  wallet={wallet}
+                  isSelected={wallet.walletCode === selectedWalletCode}
+                  onSelect={handleSelectWallet}
+                />
               ))}
             </div>
           )}

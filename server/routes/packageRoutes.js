@@ -5,6 +5,7 @@ const checkPermission = require('../middleware/checkPermission');
 
 const router = express.Router();
 
+router.get('/public', PackageController.getPublic);
 router.use(authMiddleware);
 router.get('/', PackageController.getActive);
 router.get('/all', checkPermission('admin:all'), PackageController.getAll);

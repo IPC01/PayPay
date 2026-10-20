@@ -1,4 +1,5 @@
 const { Op } = require('sequelize');
+const walletTransactionWhere = require('../helpers/walletTransactionWhere');
 const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage, Subscription, Package, Role } = require('../models');
 
 class AdminController {
@@ -99,10 +100,8 @@ class AdminController {
       });
       if (!wallet) return res.status(404).json({ error: 'Carteira não encontrada' });
 
-      const associations = [{ fromWalletId: wallet.id }, { toWalletId: wallet.id }];
-      if (wallet.walletCode) associations.push({ walletCode: wallet.walletCode });
       const transactions = await Transaction.findAll({
-        where: { [Op.or]: associations },
+        where: walletTransactionWhere(wallet),
         order: [['createdAt', 'DESC']]
       });
       return res.json(transactions.map((transaction) => ({

@@ -2,6 +2,7 @@
 const { Transaction, Wallet, WalletType } = require('../models');
 const TransactionReversalService = require('../services/TransactionReversalService');
 const TransactionStatusService = require('../services/TransactionStatusService');
+const walletTransactionWhere = require('../helpers/walletTransactionWhere');
 
 class TransactionController {
 
@@ -34,11 +35,24 @@ class TransactionController {
       let walletCodes;
 
       if (walletId) {
-        const wallet = await Wallet.findOne({ where: { id: walletId, userId } });
+        const wallet = await Wallet.findOne({
+          where: { id: walletId, userId },
+          include: [{ model: WalletType, attributes: ['code', 'name', 'provider', 'imageUrl'] }]
+        });
         if (!wallet) {
-          return res.json([]);
+          return res.status(404).json({ error: 'Carteira não encontrada ou não pertence ao utilizador' });
         }
-        walletCodes = [wallet.walletCode];
+        const transactions = await Transaction.findAll({
+          where: walletTransactionWhere(wallet),
+          order: [['createdAt', 'DESC']]
+        });
+        return res.json(transactions.map((tx) => ({
+          ...tx.toJSON(),
+          walletTypeCode: wallet.WalletType?.code,
+          walletTypeName: wallet.WalletType?.name,
+          walletTypeProvider: wallet.WalletType?.provider,
+          walletTypeImageUrl: wallet.WalletType?.imageUrl
+        })));
       } else {
         const wallets = await Wallet.findAll({
           where: { userId },

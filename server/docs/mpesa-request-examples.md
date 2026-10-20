@@ -212,6 +212,14 @@ mechanism and cannot release funds.
 
 ## Application profiles and support access
 
+The public pricing page (`/tarifas`) loads its plans from
+`GET /api/packages/public`, without authentication. This read-only catalog
+returns active packages ordered by price, exposing only names, descriptions,
+prices, free-plan flags and promotion dates/prices. Paid plans use the existing
+30-day subscription period and current promotions. There are no hardcoded
+fallback plans or fabricated popularity/features. Other package endpoints
+retain their authentication and management permissions.
+
 The administrator settings page edits only the fixed withdrawal cost and
 minimum/maximum withdrawal amounts. Saving these settings updates only
 `withdrawalFeeAmount`, `withdrawalMinValue` and `withdrawalMaxValue`;
@@ -229,6 +237,12 @@ is available to administrators and operators. It includes every status and
 matches transactions by `fromWalletId`, `toWalletId` or the wallet's non-empty
 `walletCode`, ordered newest first. Transaction details/actions use the same
 permissions as the global transaction page.
+
+Client wallet details also include the complete history, using
+`GET /api/transactions?walletId=<wallet UUID>`. The API verifies wallet ownership
+before selecting transactions by the same three associations. Missing wallets
+and wallets owned by another user return HTTP 404. The unfiltered client
+transaction endpoint retains its existing behavior.
 
 | Capability | Administrator | Operator | Client |
 | --- | --- | --- | --- |

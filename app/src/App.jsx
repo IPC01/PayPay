@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { UiProvider } from './contexts/UiContext';
@@ -55,6 +55,11 @@ function HomeRoute() {
   }
 
   return <Navigate to="/client" replace />;
+}
+
+function LegacyLegalRedirect() {
+  const { slug } = useParams();
+  return <Navigate to={`/client/legal/${encodeURIComponent(slug)}`} replace />;
 }
 
 function ClientRoute({ children }) {
@@ -354,7 +359,7 @@ function App() {
           <Route path="/packages" element={<Navigate to="/client/packages" replace />} />
           <Route path="/company-info" element={<Navigate to="/client/profile" replace />} />
           <Route path="/legal" element={<Navigate to="/client/legal" replace />} />
-          <Route path="/legal/:slug" element={<Navigate to="/client/legal" replace />} />
+          <Route path="/legal/:slug" element={<LegacyLegalRedirect />} />
           <Route path="/forgot-password" element={<Auth />} />
           <Route path="/reset-password" element={<Auth />} />
           <Route path="/login" element={<Auth />} />

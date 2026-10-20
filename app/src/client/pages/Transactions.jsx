@@ -6,7 +6,7 @@ import { reversalConfirmMessage, reversalResultNotification } from '../../helper
 import { transactionStatusNotification } from '../../helpers/transactionStatus';
 import TransactionDetails from '../../shared/components/TransactionDetails';
 
-function Transactions({ adminView = false }) {
+function Transactions({ adminView = false, wallet = null }) {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
   const [transactions, setTransactions] = useState([]);
@@ -18,24 +18,27 @@ function Transactions({ adminView = false }) {
   const [queryingStatusId, setQueryingStatusId] = useState(null);
   const [queryResult, setQueryResult] = useState(null);
   const [queryError, setQueryError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
     loadTransactions();
-  }, []);
+  }, [adminView, wallet?.id]);
 
   const loadTransactions = async () => {
     try {
       setLoading(true);
-      const endpoint = adminView ? '/api/admin/transactions' : '/api/transactions';
+      setLoadError(null);
+      const endpoint = adminView ? '/api/admin/transactions' : wallet ? `/api/transactions?walletId=${encodeURIComponent(wallet.id)}` : '/api/transactions';
       const data = await authRequest(endpoint);
       setTransactions(data);
       setSelectedTransaction((current) => current ? data.find((tx) => tx.id === current.id) || current : null);
     } catch (err) {
       console.error(err);
+      setLoadError(err.message || 'Não foi possível carregar o histórico de transações.');
       notify({
         type: 'error',
         title: 'Erro ao carregar transações',
-        message: 'Não foi possível carregar o histórico de transações.'
+        message: err.message || 'Não foi possível carregar o histórico de transações.'
       });
     } finally {
       setLoading(false);
@@ -183,7 +186,7 @@ function Transactions({ adminView = false }) {
     failed: transactions.filter(tx => tx.status === 'failed').length,
     totalAmount: transactions
       .filter(tx => tx.status === 'success')
-      .reduce((sum, tx) => sum + (tx.amount || 0), 0)
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
   };
 
   const formatCurrency = (amount) => {
@@ -239,14 +242,23 @@ function Transactions({ adminView = false }) {
     );
   }
 
+  if (loadError) {
+    return (
+      <div role="alert" className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700 dark:text-rose-300">
+        <p>{loadError}</p>
+        <button type="button" onClick={loadTransactions} className="mt-2 underline">Tentar novamente</button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{adminView ? 'Transações da Plataforma' : 'Transações'}</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{wallet ? 'Transações da carteira' : adminView ? 'Transações da Plataforma' : 'Transações'}</h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {adminView ? 'Visualize todas as transações do sistema' : 'Gerencie e acompanhe suas transações pessoais'}
+            {wallet ? `Todos os movimentos associados à carteira ${wallet.walletCode || wallet.id}, em qualquer estado.` : adminView ? 'Visualize todas as transações do sistema' : 'Gerencie e acompanhe suas transações pessoais'}
           </p>
         </div>
         <button
@@ -455,7 +467,7 @@ function Transactions({ adminView = false }) {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-2">
                         {renderTypeLogo(getWalletTypeLogo({ imageUrl: tx.walletTypeImageUrl || tx.wallet?.WalletType?.imageUrl, code: tx.walletTypeCode || tx.wallet?.WalletType?.code }), tx.walletTypeName || tx.wallet?.WalletType?.name)}
-                        <span>{tx.walletCode || tx.wallet?.code || 'N/A'}</span>
+                        <span>{wallet?.walletCode || tx.walletCode || tx.wallet?.code || 'N/A'}</span>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
