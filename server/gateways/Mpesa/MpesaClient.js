@@ -17,12 +17,16 @@ function buildOriginHeaders() {
 function buildMockResponse(path, payload) {
   const now = randomUUID();
   const isB2C = path.toLowerCase().includes('b2c');
+  const isStatusQuery = path.toLowerCase().includes('querytransactionstatus');
 
   return {
     output_ResponseCode: 'INS-0',
-    output_ResponseDesc: isB2C ? 'B2C request accepted (mock)' : 'C2B request accepted (mock)',
+    output_ResponseDesc: isStatusQuery
+      ? 'Transaction status retrieved (mock)'
+      : isB2C ? 'B2C request accepted (mock)' : 'C2B request accepted (mock)',
     output_ConversationID: `mock-conv-${now}`,
     output_TransactionID: `mock-tx-${now}`,
+    ...(isStatusQuery ? { output_ResponseTransactionStatus: 'Completed' } : {}),
     mock: true,
     path,
     payload
@@ -43,6 +47,7 @@ const REQUIRED_LIVE_CONFIG = [
 
 function resolvePortVariable(path) {
   const lower = path.toLowerCase();
+  if (lower.includes('querytransactionstatus')) return 'MPESA_STATUS_PORT';
   if (lower.includes('reversal')) return 'MPESA_REVERSAL_PORT';
   if (lower.includes('b2c')) return 'MPESA_B2C_PORT';
   return 'MPESA_C2B_PORT';
@@ -57,6 +62,10 @@ function requireLiveConfig(extra = []) {
 }
 
 class MpesaClient {
+  async get(path, params, options = {}) {
+    return this.send('get', path, params, options);
+  }
+
   async post(path, payload, options = {}) {
     return this.send('post', path, payload, options);
   }
@@ -88,19 +97,19 @@ class MpesaClient {
     const baseUrl = `https://${process.env.MPESA_API_HOST}:${port}`;
 
     try {
-      const response = await (method === 'put' ? axios.put : axios.post)(
-      `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`,
-      payload,
-      {
+      const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+      const requestOptions = {
         // The synchronous response only arrives after the customer answers the USSD PIN prompt.
         timeout: Number(process.env.MPESA_TIMEOUT_MS) || 120000,
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
           ...buildOriginHeaders()
-        },
-      }
-    );
+        }
+      };
+      const response = method === 'get'
+        ? await axios.get(url, { ...requestOptions, params: payload })
+        : await (method === 'put' ? axios.put : axios.post)(url, payload, requestOptions);
 
       return response.data;
     } catch (error) {

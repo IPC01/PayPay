@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const { Ticket, TicketMessage, User, Notification } = require('../models');
+const { Op } = require('sequelize');
+const { Role } = require('../models');
+const { isStaff } = require('../middleware/staffAccess');
 
 async function saveTicketAttachment(attachment, filename) {
   if (!attachment) return null;
@@ -43,7 +46,7 @@ class TicketController {
         attachmentUrl
       });
 
-      const admins = await User.findAll({ where: { roleId: 1 } });
+      const admins = await User.findAll({ include: [{ model: Role, where: { name: { [Op.in]: ['admin', 'operator', 'support'] } } }] });
       await Promise.all(admins.map((admin) =>
         Notification.create({
           userId: admin.id,
@@ -90,7 +93,7 @@ class TicketController {
         return res.status(404).json({ error: 'Ticket not found' });
       }
 
-      if (ticket.userId !== req.user.userId && req.user.roleId !== 1) {
+      if (ticket.userId !== req.user.userId && !isStaff(req.user)) {
         return res.status(403).json({ error: 'Forbidden' });
       }
 
@@ -110,7 +113,7 @@ class TicketController {
       }
 
       const isOwner = ticket.userId === req.user.userId;
-      const isAdmin = req.user.roleId === 1;
+      const isAdmin = isStaff(req.user);
 
       if (!isOwner && !isAdmin) {
         return res.status(403).json({ error: 'Forbidden' });
@@ -144,7 +147,7 @@ class TicketController {
       }
 
       const isOwner = ticket.userId === req.user.userId;
-      const isAdmin = req.user.roleId === 1;
+      const isAdmin = isStaff(req.user);
 
       if (!isOwner && !isAdmin) {
         return res.status(403).json({ error: 'Forbidden' });
@@ -170,12 +173,28 @@ class TicketController {
         await Notification.create({
           userId: ticket.userId,
           title: 'Resposta ao seu ticket',
-          message: `O administrador respondeu ao seu ticket: ${ticket.subject}`,
+          message: `A equipa de assistência respondeu ao seu ticket: ${ticket.subject}`,
           type: 'info'
         });
       }
 
       return res.status(201).json(ticketMessage);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async updateStatus(req, res) {
+    try {
+      if (!isStaff(req.user)) return res.status(403).json({ error: 'Forbidden' });
+      const { status } = req.body;
+      if (!['open', 'pending', 'closed'].includes(status)) {
+        return res.status(400).json({ error: 'Estado de ticket inválido' });
+      }
+      const ticket = await Ticket.findByPk(req.params.id);
+      if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+      await ticket.update({ status });
+      return res.json(ticket);
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
@@ -190,7 +209,7 @@ class TicketController {
       }
 
       const isOwner = ticket.userId === req.user.userId;
-      const isAdmin = req.user.roleId === 1;
+      const isAdmin = req.user.roleName === 'admin';
       if (!isOwner && !isAdmin) {
         return res.status(403).json({ error: 'Forbidden' });
       }

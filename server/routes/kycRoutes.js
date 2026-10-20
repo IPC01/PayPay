@@ -1,7 +1,7 @@
 const express = require('express');
 const KycController = require('../controllers/KycController');
 const authMiddleware = require('../middleware/authMiddleware');
-const checkPermission = require('../middleware/checkPermission');
+const { staffAccess } = require('../middleware/staffAccess');
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ router.post('/documents', KycController.uploadDocument);
 router.get('/documents', KycController.listDocuments);
 router.delete('/documents/:id', KycController.deleteDocument);
 
-const adminGuard = [authMiddleware, checkPermission('admin:all')];
+const adminGuard = [staffAccess];
 router.get('/admin', adminGuard, KycController.getAdminKycs);
 router.get('/admin/:id', adminGuard, KycController.getAdminKycById);
 router.post('/admin/:id/review', adminGuard, KycController.reviewKyc);

@@ -28,6 +28,9 @@ function checkPermission(requiredPermission) {
       }
 
       const permissions = user.Role?.Permissions || [];
+      if (requiredPermission === 'admin:all' && user.Role?.name !== 'admin') {
+        return res.status(403).json({ error: 'Acesso exclusivo do administrador' });
+      }
 
       const hasPermission = permissions.some(
         (perm) => perm.name === requiredPermission

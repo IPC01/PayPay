@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
+import { isOperator, managementPath, roleLabel } from '../../helpers/roles';
 
 const PAGE_TITLES = [
   { path: '/admin/legal-pages', label: 'Páginas Legais' },
@@ -28,7 +29,7 @@ function getPageTitle(pathname) {
   return match?.label || 'Área Administrativa';
 }
 
-function Header({ onToggleMobileSidebar }) {
+function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState([]);
@@ -41,7 +42,8 @@ function Header({ onToggleMobileSidebar }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const pageTitle = getPageTitle(location.pathname);
+  const titlePath = location.pathname.replace(/^\/operador(?=\/|$)/, '/admin');
+  const pageTitle = isOperator(user) && titlePath === '/admin/users' ? 'Clientes' : getPageTitle(titlePath);
 
   const loadUnreadNotifications = useCallback(async () => {
     if (!user) {
@@ -85,7 +87,7 @@ function Header({ onToggleMobileSidebar }) {
       });
       setUnreadNotifications((prev) => prev.filter((item) => item.id !== notification.id));
       setNotificationDropdownOpen(false);
-      navigate('/admin/notifications');
+      navigate(managementPath(user, '/admin/notifications'));
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
     }
@@ -103,22 +105,27 @@ function Header({ onToggleMobileSidebar }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-none items-center gap-3 px-3 py-2 sm:px-4">
+      <div className="mx-auto flex h-14 min-w-0 max-w-none items-center gap-2 px-3 md:pl-6 sm:pr-4">
+        <NavLink to={managementPath(user)} aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
+          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
+        </NavLink>
         <button
           type="button"
           onClick={onToggleMobileSidebar}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-500 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50 hover:text-gray-800 md:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-brand-100 bg-brand-50 text-brand-700 transition-colors hover:border-brand-300 hover:bg-brand-100 md:hidden"
           aria-label="Abrir menu"
+          aria-expanded={mobileSidebarOpen}
+          aria-controls="dashboard-sidebar"
         >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9" />
           </svg>
         </button>
 
-        <h1 className="min-w-0 truncate text-base font-semibold text-gray-900">{pageTitle}</h1>
+        <h1 className="sr-only min-w-0 truncate text-base font-semibold text-gray-900 md:not-sr-only">{pageTitle}</h1>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
-          <div className="relative" ref={notificationDropdownRef}>
+        <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2 md:flex-1">
+          <div className="relative shrink-0" ref={notificationDropdownRef}>
             <button
               type="button"
               onClick={() => {
@@ -143,14 +150,14 @@ function Header({ onToggleMobileSidebar }) {
             </button>
 
             {notificationDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl">
+              <div className="fixed inset-x-3 top-14 mt-2 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:w-80">
                 <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
                   <p className="text-sm font-semibold text-gray-900">Notificações do sistema</p>
                   <button
                     type="button"
                     onClick={() => {
                       setNotificationDropdownOpen(false);
-                      navigate('/admin/notifications');
+                      navigate(managementPath(user, '/admin/notifications'));
                     }}
                     className="text-xs font-medium text-gray-700 hover:text-gray-900 transition-colors"
                   >
@@ -181,7 +188,7 @@ function Header({ onToggleMobileSidebar }) {
             )}
           </div>
 
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative shrink-0" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setDropdownOpen((prev) => !prev)}
@@ -190,9 +197,9 @@ function Header({ onToggleMobileSidebar }) {
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-900 text-white shadow-md">
                 {getUserInitials()}
               </span>
-              <span className="hidden text-left sm:block">
-                <span className="block text-sm font-medium text-gray-900">{user?.name?.split(' ')[0] || 'Administrador'}</span>
-                <span className="block text-xs text-gray-500">{user?.email}</span>
+              <span className="hidden min-w-0 max-w-40 text-left sm:block">
+                <span className="block truncate text-sm font-medium text-gray-900">{user?.name?.split(' ')[0] || roleLabel(user)}</span>
+                <span className="block truncate text-xs text-gray-500">{roleLabel(user)}</span>
               </span>
               <svg className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -200,14 +207,14 @@ function Header({ onToggleMobileSidebar }) {
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-xl">
+              <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] break-words rounded-xl border border-gray-200 bg-white shadow-xl">
                 <div className="border-b border-gray-200 p-3">
                   <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
                   <p className="mt-0.5 text-xs text-gray-500">{user?.email}</p>
                 </div>
                 <div className="p-2">
                   <NavLink
-                    to="/admin/profile"
+                    to={managementPath(user, '/admin/profile')}
                     onClick={() => setDropdownOpen(false)}
                     className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
                   >

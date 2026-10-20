@@ -10,6 +10,7 @@ const MpesaClient = require('../gateways/Mpesa/MpesaClient');
 const MpesaAuth = require('../gateways/Mpesa/MpesaAuth');
 const MpesaC2B = require('../gateways/Mpesa/MpesaC2B');
 const MpesaB2C = require('../gateways/Mpesa/MpesaB2C');
+const MpesaStatus = require('../gateways/Mpesa/MpesaStatus');
 
 // Fictitious values: tests never use the real credentials from .env.
 Object.assign(process.env, {
@@ -19,7 +20,8 @@ Object.assign(process.env, {
   MPESA_SERVICE_PROVIDER_CODE: '171717',
   MPESA_ORIGIN: 'developer.mpesa.vm.co.mz',
   MPESA_C2B_PORT: '18352',
-  MPESA_B2C_PORT: '18345'
+  MPESA_B2C_PORT: '18345',
+  MPESA_STATUS_PORT: '18353'
 });
 
 test('live calls refuse to run when an .env value is missing', async (t) => {
@@ -259,9 +261,46 @@ test('live B2C uses its own port and documented Origin header', async (t) => {
   await MpesaClient.post('/ipg/v1x/b2cPayment/', {}, { mode: 'live' });
 });
 
+test('M-Pesa status query sends the documented GET parameters to the status port', async (t) => {
+  const serviceProviderCode = process.env.MPESA_SERVICE_PROVIDER_CODE;
+  const statusPort = process.env.MPESA_STATUS_PORT;
+  process.env.MPESA_SERVICE_PROVIDER_CODE = '171717';
+  process.env.MPESA_STATUS_PORT = '18353';
+  t.after(() => {
+    if (serviceProviderCode === undefined) delete process.env.MPESA_SERVICE_PROVIDER_CODE;
+    else process.env.MPESA_SERVICE_PROVIDER_CODE = serviceProviderCode;
+    if (statusPort === undefined) delete process.env.MPESA_STATUS_PORT;
+    else process.env.MPESA_STATUS_PORT = statusPort;
+  });
+
+  const getAccessToken = t.mock.method(MpesaAuth, 'getAccessToken', async () => 'status-token');
+  let captured;
+  t.mock.method(axios, 'get', async (...args) => {
+    captured = args;
+    return { data: { output_ResponseCode: 'INS-0', output_ResponseTransactionStatus: 'Completed' } };
+  });
+
+  const response = await MpesaStatus.execute({
+    thirdPartyReference: 'ABC123',
+    queryReference: 'TX123',
+    mode: 'live'
+  });
+
+  assert.equal(response.output_ResponseTransactionStatus, 'Completed');
+  assert.equal(getAccessToken.mock.callCount(), 1);
+  assert.equal(captured[0], 'https://api.sandbox.vm.co.mz:18353/ipg/v1x/queryTransactionStatus/');
+  assert.deepEqual(captured[1].params, {
+    input_ThirdPartyReference: 'ABC123',
+    input_QueryReference: 'TX123',
+    input_ServiceProviderCode: '171717'
+  });
+  assert.equal(captured[1].headers.Authorization, 'Bearer status-token');
+});
+
 test('only M-Pesa is supported', async () => {
   await assert.rejects(PaymentService.createC2B({ provider: 'emola' }), /M-Pesa/);
   await assert.rejects(PaymentService.createB2C({ provider: 'emola' }), /M-Pesa/);
+  await assert.rejects(PaymentService.queryStatus({ provider: 'emola' }), /M-Pesa/);
 });
 
 test('HTTP payment routes force live mode even with mock headers or environment', () => {

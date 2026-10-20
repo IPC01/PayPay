@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -17,13 +17,18 @@ function Withdrawals() {
   const [requests, setRequests] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ walletId: '', amount: '', phone: '', note: '' });
+  const headingRef = useRef(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (withdrawalOpen) headingRef.current?.focus();
+  }, [withdrawalOpen]);
 
   const loadData = async () => {
     try {
@@ -140,11 +145,12 @@ function Withdrawals() {
   const amountValidationMessage = amountError();
   const phoneValidationMessage = phoneError();
 
-  const openModal = () => setModalOpen(true);
-  const closeModal = () => setModalOpen(false);
+  const openWithdrawal = () => setWithdrawalOpen(true);
+  const closeWithdrawal = () => setWithdrawalOpen(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (submitting) return;
 
     if (!form.walletId || !form.amount || !form.phone) {
       notify({
@@ -196,7 +202,7 @@ function Withdrawals() {
       });
 
       setForm({ walletId: form.walletId, amount: '', phone: '', note: '' });
-      closeModal();
+      closeWithdrawal();
       await loadData();
     } catch (err) {
       console.error(err);
@@ -219,6 +225,8 @@ function Withdrawals() {
 
   return (
     <div className="space-y-6">
+      {!withdrawalOpen && (
+        <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Saques</p>
@@ -230,7 +238,8 @@ function Withdrawals() {
 
         <button
           type="button"
-          onClick={openModal}
+          onClick={openWithdrawal}
+          disabled={loading}
           className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Levantar saldo
@@ -303,24 +312,28 @@ function Withdrawals() {
         )}
       </div>
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white shadow-2xl dark:bg-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5 dark:border-slate-700">
+        </>
+      )}
+
+      {withdrawalOpen && (
+          <section aria-labelledby="withdrawal-heading" className="w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-6 py-5 dark:border-slate-700">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Saque automático</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Levantar saldo</h2>
+                <h1 id="withdrawal-heading" ref={headingRef} tabIndex={-1} className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Levantar saldo</h1>
               </div>
               <button
                 type="button"
-                onClick={closeModal}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200"
+                onClick={closeWithdrawal}
+                disabled={submitting}
+                className="inline-flex items-center justify-center rounded-xl border border-slate-200 px-4 py-2 text-sm text-slate-500 transition hover:border-slate-300 hover:text-slate-700 disabled:opacity-50 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-200"
               >
-                <span className="text-xl">×</span>
+                Voltar aos saques
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 px-6 py-6 sm:px-8">
+            <form onSubmit={handleSubmit} className="px-6 py-6 sm:px-8">
+              <fieldset disabled={submitting} className="space-y-6">
               <div className="grid gap-6 sm:grid-cols-2">
                 <label className="block">
                   <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Carteira</span>
@@ -334,7 +347,7 @@ function Withdrawals() {
                     ) : (
                       wallets.map((wallet) => (
                         <option key={wallet.id} value={wallet.id}>
-                          {wallet.walletName || wallet.walletCode} — {wallet.currency || 'MZN'}
+                          {wallet.walletName || wallet.walletCode} — {formatCurrency(wallet.balance, wallet.currency || 'MZN')}
                         </option>
                       ))
                     )}
@@ -360,6 +373,18 @@ function Withdrawals() {
                     <p className="mt-2 text-sm text-rose-600 dark:text-rose-400">{amountValidationMessage}</p>
                   )}
                 </label>
+              </div>
+
+              <div aria-live="polite" className="rounded-2xl border border-brand-200 bg-brand-50 p-4 dark:border-slate-700 dark:bg-slate-800">
+                <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Saldo disponível da carteira selecionada</p>
+                {selectedWallet ? (
+                  <>
+                    <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{selectedWallet.walletName || selectedWallet.walletCode}</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(currentBalance, selectedWallet.currency || 'MZN')}</p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Nenhuma carteira disponível para levantamento.</p>
+                )}
               </div>
 
               <div className="grid gap-6 sm:grid-cols-2">
@@ -409,24 +434,25 @@ function Withdrawals() {
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={closeModal}
+                  onClick={closeWithdrawal}
                   className="inline-flex justify-center rounded-2xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !selectedWallet || !form.amount || !form.phone || Boolean(amountValidationMessage) || Boolean(phoneValidationMessage)}
                   className="inline-flex justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {submitting ? 'A processar...' : 'Confirmar saque'}
                 </button>
               </div>
+              </fieldset>
             </form>
-          </div>
-        </div>
+          </section>
       )}
 
+      {!withdrawalOpen && (
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <p className="text-sm text-slate-500 dark:text-slate-400">Dica:</p>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
@@ -436,6 +462,7 @@ function Withdrawals() {
           Caso ainda não tenha carteira ativa, crie ou ative uma em <Link to="/client/wallets" className="font-semibold text-brand-600 hover:text-brand-700">Carteiras</Link>.
         </p>
       </div>
+      )}
     </div>
   );
 }

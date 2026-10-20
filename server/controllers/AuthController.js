@@ -1,5 +1,5 @@
 const AuthService = require('../services/AuthService');
-const { User } = require('../models');
+const { User, Role } = require('../models');
 const { createAuditLog } = require('../helpers/auditLogger');
 
 // simples "logout" via blacklist em memória (MVP)
@@ -145,7 +145,8 @@ class AuthController {
   async me(req, res) {
     try {
       const user = await User.findByPk(req.user.userId, {
-        attributes: ['id', 'name', 'email', 'createdAt', 'profilePhotoUrl', 'roleId']
+        attributes: ['id', 'name', 'email', 'createdAt', 'profilePhotoUrl', 'roleId'],
+        include: [{ model: Role, attributes: ['id', 'name'] }]
       });
 
       if (!user) {

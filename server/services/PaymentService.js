@@ -25,6 +25,13 @@ class PaymentService {
     }
     return this.mpesa.reversal.execute(input);
   }
+
+  async queryStatus({ provider = 'mpesa', ...input }) {
+    if (String(provider).toLowerCase() !== 'mpesa') {
+      throw paymentError('Apenas o provedor M-Pesa está disponível.');
+    }
+    return this.mpesa.status.execute(input);
+  }
 }
 
 module.exports = new PaymentService();

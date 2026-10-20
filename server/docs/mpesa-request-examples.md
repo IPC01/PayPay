@@ -1,4 +1,4 @@
-﻿# M-Pesa C2B, B2C and Reversal
+# M-Pesa C2B, B2C, Status Query and Reversal
 
 The platform uses only M-Pesa C2B Single Stage and B2C for payments.
 All HTTP payment routes contact the configured M-Pesa environment. They ignore
@@ -16,6 +16,7 @@ All of them are required for live calls (there are no hardcoded fallbacks):
 - `MPESA_ORIGIN`: sent unchanged as the `Origin` header.
 - `MPESA_C2B_PORT`: for example `18352`.
 - `MPESA_B2C_PORT`: for example `18345`.
+- `MPESA_STATUS_PORT`: for example `18353`.
 - `MPESA_REVERSAL_PORT`: for example `18354`.
 - `MPESA_INITIATOR_IDENTIFIER` and `MPESA_SECURITY_CREDENTIAL`: supplied by Vodacom; required only for reversals.
 - `MPESA_TIMEOUT_MS`: defaults to `120000`; the response only arrives after the customer answers the USSD PIN prompt.
@@ -67,6 +68,18 @@ credits the full amount to the selected active M-Pesa/MZN wallet.
 `POST /api/payments/direct` uses the same C2B gateway without a client wallet,
 for example for subscriptions. It accepts `amount`, `phone`, optional `reference`
 and `provider: "mpesa"`.
+Subscription creation (`POST /api/subscriptions/subscribe`) and renewal
+(`POST /api/subscriptions/renew`) use this same direct C2B flow. Paid requests send
+`paymentMethod: "mpesa"` and `paymentNumber`; activation also accepts `packageId`
+and `autoRenew`, while renewal accepts the subscription `id`.
+The server generates a unique 20-character alphanumeric payment reference,
+prefixed with `SUB` for activation or `SUBRENEW` for renewal, without hyphens.
+`Subscription.paymentReference` remains the transaction UUID, not the M-Pesa
+reference; `PaymentTransaction.reference` in the subscription list contains the
+human-readable reference displayed by the client. Free packages do not send payments.
+The package checkout replaces the catalog with an internal view and a
+"Voltar aos pacotes" action; it does not open an overlay.
+
 The old `/api/mpesa-service-test/c2b` URL is a compatibility alias to the same
 real C2B implementation, not a separate test provider.
 
@@ -94,10 +107,60 @@ For example, a 100 MZN withdrawal with a 10 MZN cost requires 110 MZN.
 The reservation and ledger entry are committed under a wallet row lock before
 contacting M-Pesa, preventing simultaneous withdrawals from spending the same funds.
 
-The B2C form and withdrawal form are the same screen. Administrative approval
+The B2C form and withdrawal form are the same screen.
+The withdrawal form opens as internal page content, replacing the history until
+the user returns to it. It displays the selected wallet's available balance
+and currency before an amount is entered, updates when the selection changes,
+and retains the amount-plus-fixed-cost validation.
+
+Administrative approval
 and rejection no longer execute or simulate transfers; the old action URLs return
 HTTP 410. Historical requests are retained and are not automatically resubmitted.
 The old `/api/emolar` payment alias has been removed.
+
+API-key creation, the one-time token display and deletion confirmation also use
+internal views on the client's access-key page instead of overlays. Returning
+from the token view clears it; it cannot be retrieved again from the list.
+Creation and deletion controls are disabled while their requests are in flight.
+
+Client and administrator payment pages use a compact, responsive authenticated
+layout. The sidebar toggle sits on the sidebar/header boundary, with matching
+content offsets when expanded or collapsed. Mobile navigation retains text
+labels, closes on selection or Escape and scrolls independently. Compact card,
+form and table spacing is scoped to these pages; public pages keep their own sizing.
+On mobile, the header places the platform logo on the left, followed by the
+home-icon menu control immediately beside it and account actions on the right.
+The home-icon control opens the sidebar; the logo links to the dashboard.
+The page title remains visible on desktop
+and available to screen readers on mobile.
+
+## Transaction status query
+
+Authenticated users can query their wallet transaction through
+`GET /api/transactions/{transactionId}/status`. The platform sends a GET request to
+`/ipg/v1x/queryTransactionStatus/` on `MPESA_STATUS_PORT` with the transaction's
+M-Pesa transaction ID, conversation ID, or derived third-party reference as
+`input_QueryReference`, its derived third-party reference as
+`input_ThirdPartyReference`, and the configured service-provider code.
+Administrators can query any transaction from the global transaction list through
+`GET /api/admin/transactions/{transactionId}/status`.
+
+Both transaction pages offer "Ver detalhes / Ações" for every local status.
+Opening details replaces the transaction list with an internal details view,
+without an overlay or external dialog. "Voltar às transações" restores the list
+and its filters. The shared details component contains the status-query action for M-Pesa C2B/B2C
+transactions regardless of their local status, and reversal where eligible.
+Query results show the provider status and response code separately from the local
+status. Final local statuses are preserved; querying does not settle funds again.
+
+HTTP 200 means the local transaction has a terminal state. `Completed` marks a
+pending transaction successful and credits C2B funds; `Cancelled` or `Expired`
+marks it failed and refunds a reserved B2C withdrawal.
+The same route reconciles reversals: a successful B2C reversal returns the
+withdrawn amount, a failed C2B reversal releases its reservation, and successful
+reversals mark the original transaction reversed. Settlement is protected by
+database row locks and only happens once. Unknown states, including `N/A`, remain
+pending and return HTTP 202. This endpoint never submits or retries a payment.
 
 ## Reversal: full reversal of a successful transaction
 
@@ -146,6 +209,62 @@ and provider references.** This change does not implement a callback or a status
 query API: those contracts were not supplied. Never create another payment to
 resolve an uncertain result. Old manual approval/rejection is not a reconciliation
 mechanism and cannot release funds.
+
+## Application profiles and support access
+
+The administrator settings page edits only the fixed withdrawal cost and
+minimum/maximum withdrawal amounts. Saving these settings updates only
+`withdrawalFeeAmount`, `withdrawalMinValue` and `withdrawalMaxValue`;
+existing platform branding and company information are preserved.
+
+The application has three profiles: Administrator (`admin`), Client (`user`)
+and Operator (`operator`). Administrators use `/admin`; operators use `/operador`
+with a restricted menu. Existing permitted `/admin` links redirect operators to
+the matching `/operador` page. The shared management API remains at `/api/admin`;
+direct page access and API requests are checked independently.
+
+Selecting **Ver** in the management wallet list opens the wallet details and
+its complete transaction history. `GET /api/admin/wallets/:id/transactions`
+is available to administrators and operators. It includes every status and
+matches transactions by `fromWalletId`, `toWalletId` or the wallet's non-empty
+`walletCode`, ordered newest first. Transaction details/actions use the same
+permissions as the global transaction page.
+
+| Capability | Administrator | Operator | Client |
+| --- | --- | --- | --- |
+| View clients, wallets, transactions and subscriptions | All | All; user list/details limited to clients | Own records |
+| Query M-Pesa transaction status | All transactions | All transactions | Own wallet transactions |
+| Reply to tickets and change open/pending/closed status | Yes | Yes | Own ticket conversations only; no status management |
+| Review and approve/reject KYC | Yes | Yes | Submit own KYC |
+| Block/unblock clients and wallets | Yes | Clients and their non-closed wallets only | No administrative blocking |
+| Create users or manage roles | Yes | No | Self-registration as client only |
+| Manage packages, wallet types, settings and legal pages | Yes | No | No |
+| Change other users' wallet payment permissions | Yes | No | No |
+| Reverse another user's transaction or approve/reject withdrawals | Yes | No | No |
+
+Only administrators can create operators through **Utilizadores > Adicionar**.
+The stored client role remains `user`; its displayed label is **Cliente**.
+Operators cannot block administrators/other operators, close wallets, reopen
+closed wallets or change a client's profile fields or role.
+Ticket state updates use `PATCH /api/tickets/:id/status` with
+`{"status":"open"}`, `{"status":"pending"}` or `{"status":"closed"}`.
+
+Restart the API after deploying. Startup ensures the three role records exist
+without running account/package seeders. When only the legacy `support` role
+exists, it is renamed to `operator` in place, preserving its ID and accounts.
+If both roles already exist, legacy `support` accounts retain operator access.
+Role names, not a fixed operator role ID, determine support access.
+Authenticated requests reload the current role and active flag from the
+database, so blocking an account or changing its role affects existing tokens.
+
+Focused profile validation (no live database or payment calls):
+
+```powershell
+# From server
+node --test test\operator-access.test.js
+# From app
+node --test test\roles.test.js
+```
 
 ## Validation without real payments
 

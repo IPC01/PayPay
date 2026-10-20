@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -7,9 +7,12 @@ import api from '../../services/api';
 function ApiKeys() {
   const [apiKeys, setApiKeys] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [newTokenModalOpen, setNewTokenModalOpen] = useState(false);
+  const [creationOpen, setCreationOpen] = useState(false);
+  const [newTokenVisible, setNewTokenVisible] = useState(false);
   const [confirmDeleteKey, setConfirmDeleteKey] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const headingRef = useRef(null);
   const [newToken, setNewToken] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -24,6 +27,11 @@ function ApiKeys() {
   const [kycLoading, setKycLoading] = useState(true);
   const { user, authRequest } = useAuth();
   const { notify } = useNotification();
+  const internalViewOpen = creationOpen || newTokenVisible || Boolean(confirmDeleteKey);
+
+  useEffect(() => {
+    if (internalViewOpen) headingRef.current?.focus();
+  }, [creationOpen, newTokenVisible, confirmDeleteKey, internalViewOpen]);
 
   useEffect(() => {
     async function init() {
@@ -109,6 +117,7 @@ function ApiKeys() {
 
   const handleCreateKey = async (e) => {
     e.preventDefault();
+    if (creating) return;
 
     if (formData.walletIds.length === 0) {
       notify({
@@ -120,6 +129,7 @@ function ApiKeys() {
     }
 
     try {
+      setCreating(true);
       const expiresAt = formData.expiresIn === 'never' 
         ? null 
         : new Date(Date.now() + parseInt(formData.expiresIn) * 24 * 60 * 60 * 1000);
@@ -132,8 +142,8 @@ function ApiKeys() {
       });
       
       setNewToken(response.token || response.bearerToken);
-      setModalOpen(false);
-      setNewTokenModalOpen(true);
+      setCreationOpen(false);
+      setNewTokenVisible(true);
       fetchApiKeys();
       setFormData({ name: '', scopes: [], walletIds: [], expiresIn: '30' });
     } catch (error) {
@@ -143,6 +153,8 @@ function ApiKeys() {
         title: 'Falha ao criar chave de acesso',
         message: error?.message || 'Verifique os dados e tente novamente.'
       });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -184,9 +196,10 @@ function ApiKeys() {
   };
 
   const handleConfirmDelete = async () => {
-    if (!confirmDeleteKey) return;
+    if (!confirmDeleteKey || deleting) return;
 
     try {
+      setDeleting(true);
       await api.delete(`/api/keys/${confirmDeleteKey.id}`);
       fetchApiKeys();
       notify({
@@ -203,6 +216,7 @@ function ApiKeys() {
       });
     } finally {
       setConfirmDeleteKey(null);
+      setDeleting(false);
     }
   };
 
@@ -269,6 +283,8 @@ function ApiKeys() {
 
   return (
     <div className="space-y-6">
+      {!internalViewOpen && (
+        <>
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -278,7 +294,7 @@ function ApiKeys() {
           </p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={() => setCreationOpen(true)}
           disabled={!walletsLoading && wallets.length === 0}
           className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 dark:shadow-brand-950"
         >
@@ -343,7 +359,7 @@ function ApiKeys() {
                       Nenhuma chave de acesso criada ainda
                     </p>
                     <button
-                      onClick={() => setModalOpen(true)}
+                      onClick={() => setCreationOpen(true)}
                       disabled={!walletsLoading && wallets.length === 0}
                       className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
@@ -427,17 +443,22 @@ function ApiKeys() {
         </div>
       </div>
 
-      {/* Modal de Criação */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg transform rounded-2xl bg-white shadow-2xl transition-all dark:bg-slate-800">
-            <div className="border-b border-slate-200 p-6 dark:border-slate-700">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+        </>
+      )}
+
+      {creationOpen && (
+          <section aria-labelledby="create-key-heading" className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 p-6 dark:border-slate-700">
+              <h1 id="create-key-heading" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-slate-900 dark:text-white">
                 Criar nova chave de acesso
-              </h3>
+              </h1>
+              <button type="button" disabled={creating} onClick={() => setCreationOpen(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300">
+                Voltar às chaves de acesso
+              </button>
             </div>
             
             <form onSubmit={handleCreateKey}>
+              <fieldset disabled={creating}>
               <div className="space-y-5 p-6">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -548,7 +569,7 @@ function ApiKeys() {
               <div className="flex gap-3 border-t border-slate-200 p-6 dark:border-slate-700">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => setCreationOpen(false)}
                   className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
                   Cancelar
@@ -557,20 +578,18 @@ function ApiKeys() {
                   type="submit"
                   className="flex-1 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700"
                 >
-                  Gerar chave
+                  {creating ? 'A gerar...' : 'Gerar chave'}
                 </button>
               </div>
+              </fieldset>
             </form>
-          </div>
-        </div>
+          </section>
       )}
 
-      {/* Modal de confirmação de exclusão */}
       {confirmDeleteKey && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg transform rounded-2xl bg-white shadow-2xl transition-all dark:bg-slate-800">
+          <section aria-labelledby="delete-key-heading" className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="border-b border-slate-200 p-6 dark:border-slate-700">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Confirmar exclusão</h3>
+              <h1 id="delete-key-heading" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-slate-900 dark:text-white">Confirmar exclusão</h1>
             </div>
             <div className="space-y-4 p-6">
               <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-900">
@@ -581,26 +600,25 @@ function ApiKeys() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDeleteKey(null)}
+                  disabled={deleting}
                   className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-700"
                 >
-                  Cancelar
+                  Voltar às chaves de acesso
                 </button>
                 <button
                   onClick={handleConfirmDelete}
+                  disabled={deleting}
                   className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-red-700"
                 >
-                  Confirmar exclusão
+                  {deleting ? 'A excluir...' : 'Confirmar exclusão'}
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
       )}
 
-      {/* Modal de Token Gerado com Alerta */}
-      {newTokenModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl transform rounded-2xl bg-white shadow-2xl transition-all dark:bg-slate-800">
+      {newTokenVisible && (
+          <section aria-labelledby="generated-key-heading" className="w-full rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="border-b border-slate-200 p-6 dark:border-slate-700">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
@@ -609,9 +627,9 @@ function ApiKeys() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                  <h1 id="generated-key-heading" ref={headingRef} tabIndex={-1} className="text-xl font-semibold text-slate-900 dark:text-white">
                     ⚠️ Chave de acesso gerada com sucesso!
-                  </h3>
+                  </h1>
                   <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                     Esta é a única vez que o token será exibido
                   </p>
@@ -673,16 +691,15 @@ function ApiKeys() {
             <div className="border-t border-slate-200 p-6 dark:border-slate-700">
               <button
                 onClick={() => {
-                  setNewTokenModalOpen(false);
+                  setNewTokenVisible(false);
                   setNewToken(null);
                 }}
                 className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700"
               >
-                Entendi, vou guardar o token
+                Guardei o token, voltar às chaves de acesso
               </button>
             </div>
-          </div>
-        </div>
+          </section>
       )}
     </div>
   );

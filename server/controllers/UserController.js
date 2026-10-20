@@ -1,12 +1,13 @@
 const bcrypt = require('bcryptjs');
 const { User, Role, Permission } = require('../models');
 const { saveBase64Image } = require('../helpers/imageStorage');
+const { isOperator } = require('../middleware/staffAccess');
 
-const CREATABLE_ROLE_NAMES = ['admin', 'user'];
+const CREATABLE_ROLE_NAMES = ['admin', 'user', 'operator'];
 
 class UserController {
 
-  // CRIAR USER (apenas perfis admin ou user)
+  // CRIAR USER
   async create(req, res) {
     try {
       const { name, email, password, roleName } = req.body;
@@ -19,7 +20,7 @@ class UserController {
 
       if (!CREATABLE_ROLE_NAMES.includes(roleName)) {
         return res.status(400).json({
-          error: 'Perfil inválido. Utilize "admin" ou "user"'
+          error: 'Perfil inválido. Utilize "admin", "user" ou "operator"'
         });
       }
 
@@ -72,6 +73,7 @@ class UserController {
         include: [
           {
             model: Role,
+            ...(isOperator(req.user) ? { where: { name: 'user' } } : {}),
             attributes: ['id', 'name'],
             include: [
               {
@@ -131,6 +133,15 @@ class UserController {
     try {
       const { id } = req.params;
       const { name, email, roleId, profilePhotoBase64, isActive } = req.body;
+      if (isActive !== undefined && typeof isActive !== 'boolean') {
+        return res.status(400).json({ error: 'isActive deve ser booleano' });
+      }
+      if (roleId !== undefined) {
+        const role = await Role.findByPk(roleId);
+        if (!role || !CREATABLE_ROLE_NAMES.includes(role.name)) {
+          return res.status(400).json({ error: 'Perfil inválido' });
+        }
+      }
 
       const user = await User.findByPk(id);
 

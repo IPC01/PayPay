@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { isAdmin, isStaff, managementPath } from '../../helpers/roles';
 
 function NotificationsPage() {
   const navigate = useNavigate();
@@ -69,13 +70,13 @@ function NotificationsPage() {
     const text = `${notification.title} ${notification.message}`.toLowerCase();
 
     if (text.includes('kyc')) {
-      return user?.roleId === 1 ? '/admin/kyc' : '/kyc';
+      return isStaff(user) ? managementPath(user, '/admin/kyc') : '/client/kyc';
     }
     if (text.includes('ticket')) {
-      return user?.roleId === 1 ? '/admin/tickets' : '/tickets';
+      return isStaff(user) ? managementPath(user, '/admin/tickets') : '/client/tickets';
     }
     if (text.includes('saque') || text.includes('withdrawal') || text.includes('retirada')) {
-      return user?.roleId === 1 ? '/admin/withdrawals' : '/withdrawals';
+      return isAdmin(user) ? '/admin/withdrawals' : isStaff(user) ? managementPath(user, '/admin/wallets') : '/client/withdrawals';
     }
     return '/';
   };

@@ -1,5 +1,4 @@
-﻿import { NavLink } from 'react-router-dom';
-import { apiUrl } from '../../services/api';
+import DashboardSidebar from '../../shared/components/DashboardSidebar';
 
 const navigation = [
   { 
@@ -54,85 +53,8 @@ const navigation = [
   }
 ];
 
-function Sidebar({ collapsed, setCollapsed, mobileOpen, setMobileOpen }) {
-  const navLinkClass = ({ isActive }) =>
-    `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-      isActive
-        ? 'bg-gray-800 text-white shadow-lg shadow-gray-200'
-        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-    } ${collapsed ? 'justify-center px-2' : ''}`;
-
-  return (
-    <>
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-      <aside
-        className={`fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-gray-200 bg-white shadow-lg transition-transform duration-300 md:transition-all md:translate-x-0 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${collapsed ? 'md:w-20' : 'md:w-72'}`}
-      >
-      <div className="flex h-full flex-col">
-        <div className="border-b border-gray-200 p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex h-10 w-[120px] items-center">
-              <img
-                src="/logo.png"
-                alt="Logo"
-                className="w-30 h-20"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setCollapsed(!collapsed)}
-              className="hidden md:inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-800"
-              aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
-            >
-              <svg className={`h-4 w-4 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileOpen(false)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:border-gray-400 hover:text-gray-800 md:hidden"
-              aria-label="Fechar menu"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-1 p-4">
-          {navigation.map((item) => (
-            <NavLink key={item.to} to={item.to} className={navLinkClass} end onClick={() => setMobileOpen(false)}>
-              <svg className="h-5 w-5 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-              </svg>
-              {!collapsed && <span>{item.label}</span>}
-            </NavLink>
-          ))}
-          <a
-            href={apiUrl('/docs')}
-            target="_blank"
-            rel="noreferrer"
-            className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-gray-100 hover:text-gray-900 ${collapsed ? 'justify-center px-2' : ''}`}
-          >
-            <svg className="h-5 w-5 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            {!collapsed && <span>Documentação</span>}
-          </a>
-        </nav>
-      </div>
-      </aside>
-    </>
-  );
+function Sidebar(props) {
+  return <DashboardSidebar navigation={navigation} {...props} />;
 }
 
 export default Sidebar;

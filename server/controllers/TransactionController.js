@@ -1,6 +1,7 @@
 ﻿const { Op } = require('sequelize');
 const { Transaction, Wallet, WalletType } = require('../models');
 const TransactionReversalService = require('../services/TransactionReversalService');
+const TransactionStatusService = require('../services/TransactionStatusService');
 
 class TransactionController {
 
@@ -96,6 +97,22 @@ class TransactionController {
       return res.status(result.success ? 200 : result.pending ? 202 : 400).json(result);
     } catch (error) {
       return res.status(error.statusCode || 500).json({ success: false, error: error.message, message: error.message });
+    }
+  }
+
+  async queryStatus(req, res) {
+    try {
+      const result = await TransactionStatusService.query({
+        transactionId: req.params.id,
+        userId: req.user.userId,
+        isAdmin: Boolean(req.isAdminTransactionStatus),
+        ip: req.ip,
+        userAgent: req.get('user-agent')
+      });
+      return res.status(result.pending ? 202 : 200).json(result);
+    } catch (error) {
+      console.error('TransactionController.queryStatus error:', error.message);
+      return res.status(error.statusCode || 500).json({ success: false, error: error.message });
     }
   }
 }

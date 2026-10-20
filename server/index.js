@@ -1,7 +1,7 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const express = require('express');
-const path = require('path');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const { DataTypes } = require('sequelize');
@@ -180,6 +180,7 @@ async function startServer() {
     }
 
     await sequelize.sync(syncOptions);
+    await require('./Seeders/rolesSeeder')();
     await ensureSettingsColumns();
     await ensureWithdrawalReferenceColumns();
 

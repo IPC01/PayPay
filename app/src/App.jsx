@@ -37,6 +37,7 @@ import HomePage from './public/pages/HomePage';
 import TarifasPage from './public/pages/TarifasPage';
 import TermosCondicaoPage from './public/pages/TermosCondicaoPage';
 import RequireAdmin from './shared/components/RequireAdmin';
+import { isStaff, managementPath } from './helpers/roles';
 
 function HomeRoute() {
   const { user, loading } = useAuth();
@@ -49,8 +50,8 @@ function HomeRoute() {
     return <Navigate to="/inicio" replace />;
   }
 
-  if (user?.roleId === 1) {
-    return <Navigate to="/admin" replace />;
+  if (isStaff(user)) {
+    return <Navigate to={managementPath(user)} replace />;
   }
 
   return <Navigate to="/client" replace />;
@@ -83,6 +84,23 @@ function App() {
             <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/home" element={<HomePage />} />
+          {[
+            ['', <AdminDashboard />],
+            ['users', <AdminUsers />],
+            ['wallets', <AdminWallets />],
+            ['transactions', <AdminTransactions />],
+            ['tickets', <AdminTickets />],
+            ['kyc', <AdminKyc />],
+            ['subscriptions', <AdminSubscriptions />],
+            ['profile', <Profile />],
+            ['notifications', <NotificationsPage />]
+          ].map(([path, page]) => (
+            <Route key={`operador-${path}`} path={`/operador${path ? `/${path}` : ''}`} element={<AdminRoute>{page}</AdminRoute>} />
+          ))}
+          {['users', 'wallets', 'kyc'].map((path) => (
+            <Route key={`operador-${path}-detail`} path={`/operador/${path}/:id`} element={<Navigate to={`/operador/${path}`} replace />} />
+          ))}
+          <Route path="/operador/*" element={<AdminRoute><Navigate to="/operador" replace /></AdminRoute>} />
           <Route path="/inicio" element={<HomePage />} />
           <Route path="/tarifas" element={<TarifasPage />} />
           <Route path="/termos-de-condicao" element={<TermosCondicaoPage />} />

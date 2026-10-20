@@ -16,7 +16,8 @@
     { "key": "apiKey", "value": "" },
     { "key": "amount", "value": "10" },
     { "key": "phone", "value": "258841234567" },
-    { "key": "reference", "value": "PAY-001" }
+    { "key": "reference", "value": "PAY-001" },
+    { "key": "transactionId", "value": "" }
   ],
   "item": [
     {
@@ -99,6 +100,16 @@
               "raw": "{\n  \"walletCode\": \"{{walletCode}}\",\n  \"amount\": {{amount}},\n  \"phone\": \"{{phone}}\",\n  \"reference\": \"B2C-LIVE\"\n}"
             },
             "url": "{{baseUrl}}/api/v1/mpesa/b2c"
+          }
+        },
+        {
+          "name": "Query transaction status",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/transactions/{{transactionId}}/status"
           }
         }
       ]

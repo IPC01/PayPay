@@ -4,6 +4,7 @@ import { assetUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useSettings } from '../../contexts/SettingsContext';
+import { isStaff, managementPath, roleLabel } from '../../helpers/roles';
 
 function normalizeImageUrl(url) {
   return assetUrl(url);
@@ -166,7 +167,7 @@ function Profile() {
         <div className="flex items-center gap-2 self-start sm:self-auto">
           <button
             type="button"
-            onClick={() => navigate('/client/notifications')}
+            onClick={() => navigate(isStaff(user) ? managementPath(user, '/admin/notifications') : '/client/notifications')}
             className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 transition hover:border-brand-300 hover:text-brand-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             aria-label="Abrir notificações"
             title="Notificações"
@@ -176,7 +177,7 @@ function Profile() {
             </svg>
           </button>
           <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-            {user?.role === 'admin' ? 'Administrador' : 'Utilizador'}
+            {roleLabel(user)}
           </div>
           <div className={`rounded-full px-3 py-1 text-xs font-medium ${kycStatus === 'APPROVED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'}`}>
             {kycStatus === 'APPROVED' ? 'KYC aprovado' : kycStatus ? `KYC ${kycStatus.toLowerCase()}` : 'KYC pendente'}

@@ -1,6 +1,7 @@
 const { Op } = require('sequelize');
 const { Subscription, Package, Transaction, User } = require('../models');
 const PaymentController = require('./PaymentController');
+const { generateReference } = require('../helpers/mpesaPayment');
 
 class SubscriptionController {
   constructor() {
@@ -82,7 +83,7 @@ class SubscriptionController {
       const expiresAt = new Date(now);
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      const reference = `SUB-${Date.now()}-${userId}`;
+      const reference = generateReference('SUB');
       const transaction = pack.isFree
         ? null
         : await this._processSubscriptionPayment({
@@ -135,7 +136,7 @@ class SubscriptionController {
         : now;
       expiresAt.setDate(expiresAt.getDate() + 30);
 
-      const reference = `SUB-RENEW-${Date.now()}-${userId}`;
+      const reference = generateReference('SUBRENEW');
       const transaction = pack.isFree
         ? null
         : await this._processSubscriptionPayment({

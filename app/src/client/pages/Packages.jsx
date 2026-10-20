@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { Check, X, Clock, Zap, Crown, Star, Gift, Shield, RefreshCw, Wallet, Package } from 'lucide-react';
@@ -43,16 +43,20 @@ function Packages() {
   const [loading, setLoading] = useState(true);
   const [subscribingId, setSubscribingId] = useState(null);
   const [autoRenew, setAutoRenew] = useState(true);
-  const [showModal, setShowModal] = useState(false);
   const [activePackage, setActivePackage] = useState(null);
   const [renewTarget, setRenewTarget] = useState(null);
-  const [modalStep, setModalStep] = useState(1);
+  const [subscriptionStep, setSubscriptionStep] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [paymentNumber, setPaymentNumber] = useState('');
+  const subscriptionHeadingRef = useRef(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (activePackage) subscriptionHeadingRef.current?.focus();
+  }, [activePackage]);
 
   const loadData = async () => {
     try {
@@ -65,8 +69,6 @@ function Packages() {
       setPackages(packagesData);
       setSubscriptions(subsData);
       setWalletTypes(walletTypesData);
-      const defaultTypeCode = walletTypesData[0]?.code?.toLowerCase() || '';
-      setPaymentMethod(defaultTypeCode);
     } catch (error) {
       notify({
         type: 'error',
@@ -81,11 +83,10 @@ function Packages() {
   const handleRenew = (sub) => {
     setRenewTarget(sub);
     setActivePackage(sub.Package || packages.find((pack) => pack.id === sub.packageId) || null);
-    setModalStep(2);
-    const defaultMethod = walletTypes[0]?.code?.toLowerCase() || '';
+    setSubscriptionStep(2);
+    const defaultMethod = paymentMethods[0]?.code || '';
     setPaymentMethod(defaultMethod);
     setPaymentNumber('');
-    setShowModal(true);
   };
 
   const subscriptionByPackage = useMemo(() => {
@@ -97,7 +98,7 @@ function Packages() {
 
   const paymentMethods = useMemo(() => {
     return walletTypes
-      .filter((type) => type.status)
+      .filter((type) => type.status && String(type.code).toLowerCase() === 'mpesa')
       .map((type) => ({
         code: String(type.code).toLowerCase(),
         label: type.name,
@@ -127,7 +128,7 @@ function Packages() {
     return (
       <div
         key={pack.id}
-        className={`group relative min-w-[320px] flex-1 overflow-hidden rounded-3xl border-2 p-6 transition-all duration-300 hover:shadow-xl ${
+        className={`group relative min-w-0 basis-full flex-1 overflow-hidden rounded-3xl border-2 p-6 transition-all duration-300 hover:shadow-xl sm:basis-72 ${
           status?.isActive
             ? 'border-emerald-500 bg-emerald-50/50 dark:border-emerald-400 dark:bg-emerald-900/20'
             : status?.isExpired
@@ -257,7 +258,7 @@ function Packages() {
           ) : (
             <button
               type="button"
-              onClick={() => openSubscribeModal(pack)}
+              onClick={() => openSubscription(pack)}
               disabled={subscribingId === pack.id || (!pack.isFree && !paymentMethods.length)}
               className={`inline-flex w-full items-center justify-center rounded-2xl px-5 py-3 text-sm font-semibold text-white transition-all duration-200 ${
                 subscribingId === pack.id
@@ -301,25 +302,23 @@ function Packages() {
     );
   };
 
-  const openSubscribeModal = (pack) => {
+  const openSubscription = (pack) => {
     setActivePackage(pack);
     setRenewTarget(null);
-    setModalStep(1);
-    const defaultMethod = walletTypes[0]?.code?.toLowerCase() || '';
+    setSubscriptionStep(1);
+    const defaultMethod = paymentMethods[0]?.code || '';
     setPaymentMethod(defaultMethod);
     setPaymentNumber('');
-    setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
+  const closeSubscription = () => {
     setActivePackage(null);
     setRenewTarget(null);
-    setModalStep(1);
+    setSubscriptionStep(1);
   };
 
   const handleConfirmSubscription = async () => {
-    if (!activePackage) return;
+    if (!activePackage || subscribingId !== null) return;
     if (!activePackage.isFree) {
       if (!paymentMethod) {
         notify({
@@ -372,7 +371,7 @@ function Packages() {
             : `Subscrito no pacote ${activePackage.name} com sucesso.`
         });
       }
-      closeModal();
+      closeSubscription();
       await loadData();
     } catch (error) {
       notify({
@@ -387,6 +386,8 @@ function Packages() {
 
   return (
     <div className="space-y-6">
+      {!activePackage && (
+        <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-brand-600">Cliente</p>
@@ -398,7 +399,7 @@ function Packages() {
       </div>
 
       <div className="flex flex-wrap gap-6">
-        <div className="flex-1 min-w-[320px] rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="min-w-0 flex-1 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Escolha um pacote</h2>
           
           {loading ? (
@@ -429,25 +430,27 @@ function Packages() {
           )}
         </div>
       </div>
-      {showModal && activePackage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900 dark:text-white">
+        </>
+      )}
+      {activePackage && (
+        <section aria-label="Subscrição do pacote" className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-white">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-2xl font-semibold">{renewTarget ? 'Renovação' : 'Subscrição'}: {activePackage.name}</h3>
+                <h1 ref={subscriptionHeadingRef} tabIndex={-1} className="text-2xl font-semibold">{renewTarget ? 'Renovação' : 'Subscrição'}: {activePackage.name}</h1>
                 <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Complete os passos abaixo para pagar diretamente na API de pagamentos.</p>
               </div>
               <button
                 type="button"
-                onClick={closeModal}
-                className="rounded-full border border-slate-200 bg-slate-100 p-2 text-slate-700 transition hover:bg-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                onClick={closeSubscription}
+                disabled={subscribingId !== null}
+                className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-200 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               >
-                <X className="h-4 w-4" />
+                Voltar aos pacotes
               </button>
             </div>
 
             <div className="mt-6 space-y-6">
-              {modalStep === 1 ? (
+              {subscriptionStep === 1 ? (
                 <div className="space-y-4">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-700 dark:bg-slate-950">
                     <div className="flex items-center gap-4">
@@ -536,7 +539,7 @@ function Packages() {
                         </div>
                       ) : (
                         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-700 dark:bg-rose-900/20 dark:text-rose-200">
-                          Não há tipos de carteira configurados no sistema para determinar os métodos de pagamento disponíveis.
+                          Não há um método M-Pesa ativo configurado para pagar a subscrição.
                         </div>
                       )}
 
@@ -551,6 +554,9 @@ function Packages() {
                         />
                         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                           Será enviado um pedido de pagamento M-Pesa para este número.
+                        </p>
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          A referência é gerada automaticamente pela API: 20 letras e números, sem hífens.
                         </p>
                       </div>
                     </div>
@@ -573,23 +579,24 @@ function Packages() {
               <button
                 type="button"
                 onClick={() => {
-                  if (modalStep > 1) {
-                    setModalStep(modalStep - 1);
+                  if (subscriptionStep > 1) {
+                    setSubscriptionStep(subscriptionStep - 1);
                   } else {
-                    closeModal();
+                    closeSubscription();
                   }
                 }}
+                disabled={subscribingId !== null}
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
               >
-                {modalStep > 1 ? 'Voltar' : 'Cancelar'}
+                {subscriptionStep > 1 ? 'Voltar' : 'Cancelar'}
               </button>
               <button
                 type="button"
-                onClick={modalStep === 1 ? () => setModalStep(2) : handleConfirmSubscription}
-                disabled={modalStep === 2 && !activePackage.isFree && (!paymentNumber.trim() || !paymentMethod)}
+                onClick={subscriptionStep === 1 ? () => setSubscriptionStep(2) : handleConfirmSubscription}
+                disabled={subscribingId !== null || (subscriptionStep === 2 && !activePackage.isFree && (!paymentNumber.trim() || !paymentMethod))}
                 className="inline-flex items-center justify-center rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {modalStep === 1
+                {subscriptionStep === 1
                   ? 'Próximo'
                   : subscribingId
                     ? 'A processar...'
@@ -598,11 +605,10 @@ function Packages() {
                       : 'Pagar agora'}
               </button>
             </div>
-          </div>
-        </div>
+        </section>
       )}
 
-      {/* Lista de subscrições */}
+      {!activePackage && (
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">As suas subscrições</h2>
         {subscriptions.length === 0 ? (
@@ -632,6 +638,9 @@ function Packages() {
                       <div className="mt-1 space-y-0.5 text-sm text-slate-600 dark:text-slate-300">
                         <p>Início: {formatDate(sub.startedAt)}</p>
                         <p>Expira: {formatDate(sub.expiresAt)}</p>
+                        {sub.PaymentTransaction && (
+                          <p className="break-all">Referência do pagamento: {sub.PaymentTransaction.reference}</p>
+                        )}
                       </div>
                     </div>
                     <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
@@ -675,6 +684,7 @@ function Packages() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

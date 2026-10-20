@@ -60,13 +60,6 @@ class SettingsController {
         return res.status(400).json({ error: 'O custo do saque deve ser um valor não negativo com até duas casas decimais.' });
       }
       const payload = {
-        platformName: req.body.platformName || '',
-        logoImg: req.body.logoImg || null,
-        contacts: req.body.contacts || null,
-        address: req.body.address || null,
-        emails: req.body.emails || null,
-        ownerName: req.body.ownerName || null,
-        additionalInfo: req.body.additionalInfo || null,
         withdrawalFeeAmount,
         withdrawalMinValue: Number.isFinite(parseFloat(req.body.withdrawalMinValue)) ? parseFloat(req.body.withdrawalMinValue) : 0.0,
         withdrawalMaxValue: Number.isFinite(parseFloat(req.body.withdrawalMaxValue)) ? parseFloat(req.body.withdrawalMaxValue) : 0.0

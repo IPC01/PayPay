@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
-const { Wallet, WalletType, Notification } = require('../models');
+const { Wallet, WalletType, Notification, User, Role } = require('../models');
+const { isAdmin, isOperator, isStaff } = require('../middleware/staffAccess');
 const generateUniqueCode = require('../helpers/generateCode');
 const { createAuditLog } = require('../helpers/auditLogger');
 const { hasApprovedKyc } = require('../helpers/kycHelper');
@@ -156,7 +157,7 @@ class WalletController {
         return res.status(404).json({ error: 'Wallet not found' });
       }
 
-      if (req.user.roleId !== 1 && wallet.userId !== userId) {
+      if (!isStaff(req.user) && wallet.userId !== userId) {
         return res.status(403).json({ error: 'Not authorized to view this wallet' });
       }
 
@@ -173,7 +174,7 @@ class WalletController {
       const { id } = req.params;
       const { walletName, walletTypeId, currency, status, isActive, allowC2B, allowB2C, allowWithdraw } = req.body;
 
-      const where = req.user.roleId === 1 ? { id } : { id, userId };
+      const where = isAdmin(req.user) ? { id } : { id, userId };
       const wallet = await Wallet.findOne({ where });
 
       if (!wallet) {
@@ -307,7 +308,16 @@ class WalletController {
         });
       }
 
-      if (req.user.roleId !== 1 && wallet.userId !== userId) {
+      if (isOperator(req.user)) {
+        const owner = await User.findByPk(wallet.userId, { include: [{ model: Role }] });
+        if (owner?.Role?.name !== 'user' || !['ACTIVE', 'FROZEN'].includes(status) || wallet.status === 'CLOSED') {
+          return res.status(403).json({ error: 'O operador só pode bloquear ou desbloquear carteiras de clientes não encerradas' });
+        }
+        if (Object.keys(req.body).some((key) => key !== 'status')) {
+          return res.status(403).json({ error: 'O operador só pode alterar o estado da carteira' });
+        }
+      }
+      if (!isStaff(req.user) && wallet.userId !== userId) {
         return res.status(403).json({
           error: 'Not authorized to update this wallet'
         });
@@ -329,7 +339,7 @@ class WalletController {
         await Notification.create({
           userId: wallet.userId,
           title: 'Carteira desativada',
-          message: `A sua carteira ${wallet.walletCode} foi desativada pelo administrador.`,
+          message: `A sua carteira ${wallet.walletCode} foi desativada pela equipa de assistência.`,
           type: 'warning'
         });
       }

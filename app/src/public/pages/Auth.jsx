@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { request } from '../../services/api';
+import { isStaff, managementPath, postLoginRoute } from '../../helpers/roles';
 
 // ============================================
 // COMPONENTES REUTILIZÁVEIS
@@ -121,23 +122,6 @@ function LoginView() {
     }
   }, []);
 
-  const resolvePostLoginRoute = (requestedPath, roleId) => {
-    const safePath = requestedPath && requestedPath !== '/login' ? requestedPath : '/client';
-
-    if (roleId === 1) {
-      if (safePath.startsWith('/admin')) {
-        return safePath;
-      }
-      return '/admin';
-    }
-
-    if (roleId !== 1 && safePath.startsWith('/admin')) {
-      return '/client';
-    }
-
-    return safePath;
-  };
-
   const handleSubmit = async e => {
     e.preventDefault();
     setError(null);
@@ -159,7 +143,7 @@ function LoginView() {
       // O 2FA de login está temporariamente comentado para os testes.
       const userData = await login(email, password);
       const requestedPath = location.state?.from?.pathname || '/client';
-      const destination = resolvePostLoginRoute(requestedPath, userData?.roleId);
+      const destination = postLoginRoute(userData, requestedPath);
       navigate(destination, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -391,7 +375,7 @@ function RegisterView() {
 
       setSuccess('Conta registada com sucesso! Redirecionando...');
 
-      const destination = userData?.roleId === 1 ? '/admin' : '/client/profile';
+      const destination = isStaff(userData) ? managementPath(userData) : '/client/profile';
       setTimeout(() => navigate(destination, { replace: true }), 1500);
     } catch (err) {
       setError(err.message);

@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
-import { canReverseTransaction, reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
+import { reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
+import { transactionStatusNotification } from '../../helpers/transactionStatus';
+import TransactionDetails from '../../shared/components/TransactionDetails';
 
 function Transactions({ adminView = false }) {
   const { authRequest } = useAuth();
@@ -12,8 +14,10 @@ function Transactions({ adminView = false }) {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
   const [reversingId, setReversingId] = useState(null);
+  const [queryingStatusId, setQueryingStatusId] = useState(null);
+  const [queryResult, setQueryResult] = useState(null);
+  const [queryError, setQueryError] = useState(null);
 
   useEffect(() => {
     loadTransactions();
@@ -25,6 +29,7 @@ function Transactions({ adminView = false }) {
       const endpoint = adminView ? '/api/admin/transactions' : '/api/transactions';
       const data = await authRequest(endpoint);
       setTransactions(data);
+      setSelectedTransaction((current) => current ? data.find((tx) => tx.id === current.id) || current : null);
     } catch (err) {
       console.error(err);
       notify({
@@ -44,7 +49,6 @@ function Transactions({ adminView = false }) {
       const endpoint = adminView ? `/api/admin/transactions/${tx.id}/reverse` : `/api/transactions/${tx.id}/reverse`;
       const result = await authRequest(endpoint, { method: 'POST' });
       notify(reversalResultNotification(result));
-      setModalOpen(false);
       await loadTransactions();
     } catch (err) {
       notify({
@@ -55,6 +59,34 @@ function Transactions({ adminView = false }) {
       await loadTransactions();
     } finally {
       setReversingId(null);
+    }
+  };
+
+  const queryTransactionStatus = async (tx) => {
+    try {
+      setQueryingStatusId(tx.id);
+      setQueryError(null);
+      setQueryResult(null);
+      const endpoint = adminView ? `/api/admin/transactions/${tx.id}/status` : `/api/transactions/${tx.id}/status`;
+      const result = await authRequest(endpoint);
+      setQueryResult(result);
+      setTransactions((current) => current.map((transaction) => (
+        transaction.id === tx.id ? { ...transaction, status: result.status } : transaction
+      )));
+      setSelectedTransaction((current) => (
+        current?.id === tx.id ? { ...current, status: result.status } : current
+      ));
+      notify(transactionStatusNotification(result));
+      await loadTransactions();
+    } catch (err) {
+      setQueryError(err.message || 'Não foi possível consultar o estado. Tente novamente mais tarde.');
+      notify({
+        type: 'error',
+        title: 'Não foi possível consultar o estado',
+        message: err.message || 'Tente novamente mais tarde.'
+      });
+    } finally {
+      setQueryingStatusId(null);
     }
   };
 
@@ -191,6 +223,21 @@ function Transactions({ adminView = false }) {
       second: '2-digit'
     });
   };
+
+  if (selectedTransaction) {
+    return (
+      <TransactionDetails
+        transaction={selectedTransaction}
+        queryResult={queryResult}
+        queryError={queryError}
+        querying={queryingStatusId === selectedTransaction.id}
+        reversing={reversingId === selectedTransaction.id}
+        onQuery={queryTransactionStatus}
+        onReverse={reverseTransaction}
+        onBack={() => setSelectedTransaction(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -396,7 +443,8 @@ function Transactions({ adminView = false }) {
                     className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
                     onClick={() => {
                       setSelectedTransaction(tx);
-                      setModalOpen(true);
+                      setQueryResult(null);
+                      setQueryError(null);
                     }}
                   >
                     <td className="whitespace-nowrap px-6 py-4">
@@ -430,10 +478,17 @@ function Transactions({ adminView = false }) {
                       {formatDate(tx.createdAt)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <button className="text-brand-600 hover:text-brand-700 dark:text-brand-400">
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedTransaction(tx);
+                          setQueryResult(null);
+                          setQueryError(null);
+                        }}
+                        className="text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                      >
+                        Ver detalhes / Ações
                       </button>
                     </td>
                   </tr>
@@ -444,148 +499,6 @@ function Transactions({ adminView = false }) {
         </div>
       </div>
 
-      {/* Modal de Detalhes da Transação */}
-      {modalOpen && selectedTransaction && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
-          <div className="relative w-full max-w-2xl transform rounded-2xl bg-white shadow-2xl transition-all dark:bg-slate-800">
-            <div className="border-b border-slate-200 p-6 dark:border-slate-700">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                  Detalhes da Transação
-                </h3>
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
-                >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-6 p-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    ID da Transação
-                  </label>
-                  <p className="mt-1 font-mono text-sm text-slate-900 dark:text-white">
-                    {selectedTransaction.id}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Status
-                  </label>
-                  <div className="mt-1">
-                    {getStatusBadge(selectedTransaction.status)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Tipo
-                  </label>
-                  <div className="mt-1">
-                    {getTransactionType(selectedTransaction.type)}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Montante
-                  </label>
-                  <p className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">
-                    {formatCurrency(selectedTransaction.amount)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Carteira
-                  </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
-                    {selectedTransaction.walletCode || selectedTransaction.wallet?.code || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Taxa
-                  </label>
-                  <p className="mt-1 text-sm text-slate-900 dark:text-white">
-                    {selectedTransaction.fee ? formatCurrency(selectedTransaction.fee) : 'N/A'}
-                  </p>
-                </div>
-              </div>
-
-              {selectedTransaction.description && (
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Descrição
-                  </label>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                    {selectedTransaction.description}
-                  </p>
-                </div>
-              )}
-
-              {selectedTransaction.reference && (
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Referência
-                  </label>
-                  <p className="mt-1 font-mono text-sm text-slate-700 dark:text-slate-300">
-                    {selectedTransaction.reference}
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                    Data de Criação
-                  </label>
-                  <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                    {formatDate(selectedTransaction.createdAt)}
-                  </p>
-                </div>
-                {selectedTransaction.updatedAt && (
-                  <div>
-                    <label className="text-xs font-medium uppercase text-slate-500 dark:text-slate-400">
-                      Última Atualização
-                    </label>
-                    <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">
-                      {formatDate(selectedTransaction.updatedAt)}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 border-t border-slate-200 p-6 dark:border-slate-700">
-              {canReverseTransaction(selectedTransaction) && (
-                <button
-                  onClick={() => reverseTransaction(selectedTransaction)}
-                  disabled={reversingId === selectedTransaction.id}
-                  className="w-full rounded-xl border border-purple-300 px-4 py-2.5 text-sm font-medium text-purple-700 transition hover:bg-purple-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-900/20"
-                >
-                  {reversingId === selectedTransaction.id ? 'A estornar...' : 'Estornar'}
-                </button>
-              )}
-              <button
-                onClick={() => setModalOpen(false)}
-                className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

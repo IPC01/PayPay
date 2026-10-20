@@ -17,7 +17,7 @@ async function seedRolePermissions() {
       'transaction:b2c'
     ],
 
-    support: [],
+    operator: [],
 
     admin: [
       'admin:all'

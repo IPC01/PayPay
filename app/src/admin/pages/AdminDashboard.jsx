@@ -20,12 +20,13 @@ import {
   RadialBar
 } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
+import { managementPath } from '../../helpers/roles';
 
 const DEFAULT_GROWTH = [8, 14, 18, 25, 32, 42, 51];
 const DEFAULT_TRANSACTIONS = [4, 6, 5, 9, 11, 13, 16];
 
 function AdminDashboard() {
-  const { authRequest } = useAuth();
+  const { authRequest, user } = useAuth();
   const [stats, setStats] = useState(null);
   const [packageStats, setPackageStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,13 +135,13 @@ function AdminDashboard() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
-            to="/admin/users"
+            to={managementPath(user, '/admin/users')}
             className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
           >
             Ver utilizadores
           </Link>
           <Link
-            to="/admin/wallets"
+            to={managementPath(user, '/admin/wallets')}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
           >
             Ver carteiras

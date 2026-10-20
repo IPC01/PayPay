@@ -1,5 +1,5 @@
 const { Op } = require('sequelize');
-const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage, Subscription, Package } = require('../models');
+const { User, Wallet, WalletType, Transaction, Ticket, TicketMessage, Subscription, Package, Role } = require('../models');
 
 class AdminController {
   async getStats(req, res) {
@@ -77,12 +77,44 @@ class AdminController {
           },
           {
             model: User,
-            attributes: ['id', 'name', 'email']
+            attributes: ['id', 'name', 'email'],
+            include: [{ model: Role, attributes: ['name'] }]
           }
         ]
       });
 
       return res.json(wallets);
+    } catch (error) {
+      return res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getWalletTransactions(req, res) {
+    try {
+      const wallet = await Wallet.findByPk(req.params.id, {
+        include: [
+          { model: WalletType, attributes: ['code', 'name', 'provider', 'imageUrl'] },
+          { model: User, attributes: ['id', 'name', 'email'] }
+        ]
+      });
+      if (!wallet) return res.status(404).json({ error: 'Carteira não encontrada' });
+
+      const associations = [{ fromWalletId: wallet.id }, { toWalletId: wallet.id }];
+      if (wallet.walletCode) associations.push({ walletCode: wallet.walletCode });
+      const transactions = await Transaction.findAll({
+        where: { [Op.or]: associations },
+        order: [['createdAt', 'DESC']]
+      });
+      return res.json(transactions.map((transaction) => ({
+        ...transaction.toJSON(),
+        walletInfo: {
+          walletTypeCode: wallet.WalletType?.code,
+          walletTypeName: wallet.WalletType?.name,
+          walletTypeProvider: wallet.WalletType?.provider,
+          walletTypeImageUrl: wallet.WalletType?.imageUrl,
+          user: wallet.User ? { id: wallet.User.id, name: wallet.User.name, email: wallet.User.email } : null
+        }
+      })));
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }

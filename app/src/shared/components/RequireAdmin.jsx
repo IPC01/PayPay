@@ -1,8 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { canAccessManagement, managementPath } from '../../helpers/roles';
 
 function RequireAdmin({ children }) {
   const { user, loading } = useAuth();
+  const { pathname, search, hash } = useLocation();
 
   if (loading) {
     return (
@@ -19,13 +21,18 @@ function RequireAdmin({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.roleId !== 1) {
+  const destination = managementPath(user, pathname);
+  if (destination !== pathname && canAccessManagement(user, destination)) {
+    return <Navigate to={`${destination}${search}${hash}`} replace />;
+  }
+
+  if (!canAccessManagement(user, pathname)) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center text-slate-900 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-slate-100">
         <p className="text-sm uppercase tracking-[0.3em] text-rose-600 dark:text-rose-300">Acesso restrito</p>
-        <h1 className="mt-4 text-3xl font-semibold">Permissão de Administrador Necessária</h1>
+        <h1 className="mt-4 text-3xl font-semibold">Acesso não autorizado</h1>
         <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-          Esta área é reservada apenas para contas administrativas. Se acha que isto é um erro, contacte um administrador.
+          O seu perfil não tem permissão para aceder a esta página. Contacte um administrador se precisar de assistência.
         </p>
       </div>
     );

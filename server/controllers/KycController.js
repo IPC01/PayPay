@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const { Kyc, KycDocument, User, Notification } = require('../models');
+const { Op } = require('sequelize');
+const { Role } = require('../models');
 
 async function saveKycFile(base64, filename) {
   if (!base64) return null;
@@ -164,7 +166,7 @@ class KycController {
         rejectionReason: null
       });
 
-      const admins = await User.findAll({ where: { roleId: 1 } });
+      const admins = await User.findAll({ include: [{ model: Role, where: { name: { [Op.in]: ['admin', 'operator', 'support'] } } }] });
       await Promise.all(admins.map((admin) =>
         Notification.create({
           userId: admin.id,
@@ -287,7 +289,7 @@ class KycController {
       await kyc.update({
         status,
         approvedAt: status === 'APPROVED' ? new Date() : null,
-        reviewer: req.user.name || `admin-${req.user.userId}`,
+        reviewer: req.user.name || `${req.user.roleName}-${req.user.userId}`,
         rejectionReason: status === 'REJECTED' ? rejectionReason || null : null
       });
 

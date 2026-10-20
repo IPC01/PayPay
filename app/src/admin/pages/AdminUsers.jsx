@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { isAdmin, isOperator, roleLabel } from '../../helpers/roles';
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-PT', {
@@ -12,6 +13,7 @@ const EMPTY_FORM = { name: '', email: '', password: '', roleName: 'user' };
 
 function AdminUsers() {
   const { authRequest, user: currentUser } = useAuth();
+  const canCreate = isAdmin(currentUser);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -35,6 +37,7 @@ function AdminUsers() {
           user.name || '',
           user.email || '',
           user.Role?.name || '',
+          roleLabel(user),
           user.isActive ? 'ativo' : 'bloqueado'
         ];
         return !query || fields.join(' ').toLowerCase().includes(query);
@@ -77,6 +80,7 @@ function AdminUsers() {
   const openCreateForm = () => {
     setCreateForm(EMPTY_FORM);
     setCreateError('');
+    setShowDetail(false);
     setShowCreateForm(true);
   };
 
@@ -106,7 +110,8 @@ function AdminUsers() {
     }
   };
 
-  const toggleUserStatus = async (user) => {
+  const toggleUserStatus = async (event, user) => {
+    if (event) event.stopPropagation();
     if (user.id === currentUser?.id && user.isActive) {
       setFeedback('Não é possível bloquear a sua própria conta.');
       return;
@@ -124,7 +129,9 @@ function AdminUsers() {
       setUsers((current) =>
         current.map((item) => (item.id === user.id ? { ...item, isActive: response.user.isActive } : item))
       );
-      setFeedback(`Usuário ${response.user.name} foi ${response.user.isActive ? 'ativado' : 'bloqueado'} com sucesso.`);
+      setFeedback(
+        `Usuário ${response.user.name} foi ${response.user.isActive ? 'ativado' : 'bloqueado'} com sucesso.`
+      );
     } catch (err) {
       console.error(err);
       setFeedback('Não foi possível atualizar o estado do utilizador.');
@@ -135,7 +142,9 @@ function AdminUsers() {
 
   const openUserDetails = async (user) => {
     try {
+      setShowCreateForm(false);
       setDetailLoading(true);
+      setSelectedUserDetail(null);
       setShowDetail(true);
       const [userData, walletData, transactionData] = await Promise.all([
         authRequest(`/api/users/${user.id}`),
@@ -162,20 +171,27 @@ function AdminUsers() {
     setSelectedUserDetail(null);
   };
 
-  // Renderiza o formulário de criação inline
+  const handleRowKeyDown = (event, user) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openUserDetails(user);
+    }
+  };
+
+  // Formulário de criação
   const renderCreateForm = () => (
-    <div className="rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-sm">
+    <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-6 shadow-sm">
       <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Adicionar Utilizador</h2>
+        <div className="min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Adicionar Utilizador</h2>
           <p className="mt-1 text-sm text-gray-500">Preencha os dados para criar um novo utilizador</p>
         </div>
         <button
           type="button"
           onClick={closeCreateForm}
-          className="rounded-full border border-gray-300 p-2 text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+          className="shrink-0 rounded-full border border-gray-300 p-2 text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Fechar formulário"
         >
-          <span className="sr-only">Fechar</span>
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -228,8 +244,9 @@ function AdminUsers() {
               onChange={(event) => setCreateForm((prev) => ({ ...prev, roleName: event.target.value }))}
               className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-gray-700 focus:ring-2 focus:ring-gray-700/20"
             >
-              <option value="user">Utilizador</option>
+              <option value="user">Cliente</option>
               <option value="admin">Administrador</option>
+              <option value="operator">Operador</option>
             </select>
           </div>
         </div>
@@ -240,7 +257,7 @@ function AdminUsers() {
           </div>
         )}
 
-        <div className="flex justify-end gap-3 pt-2">
+        <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={closeCreateForm}
@@ -260,23 +277,23 @@ function AdminUsers() {
     </div>
   );
 
-  // Renderiza os detalhes do usuário inline
+  // Detalhes do utilizador
   const renderUserDetails = () => (
-    <div className="rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-sm">
+    <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-4 sm:p-6 shadow-sm">
       <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-200 pb-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.32em] text-gray-500">Detalhes</p>
-          <h2 className="mt-2 text-2xl font-bold text-gray-900">
+          <h2 className="mt-2 truncate text-xl sm:text-2xl font-bold text-gray-900">
             {selectedUserDetail?.user?.name || 'Utilizador'}
           </h2>
-          <p className="mt-1 text-sm text-gray-500">{selectedUserDetail?.user?.email}</p>
+          <p className="mt-1 truncate text-sm text-gray-500">{selectedUserDetail?.user?.email}</p>
         </div>
         <button
           type="button"
           onClick={closeUserDetails}
-          className="rounded-full border border-gray-300 p-2 text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+          className="shrink-0 rounded-full border border-gray-300 p-2 text-gray-500 transition-all duration-200 hover:bg-gray-100 hover:text-gray-700"
+          aria-label="Fechar detalhes"
         >
-          <span className="sr-only">Fechar</span>
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -287,10 +304,10 @@ function AdminUsers() {
         <div className="py-10 text-center text-gray-500">A carregar detalhes do utilizador...</div>
       ) : selectedUserDetail ? (
         <div className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
             <div className="rounded-2xl border border-gray-200 bg-white p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Perfil</p>
-              <p className="mt-2 text-sm font-semibold text-gray-900">{selectedUserDetail.user?.Role?.name || 'N/A'}</p>
+              <p className="mt-2 text-sm font-semibold text-gray-900">{roleLabel(selectedUserDetail.user)}</p>
             </div>
             <div className="rounded-2xl border border-gray-200 bg-white p-4">
               <p className="text-xs uppercase tracking-[0.24em] text-gray-500">Carteiras</p>
@@ -307,7 +324,7 @@ function AdminUsers() {
             {selectedUserDetail.wallets.length === 0 ? (
               <p className="mt-3 text-sm text-gray-500">Sem carteiras para este utilizador.</p>
             ) : (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid gap-3 grid-cols-1 sm:grid-cols-2">
                 {selectedUserDetail.wallets.slice(0, 6).map((wallet) => (
                   <div key={wallet.id} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
                     <p className="text-xs text-gray-500">{wallet.code || wallet.walletCode || 'Carteira'}</p>
@@ -325,9 +342,16 @@ function AdminUsers() {
             ) : (
               <div className="mt-3 space-y-2">
                 {selectedUserDetail.transactions.slice(0, 8).map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                    <span className="text-gray-600">{transaction.reference || transaction.walletCode || `TX-${transaction.id}`}</span>
-                    <span className="font-semibold text-gray-900">{formatCurrency(transaction.amount)}</span>
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm"
+                  >
+                    <span className="truncate text-gray-600">
+                      {transaction.reference || transaction.walletCode || `TX-${transaction.id}`}
+                    </span>
+                    <span className="shrink-0 font-semibold text-gray-900">
+                      {formatCurrency(transaction.amount)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -342,21 +366,25 @@ function AdminUsers() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Gestão de Utilizadores</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            {isOperator(currentUser) ? 'Clientes' : 'Gestão de Utilizadores'}
+          </h1>
           <p className="mt-2 text-sm text-gray-500">
             Liste e analise todos os utilizadores registados no sistema.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openCreateForm}
-          className="inline-flex items-center justify-center rounded-xl bg-gray-800 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-gray-800/20 transition-all duration-200 hover:bg-gray-900 hover:shadow-lg hover:shadow-gray-800/30"
-        >
-          <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Adicionar Utilizador
-        </button>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={openCreateForm}
+            className="inline-flex items-center justify-center rounded-xl bg-gray-800 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-gray-800/20 transition-all duration-200 hover:bg-gray-900 hover:shadow-lg hover:shadow-gray-800/30"
+          >
+            <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Adicionar Utilizador
+          </button>
+        )}
       </div>
 
       {feedback && (
@@ -365,13 +393,13 @@ function AdminUsers() {
         </div>
       )}
 
-      {showCreateForm && renderCreateForm()}
+      {canCreate && showCreateForm && renderCreateForm()}
 
       {showDetail && renderUserDetails()}
 
       {!showCreateForm && !showDetail && (
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="mb-6 grid gap-4 sm:grid-cols-[1fr_auto]">
+        <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <input
               type="text"
               value={search}
@@ -379,105 +407,182 @@ function AdminUsers() {
               placeholder="Pesquisar por nome, email, perfil ou estado"
               className="w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-900 outline-none transition-all duration-200 focus:border-gray-700 focus:ring-2 focus:ring-gray-700/20 focus:bg-white"
             />
-            <div className="inline-flex items-center gap-2 text-sm text-gray-500">
-              <span>Ordenar:</span>
-              <button
-                type="button"
-                onClick={() => setSortField('name')}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  sortBy === 'name' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Nome
-              </button>
-              <button
-                type="button"
-                onClick={() => setSortField('email')}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  sortBy === 'email' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Email
-              </button>
-              <button
-                type="button"
-                onClick={() => setSortField('createdAt')}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
-                  sortBy === 'createdAt' ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Data
-              </button>
+            <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+              <span className="hidden sm:inline">Ordenar:</span>
+              {[
+                { key: 'name', label: 'Nome' },
+                { key: 'email', label: 'Email' },
+                { key: 'createdAt', label: 'Data' }
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSortField(key)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-200 ${
+                    sortBy === key ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 text-left text-xs uppercase tracking-[0.2em] text-gray-500">
-                <tr>
-                  <th className="px-6 py-4">Nome</th>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Perfil</th>
-                  <th className="px-6 py-4">Estado</th>
-                  <th className="px-6 py-4">Criado em</th>
-                  <th className="px-6 py-4 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white text-sm">
-                {loading ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">A carregar utilizadores...</td>
-                  </tr>
-                ) : filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500">Nenhum utilizador encontrado.</td>
-                  </tr>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-150">
-                      <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
-                      <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                      <td className="px-6 py-4 text-gray-600">{user.Role?.name || 'N/A'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          user.isActive 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {user.isActive ? 'Ativo' : 'Bloqueado'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">{new Date(user.createdAt).toLocaleDateString('pt-PT')}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex flex-wrap items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openUserDetails(user)}
-                            className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50"
-                          >
-                            Ver
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => toggleUserStatus(user)}
-                            disabled={actionLoading === user.id || (user.id === currentUser?.id && user.isActive)}
-                            title={user.id === currentUser?.id && user.isActive ? 'Não é possível bloquear a sua própria conta' : undefined}
-                            className={`rounded-xl px-3 py-2 text-xs font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
-                              user.isActive 
-                                ? 'bg-red-600 hover:bg-red-700' 
-                                : 'bg-emerald-600 hover:bg-emerald-700'
+          {/* Tabela em desktop / Cards em mobile */}
+          {loading ? (
+            <div className="py-10 text-center text-gray-500">A carregar utilizadores...</div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="py-10 text-center text-gray-500">Nenhum utilizador encontrado.</div>
+          ) : (
+            <>
+              {/* Vista de tabela (md+) */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 text-left text-xs uppercase tracking-[0.2em] text-gray-500">
+                    <tr>
+                      <th className="px-6 py-4">Nome</th>
+                      <th className="px-6 py-4">Email</th>
+                      <th className="px-6 py-4">Perfil</th>
+                      <th className="px-6 py-4">Estado</th>
+                      <th className="px-6 py-4">Criado em</th>
+                      <th className="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white text-sm">
+                    {filteredUsers.map((user) => (
+                      <tr
+                        key={user.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => openUserDetails(user)}
+                        onKeyDown={(event) => handleRowKeyDown(event, user)}
+                        className="cursor-pointer transition-colors duration-150 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-gray-700/20"
+                      >
+                        <td className="px-6 py-4 font-medium text-gray-900">{user.name}</td>
+                        <td className="px-6 py-4 text-gray-600">{user.email}</td>
+                        <td className="px-6 py-4 text-gray-600">{roleLabel(user)}</td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                              user.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
                             }`}
                           >
-                            {actionLoading === user.id ? 'A processar...' : user.isActive ? 'Bloquear' : 'Ativar'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                            {user.isActive ? 'Ativo' : 'Bloqueado'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">
+                          {new Date(user.createdAt).toLocaleDateString('pt-PT')}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openUserDetails(user);
+                              }}
+                              className="rounded-xl border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50"
+                            >
+                              Ver
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => toggleUserStatus(event, user)}
+                              disabled={
+                                actionLoading === user.id || (user.id === currentUser?.id && user.isActive)
+                              }
+                              title={
+                                user.id === currentUser?.id && user.isActive
+                                  ? 'Não é possível bloquear a sua própria conta'
+                                  : undefined
+                              }
+                              className={`rounded-xl px-3 py-2 text-xs font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                user.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                              }`}
+                            >
+                              {actionLoading === user.id
+                                ? 'A processar...'
+                                : user.isActive
+                                  ? 'Bloquear'
+                                  : 'Ativar'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Vista de cards (mobile) */}
+              <div className="md:hidden space-y-3">
+                {filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openUserDetails(user)}
+                    onKeyDown={(event) => handleRowKeyDown(event, user)}
+                    className="cursor-pointer rounded-2xl border border-gray-200 bg-white p-4 transition-all duration-150 hover:border-gray-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-700/20"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-gray-900">{user.name}</p>
+                        <p className="truncate text-sm text-gray-600">{user.email}</p>
+                      </div>
+                      <span
+                        className={`shrink-0 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          user.isActive ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        }`}
+                      >
+                        {user.isActive ? 'Ativo' : 'Bloqueado'}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
+                      <div>
+                        <span className="block uppercase tracking-wider">Perfil</span>
+                        <span className="text-gray-700">{roleLabel(user)}</span>
+                      </div>
+                      <div>
+                        <span className="block uppercase tracking-wider">Criado em</span>
+                        <span className="text-gray-700">
+                          {new Date(user.createdAt).toLocaleDateString('pt-PT')}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-end gap-2 border-t border-gray-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openUserDetails(user);
+                        }}
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50"
+                      >
+                        Ver detalhes
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) => toggleUserStatus(event, user)}
+                        disabled={actionLoading === user.id || (user.id === currentUser?.id && user.isActive)}
+                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 ${
+                          user.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'
+                        }`}
+                      >
+                        {actionLoading === user.id
+                          ? 'A processar...'
+                          : user.isActive
+                            ? 'Bloquear'
+                            : 'Ativar'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
