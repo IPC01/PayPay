@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { assetUrl } from '../../services/api';
 
 const STATUS_LABELS = {
@@ -37,6 +38,7 @@ function formatDate(value) {
 function AdminTickets() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -153,7 +155,11 @@ function AdminTickets() {
 
   const deleteTicket = async (event, ticketId) => {
     if (event) event.stopPropagation();
-    if (!window.confirm('Tem certeza que deseja excluir este ticket?')) return;
+    if (!(await confirm({
+      title: 'Excluir ticket',
+      message: `Tem certeza que deseja excluir o ticket ${tickets.find((ticket) => ticket.id === ticketId)?.subject || ticketId}?`,
+      confirmLabel: 'Excluir ticket'
+    }))) return;
 
     try {
       setDeletingId(ticketId);

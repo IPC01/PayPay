@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { assetUrl } from '../../services/api';
 
 const STATUS_LABELS = {
@@ -18,6 +19,7 @@ const STATUS_STYLES = {
 function AdminKyc() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [kycs, setKycs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -85,8 +87,14 @@ function AdminKyc() {
       notify({ type: 'error', title: 'Erro', message: 'Informe um motivo de rejeição.' });
       return;
     }
-    if (status === 'REJECTED' && !window.confirm('Confirma a rejeição deste KYC?')) return;
-    if (status === 'APPROVED' && !window.confirm('Confirma a aprovação deste KYC?')) return;
+    if (!(await confirm({
+      title: status === 'APPROVED' ? 'Aprovar KYC' : 'Rejeitar KYC',
+      message: status === 'APPROVED'
+        ? 'Confirma a aprovação deste KYC?'
+        : `Confirma a rejeição deste KYC?\n\nMotivo: ${rejectionReason.trim()}`,
+      confirmLabel: status === 'APPROVED' ? 'Aprovar KYC' : 'Rejeitar KYC',
+      danger: status !== 'APPROVED'
+    }))) return;
 
     try {
       setSaving(true);

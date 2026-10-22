@@ -179,6 +179,15 @@ pending and return HTTP 202. This endpoint never submits or retries a payment.
 - Client (wallet owner): `POST /api/transactions/{id}/reverse`.
 - Administrator: `POST /api/admin/transactions/{id}/reverse`.
 
+Client and administrator reversal actions open an in-app confirmation modal
+showing the reference, amount, wallet, phone, M-Pesa transaction ID and the
+non-refundable withdrawal cost for B2C. The modal explains the balance movement
+and that the reversal is full and cannot be repeated. No request is sent until
+the user confirms; Cancel or Escape leaves the transaction unchanged.
+Other browser confirmations (ticket, package and legal-page deletion, KYC review
+and account deletion) also use the shared modal. Account deletion requires the
+matching email inside the modal, with inline validation.
+
 Only `success` C2B/B2C transactions linked to a wallet can be reversed, once.
 A `reversal` transaction is created (`originalTransactionId` points to the original,
 with its own unique reference). On success the original becomes `reversed`.

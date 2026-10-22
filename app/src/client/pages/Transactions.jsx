@@ -5,10 +5,13 @@ import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
 import { reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
 import { transactionStatusNotification } from '../../helpers/transactionStatus';
 import TransactionDetails from '../../shared/components/TransactionDetails';
+import ReversalConfirmation from '../../shared/components/ReversalConfirmation';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 function Transactions({ adminView = false, wallet = null }) {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -46,7 +49,12 @@ function Transactions({ adminView = false, wallet = null }) {
   };
 
   const reverseTransaction = async (tx) => {
-    if (!window.confirm(reversalConfirmMessage(tx))) return;
+    if (!(await confirm({
+      title: 'Confirmar estorno',
+      message: reversalConfirmMessage(tx),
+      details: <ReversalConfirmation transaction={tx} />,
+      confirmLabel: 'Confirmar estorno'
+    }))) return;
     try {
       setReversingId(tx.id);
       const endpoint = adminView ? `/api/admin/transactions/${tx.id}/reverse` : `/api/transactions/${tx.id}/reverse`;

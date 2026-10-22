@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const initialForm = {
   id: null,
@@ -27,6 +28,7 @@ function formatCurrency(value) {
 function AdminPackages() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [packages, setPackages] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,11 @@ function AdminPackages() {
 
   const handleDelete = async (event, pack) => {
     if (event) event.stopPropagation();
-    if (!window.confirm(`Tem certeza de que deseja remover o pacote ${pack.name}?`)) return;
+    if (!(await confirm({
+      title: 'Remover pacote',
+      message: `Tem certeza de que deseja remover o pacote ${pack.name}?`,
+      confirmLabel: 'Remover pacote'
+    }))) return;
 
     try {
       setDeletingId(pack.id);

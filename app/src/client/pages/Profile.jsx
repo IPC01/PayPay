@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { assetUrl } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { isStaff, managementPath, roleLabel } from '../../helpers/roles';
 
@@ -55,6 +56,7 @@ function getPasswordStrength(pw) {
 function Profile() {
   const { user, authRequest, logout } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const { settings: appSettings } = useSettings();
   const navigate = useNavigate();
   const [kycStatus, setKycStatus] = useState(null);
@@ -144,24 +146,17 @@ function Profile() {
   };
 
   const handleDeleteAccount = async () => {
-    if (
-      !window.confirm(
-        'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.'
-      )
-    ) {
-      return;
-    }
-    const confirmEmail = prompt('Digite seu email para confirmar a exclusão da conta:');
-    if (!confirmEmail) return;
-
-    if (confirmEmail !== user?.email) {
-      notify({
-        type: 'error',
-        title: 'Email incorreto',
-        message: 'O email informado não corresponde ao da sua conta.'
-      });
-      return;
-    }
+    if (!(await confirm({
+      title: 'Excluir conta',
+      message: 'Tem certeza que deseja excluir sua conta? Esta ação é irreversível e todos os seus dados serão perdidos.',
+      confirmLabel: 'Excluir minha conta',
+      input: {
+        label: 'Digite seu email para confirmar a exclusão da conta:',
+        type: 'email',
+        expectedValue: user?.email,
+        errorMessage: 'O email informado não corresponde ao da sua conta.'
+      }
+    }))) return;
 
     try {
       await authRequest('/api/auth/delete-account', { method: 'DELETE' });

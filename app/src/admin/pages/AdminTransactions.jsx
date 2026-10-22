@@ -4,6 +4,8 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
 import { transactionStatusNotification } from '../../helpers/transactionStatus';
 import TransactionDetails from '../../shared/components/TransactionDetails';
+import ReversalConfirmation from '../../shared/components/ReversalConfirmation';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { isAdmin } from '../../helpers/roles';
 
 const STATUS_LABELS = {
@@ -31,6 +33,7 @@ function AdminTransactions({ wallet = null }) {
   const Heading = wallet ? 'h2' : 'h1';
   const { authRequest, user } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reversingId, setReversingId] = useState(null);
@@ -69,7 +72,12 @@ function AdminTransactions({ wallet = null }) {
   };
 
   const reverseTransaction = async (transaction) => {
-    if (!window.confirm(reversalConfirmMessage(transaction))) return;
+    if (!(await confirm({
+      title: 'Confirmar estorno',
+      message: reversalConfirmMessage(transaction),
+      details: <ReversalConfirmation transaction={transaction} />,
+      confirmLabel: 'Confirmar estorno'
+    }))) return;
     try {
       setReversingId(transaction.id);
       const result = await authRequest(`/api/admin/transactions/${transaction.id}/reverse`, {

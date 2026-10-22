@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SettingsProvider } from './contexts/SettingsContext';
 import { UiProvider } from './contexts/UiContext';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { ConfirmationProvider } from './contexts/ConfirmationContext';
 import Notifications from './shared/components/Notifications';
 import RequireAuth from './shared/components/RequireAuth';
 import ClientLayout from './client/components/Layout';
@@ -86,6 +87,7 @@ function App() {
       <AuthProvider>
         <UiProvider>
           <NotificationProvider>
+            <ConfirmationProvider>
             <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/home" element={<HomePage />} />
@@ -367,6 +369,7 @@ function App() {
           <Route path="*" element={<Navigate to="/client" replace />} />
         </Routes>
           <Notifications />
+            </ConfirmationProvider>
         </NotificationProvider>
       </UiProvider>
     </AuthProvider>

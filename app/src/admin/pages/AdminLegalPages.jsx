@@ -10,6 +10,7 @@ import ListItem from '@tiptap/extension-list-item';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useConfirmation } from '../../contexts/ConfirmationContext';
 
 const EMPTY_FORM = { id: null, title: '', content: '', status: 'draft' };
 
@@ -37,6 +38,7 @@ function stripHtml(html) {
 function AdminLegalPages() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { confirm } = useConfirmation();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -143,7 +145,11 @@ function AdminLegalPages() {
 
   const handleDelete = async (event, page) => {
     if (event) event.stopPropagation();
-    if (!window.confirm(`Tem certeza que deseja apagar a página "${page.title}"?`)) return;
+    if (!(await confirm({
+      title: 'Apagar página',
+      message: `Tem certeza que deseja apagar a página "${page.title}"?`,
+      confirmLabel: 'Apagar página'
+    }))) return;
     try {
       setDeletingId(page.id);
       await authRequest(`/api/admin/legal-pages/${page.id}`, { method: 'DELETE' });
