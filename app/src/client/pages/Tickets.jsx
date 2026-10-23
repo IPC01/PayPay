@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { assetUrl } from '../../services/api';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
   open: 'Aberto',
@@ -57,9 +58,9 @@ function Tickets() {
     loadTickets();
   }, []);
 
-  const loadTickets = async () => {
+  const loadTickets = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/tickets');
       setTickets(data);
       setSelectedTicket((current) =>
@@ -67,15 +68,21 @@ function Tickets() {
       );
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar tickets',
-        message: err.message || 'Não foi possível carregar os tickets.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar tickets',
+          message: err.message || 'Não foi possível carregar os tickets.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O ticket aberto, a caixa de resposta e o formulário não são alterados.
+  useAutoRefresh(() => loadTickets(true));
 
   const openTicket = async (event, ticket) => {
     if (event) event.stopPropagation();

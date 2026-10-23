@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_STYLES = {
   pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
@@ -60,9 +61,9 @@ function Withdrawals() {
     if (withdrawalOpen) headingRef.current?.focus();
   }, [withdrawalOpen]);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [withdrawals, walletsData] = await Promise.all([
         authRequest('/api/withdrawals'),
         authRequest('/api/wallets')
@@ -81,7 +82,8 @@ function Withdrawals() {
       const queryWalletId = searchParams.get('walletId');
       const selectedWallet = availableWallets.find((wallet) => wallet.id === queryWalletId);
       setForm((prev) => {
-        if (selectedWallet) return { ...prev, walletId: selectedWallet.id };
+        // A carteira da URL só é aplicada no carregamento inicial, não na sincronização
+        if (!silent && selectedWallet) return { ...prev, walletId: selectedWallet.id };
         if (!prev.walletId && availableWallets.length > 0) {
           return { ...prev, walletId: availableWallets[0].id };
         }
@@ -89,15 +91,21 @@ function Withdrawals() {
       });
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar saques',
-        message: err.message || 'Não foi possível carregar os pedidos de saque.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar saques',
+          message: err.message || 'Não foi possível carregar os pedidos de saque.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O formulário de saque (carteira, valor, telefone, nota) é preservado.
+  useAutoRefresh(() => loadData(true));
 
   const normalizePhone = (phone) => String(phone || '').replace(/\D/g, '');
 
@@ -111,12 +119,14 @@ function Withdrawals() {
   const selectedWallet = wallets.find((wallet) => wallet.id === form.walletId);
   const walletTypeCode =
     selectedWallet?.WalletType?.code || selectedWallet?.WalletType?.name || '';
-  const withdrawalFeeAmount = Number(settings?.withdrawalFeeAmount) || 0;
+  const withdrawalFeePercent = Number(settings?.withdrawalFeePercent) || 0;
   const withdrawalMinValue = Number(settings?.withdrawalMinValue) || 0;
   const withdrawalMaxValue = Number(settings?.withdrawalMaxValue) || 0;
   const currentBalance = Number(selectedWallet?.balance) || 0;
   const requestedAmount = Number(form.amount || 0);
-  const feeAmount = Number(withdrawalFeeAmount.toFixed(2));
+  // Taxa da plataforma em percentagem, retida sobre o valor do saque
+  const feeAmount =
+    requestedAmount > 0 ? Number(((requestedAmount * withdrawalFeePercent) / 100).toFixed(2)) : 0;
   const totalRequired =
     requestedAmount > 0 ? Number((requestedAmount + feeAmount).toFixed(2)) : 0;
 
@@ -379,6 +389,7 @@ function Withdrawals() {
                     <tr>
                       <th className="px-4 py-3">Carteira</th>
                       <th className="px-4 py-3">Valor</th>
+                      <th className="px-4 py-3">Taxa</th>
                       <th className="px-4 py-3">Telefone</th>
                       <th className="px-4 py-3">Referência</th>
                       <th className="px-4 py-3">Estado</th>
@@ -399,6 +410,9 @@ function Withdrawals() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
                           {formatCurrency(request.amount, request.Wallet?.currency)}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {formatCurrency(request.fee || 0, request.Wallet?.currency)}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
                           {request.phone}
@@ -459,6 +473,12 @@ function Withdrawals() {
                         <span className="block uppercase tracking-wider">Valor</span>
                         <span className="font-semibold text-slate-900 dark:text-white">
                           {formatCurrency(request.amount, request.Wallet?.currency)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="block uppercase tracking-wider">Taxa</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {formatCurrency(request.fee || 0, request.Wallet?.currency)}
                         </span>
                       </div>
                       <div className="text-right">
@@ -649,7 +669,11 @@ function Withdrawals() {
               {form.amount && (
                 <>
                   <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                    <span>Taxa fixa</span>
+                    <span>Recebe no M-Pesa</span>
+                    <span>{formatCurrency(requestedAmount, selectedWallet?.currency || 'MZN')}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                    <span>Taxa da plataforma ({withdrawalFeePercent}%)</span>
                     <span>{formatCurrency(feeAmount, selectedWallet?.currency || 'MZN')}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
@@ -682,7 +706,7 @@ function Withdrawals() {
             <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
               <p className="font-semibold text-slate-900 dark:text-white">Processamento</p>
               <p className="mt-1">
-                O valor e a taxa fixa serão reservados e o M-Pesa enviará o valor solicitado
+                O valor e a taxa da plataforma serão reservados e o M-Pesa enviará o valor solicitado
                 via B2C. Uma rejeição confirmada devolve a reserva. Em caso de timeout, aguarde
                 a confirmação e não repita o saque.
               </p>

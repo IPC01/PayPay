@@ -52,6 +52,34 @@ class AdminController {
         })
       );
 
+      // Lucros da plataforma: taxas retidas em transações C2B/B2C concluídas.
+      // Estornos mantêm a taxa retida (contam); falhadas devolvem-na (não contam);
+      // registos do tipo 'reversal' são excluídos para não duplicar a taxa original.
+      const feeBaseWhere = {
+        type: { [Op.ne]: 'reversal' },
+        status: { [Op.in]: ['success', 'reversed'] }
+      };
+      const sumFees = async (where = {}) => {
+        const total = await Transaction.sum('fee', { where: { ...feeBaseWhere, ...where } });
+        return Number(Number(total || 0).toFixed(2));
+      };
+
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const [totalFeeRevenue, c2bFeeRevenue, b2cFeeRevenue, monthlyFeeRevenue] = await Promise.all([
+        sumFees(),
+        sumFees({ paymentMode: 'C2B' }),
+        sumFees({ paymentMode: 'B2C' }),
+        sumFees({ createdAt: { [Op.gte]: monthStart } })
+      ]);
+
+      const dailyFeeRevenue = await Promise.all(
+        days.map(async (day) => {
+          const nextDay = new Date(day);
+          nextDay.setDate(day.getDate() + 1);
+          return sumFees({ createdAt: { [Op.gte]: day, [Op.lt]: nextDay } });
+        })
+      );
+
       return res.json({
         userCount,
         walletCount,
@@ -60,7 +88,12 @@ class AdminController {
         openTicketCount,
         pendingTransactionsCount,
         weeklyGrowth,
-        dailyTransactions
+        dailyTransactions,
+        totalFeeRevenue,
+        c2bFeeRevenue,
+        b2cFeeRevenue,
+        monthlyFeeRevenue,
+        dailyFeeRevenue
       });
     } catch (error) {
       return res.status(500).json({ error: error.message });

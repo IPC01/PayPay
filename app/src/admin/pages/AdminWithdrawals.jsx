@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const statusLabels = {
   pending: 'Em confirmação',
@@ -36,18 +37,24 @@ function AdminWithdrawals() {
     loadRequests();
   }, []);
 
-  const loadRequests = async () => {
+  const loadRequests = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/withdrawals');
       setRequests(data);
     } catch (err) {
       console.error(err);
-      notify({ type: 'error', title: 'Erro', message: 'Não foi possível carregar pedidos de saque.' });
+      if (!silent) {
+        notify({ type: 'error', title: 'Erro', message: 'Não foi possível carregar pedidos de saque.' });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Pesquisa, ordenação e filtro de estado são aplicados no cliente e preservam-se.
+  useAutoRefresh(() => loadRequests(true));
 
   const viewDetails = (event, request) => {
     if (event) event.stopPropagation();
@@ -156,6 +163,9 @@ function AdminWithdrawals() {
             <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
               {formatCurrency(request.amount)}
             </p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Taxa da plataforma: {formatCurrency(request.fee || 0)}
+            </p>
           </div>
 
           {/* Grid 2x2 */}
@@ -220,9 +230,7 @@ function AdminWithdrawals() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Pedidos de Saque
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Revise e aprove ou rejeite pedidos de saque dos clientes.
-          </p>
+
         </div>
       </div>
 

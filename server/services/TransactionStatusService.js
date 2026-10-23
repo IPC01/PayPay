@@ -82,15 +82,18 @@ class TransactionStatusService {
         }, { transaction: t });
 
         const amount = Number(Number(lockedTransaction.amount).toFixed(2));
+        // Valor líquido: para C2B a taxa da plataforma fica retida; para B2C/estornos fee=0
+        const netAmount = Number((amount - Number(lockedTransaction.fee || 0)).toFixed(2));
         if (isReversal && outcome === 'success') {
           await original.update({ status: 'reversed' }, { transaction: t });
           if (lockedTransaction.paymentMode === 'B2C') {
-            await moveBalance(lockedWallet, lockedTransaction, amount, 'credit', t);
+            await moveBalance(lockedWallet, lockedTransaction, netAmount, 'credit', t);
           }
         } else if (isReversal && outcome === 'failed' && lockedTransaction.paymentMode === 'C2B') {
-          await moveBalance(lockedWallet, lockedTransaction, amount, 'credit', t);
+          await moveBalance(lockedWallet, lockedTransaction, netAmount, 'credit', t);
         } else if (!isReversal && lockedTransaction.paymentMode === 'C2B' && outcome === 'success') {
-          await moveBalance(lockedWallet, lockedTransaction, amount, 'credit', t);
+          // Credita o valor líquido: a taxa da plataforma (percentagem) fica retida
+          await moveBalance(lockedWallet, lockedTransaction, netAmount, 'credit', t);
         } else if (!isReversal && lockedTransaction.paymentMode === 'B2C' && outcome === 'failed') {
           const refund = Number((amount + Number(lockedTransaction.fee || 0)).toFixed(2));
           await moveBalance(lockedWallet, lockedTransaction, refund, 'credit', t);

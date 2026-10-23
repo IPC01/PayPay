@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 function stripHtml(html) {
   if (!html) return '';
@@ -20,25 +21,31 @@ function LegalPages() {
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadPages = async () => {
-      try {
-        setLoading(true);
-        const data = await authRequest('/api/legal-pages');
-        setPages(data || []);
-      } catch (error) {
-        console.error(error);
+  const loadPages = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const data = await authRequest('/api/legal-pages');
+      setPages(data || []);
+    } catch (error) {
+      console.error(error);
+      if (!silent) {
         notify({
           type: 'error',
           title: 'Erro ao carregar documentos',
           message: 'Não foi possível carregar as páginas legais.'
         });
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadPages();
   }, [authRequest, notify]);
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  useAutoRefresh(() => loadPages(true));
 
   const previews = useMemo(() => {
     return pages.map((page) => {

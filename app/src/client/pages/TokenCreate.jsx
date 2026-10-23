@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 import api from '../../services/api';
 
 const STATUS_STYLES = {
@@ -104,23 +105,23 @@ function ApiKeys() {
     init();
   }, []);
 
-  const loadKyc = async () => {
+  const loadKyc = async (silent = false) => {
     try {
-      setKycLoading(true);
+      if (!silent) setKycLoading(true);
       const response = await authRequest('/api/kyc');
       const currentKyc = response?.kyc || null;
       setKyc(currentKyc);
       return currentKyc;
     } catch (error) {
       console.error('Erro ao carregar KYC:', error);
-      setKyc(null);
+      if (!silent) setKyc(null);
       return null;
     } finally {
-      setKycLoading(false);
+      if (!silent) setKycLoading(false);
     }
   };
 
-  const fetchAvailableScopes = async () => {
+  const fetchAvailableScopes = async (silent = false) => {
     try {
       const response = await api.get('/api/permissions');
       setAvailableScopes(
@@ -131,17 +132,19 @@ function ApiKeys() {
       );
     } catch (error) {
       console.error('Erro ao carregar permissões:', error);
-      notify({
-        type: 'error',
-        title: 'Falha ao carregar permissões',
-        message: 'Não foi possível carregar as permissões do servidor.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Falha ao carregar permissões',
+          message: 'Não foi possível carregar as permissões do servidor.'
+        });
+      }
     }
   };
 
-  const fetchApiKeys = async () => {
+  const fetchApiKeys = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await api.get('/api/keys');
       const keys = response.apiKeys || [];
       setApiKeys(keys);
@@ -150,32 +153,45 @@ function ApiKeys() {
       );
     } catch (error) {
       console.error('Erro ao carregar API Keys:', error);
-      notify({
-        type: 'error',
-        title: 'Falha ao listar chaves de acesso',
-        message: 'Não foi possível carregar as chaves de acesso.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Falha ao listar chaves de acesso',
+          message: 'Não foi possível carregar as chaves de acesso.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  const fetchWallets = async () => {
+  const fetchWallets = async (silent = false) => {
     try {
-      setWalletsLoading(true);
+      if (!silent) setWalletsLoading(true);
       const data = await authRequest('/api/wallets');
       setWallets(data || []);
     } catch (error) {
       console.error('Erro ao carregar carteiras:', error);
-      notify({
-        type: 'error',
-        title: 'Falha ao carregar carteiras',
-        message: 'Não foi possível carregar as suas carteiras.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Falha ao carregar carteiras',
+          message: 'Não foi possível carregar as suas carteiras.'
+        });
+      }
     } finally {
-      setWalletsLoading(false);
+      if (!silent) setWalletsLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O formulário de criação de chave e os modais abertos são preservados.
+  useAutoRefresh(async () => {
+    const currentKyc = await loadKyc(true);
+    if (currentKyc?.status === 'APPROVED') {
+      await Promise.all([fetchApiKeys(true), fetchAvailableScopes(true), fetchWallets(true)]);
+    }
+  });
 
   const handleCreateKey = async (e) => {
     e.preventDefault();

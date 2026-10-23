@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { assetUrl } from '../../services/api';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
   APPROVED: 'Aprovado',
@@ -33,22 +34,27 @@ function AdminKyc() {
     loadKycs();
   }, []);
 
-  const loadKycs = async () => {
+  const loadKycs = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await authRequest('/api/kyc/admin');
       setKycs(response.kycs || []);
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro',
-        message: err.message || 'Não foi possível carregar as solicitações KYC.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro',
+          message: err.message || 'Não foi possível carregar as solicitações KYC.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  useAutoRefresh(() => loadKycs(true));
 
   const resolveUrl = (url) => assetUrl(url) || '';
 
@@ -392,9 +398,6 @@ function AdminKyc() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Solicitações KYC
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Revise os pedidos de verificação dos clientes. Clique numa linha para ver os detalhes.
-          </p>
         </div>
       </div>
 

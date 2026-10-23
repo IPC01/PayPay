@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { assetUrl } from '../../services/api';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const initialKycState = {
   type: 'INDIVIDUAL',
@@ -97,26 +98,40 @@ function Kyc() {
   const [step, setStep] = useState(1);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  // Guarda o último KYC carregado para não sobrescrever edições do formulário
+  const lastLoadedKycRef = useRef(null);
 
   useEffect(() => {
     loadKyc();
   }, []);
 
-  const loadKyc = async () => {
+  const loadKyc = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await authRequest('/api/kyc');
       if (response.kyc) {
-        setKyc(response.kyc);
+        const previousLoaded = lastLoadedKycRef.current;
+        lastLoadedKycRef.current = response.kyc;
+        setKyc((current) => {
+          // Na sincronização silenciosa, não sobrescreve dados já editados
+          if (silent && JSON.stringify(current) !== JSON.stringify(previousLoaded)) {
+            return current;
+          }
+          return response.kyc;
+        });
         const docsResponse = await authRequest('/api/kyc/documents');
         setDocuments(docsResponse.documents || []);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  // e sem alterar campos que o utilizador esteja a preencher.
+  useAutoRefresh(() => loadKyc(true));
 
   const isFilled = (value) => {
     if (value === true) return true;

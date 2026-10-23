@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { isAdmin, isOperator, roleLabel } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-PT', {
@@ -65,17 +66,21 @@ function AdminUsers() {
     loadUsers();
   }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/users');
       setUsers(data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Pesquisa/ordenação e formulários não são alterados.
+  useAutoRefresh(() => loadUsers(true));
 
   const openCreateForm = () => {
     setCreateForm(EMPTY_FORM);
@@ -369,9 +374,7 @@ function AdminUsers() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             {isOperator(currentUser) ? 'Clientes' : 'Gestão de Utilizadores'}
           </h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Liste e analise todos os utilizadores registados no sistema.
-          </p>
+    
         </div>
         {canCreate && (
           <button

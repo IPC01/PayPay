@@ -1,6 +1,21 @@
-const { WithdrawalRequest, Wallet, User } = require('../models');
+const { WithdrawalRequest, Wallet, User, Transaction } = require('../models');
 const WalletPaymentService = require('../services/WalletPaymentService');
 const { hasApprovedKyc } = require('../helpers/kycHelper');
+
+// Anexa a taxa da plataforma (registada na transação com a mesma referência)
+// para que o cliente veja quanto recebeu e quanto foi descontado.
+async function withFees(requests) {
+  const references = requests.map((r) => r.reference).filter(Boolean);
+  if (references.length === 0) {
+    return requests.map((r) => ({ ...r.toJSON(), fee: 0 }));
+  }
+  const transactions = await Transaction.findAll({
+    where: { reference: references },
+    attributes: ['reference', 'fee']
+  });
+  const feeByReference = new Map(transactions.map((tx) => [tx.reference, Number(tx.fee || 0)]));
+  return requests.map((r) => ({ ...r.toJSON(), fee: feeByReference.get(r.reference) || 0 }));
+}
 
 class WithdrawalRequestController {
   async create(req, res) {
@@ -36,7 +51,7 @@ class WithdrawalRequestController {
         order: [['createdAt', 'DESC']],
         include: [{ model: Wallet, attributes: ['id', 'walletCode', 'walletName', 'currency'] }]
       });
-      return res.json(requests);
+      return res.json(await withFees(requests));
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }
@@ -52,7 +67,7 @@ class WithdrawalRequestController {
           { model: User, as: 'Admin', attributes: ['id', 'name', 'email'] }
         ]
       });
-      return res.json(requests);
+      return res.json(await withFees(requests));
     } catch (error) {
       return res.status(500).json({ error: error.message });
     }

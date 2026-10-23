@@ -7,6 +7,7 @@ import TransactionDetails from '../../shared/components/TransactionDetails';
 import ReversalConfirmation from '../../shared/components/ReversalConfirmation';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { isAdmin } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
   success: 'Sucesso',
@@ -47,10 +48,12 @@ function AdminTransactions({ wallet = null }) {
     loadTransactions();
   }, [wallet?.id]);
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (silent = false) => {
     try {
-      setLoading(true);
-      setLoadError(null);
+      if (!silent) {
+        setLoading(true);
+        setLoadError(null);
+      }
       const data = await authRequest(
         wallet ? `/api/admin/wallets/${wallet.id}/transactions` : '/api/admin/transactions'
       );
@@ -60,16 +63,22 @@ function AdminTransactions({ wallet = null }) {
       );
     } catch (err) {
       console.error(err);
-      setLoadError(err.message || 'Não foi possível carregar o histórico de transações.');
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar transações',
-        message: err.message || 'Não foi possível carregar o histórico de transações.'
-      });
+      if (!silent) {
+        setLoadError(err.message || 'Não foi possível carregar o histórico de transações.');
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar transações',
+          message: err.message || 'Não foi possível carregar o histórico de transações.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  // nem alterar a transação selecionada.
+  useAutoRefresh(() => loadTransactions(true));
 
   const reverseTransaction = async (transaction) => {
     if (!(await confirm({
@@ -156,11 +165,7 @@ function AdminTransactions({ wallet = null }) {
           <Heading className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             {wallet ? 'Transações da carteira' : 'Transações'}
           </Heading>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            {wallet
-              ? `Todos os movimentos associados à carteira ${wallet.walletCode || wallet.id}, em qualquer estado.`
-              : 'Visualize os últimos movimentos registados para todas as carteiras.'}
-          </p>
+    
         </div>
       </div>
 
@@ -172,7 +177,7 @@ function AdminTransactions({ wallet = null }) {
           <p>{loadError}</p>
           <button
             type="button"
-            onClick={loadTransactions}
+            onClick={() => loadTransactions()}
             className="mt-2 font-semibold underline hover:no-underline"
           >
             Tentar novamente

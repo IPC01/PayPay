@@ -43,7 +43,11 @@ class TransactionReversalService {
       if (existing) throw paymentError('Esta transação já tem um estorno concluído ou em processamento.', 409);
 
       const amount = Number(Number(original.amount).toFixed(2));
-      if (original.paymentMode === 'C2B' && Number(wallet.balance) < amount) {
+      // C2B: o estorno movimenta apenas o valor líquido creditado (a taxa fica retida na plataforma)
+      const netAmount = original.paymentMode === 'C2B'
+        ? Number((amount - Number(original.fee || 0)).toFixed(2))
+        : amount;
+      if (original.paymentMode === 'C2B' && Number(wallet.balance) < netAmount) {
         throw paymentError('Saldo insuficiente na carteira para estornar este depósito.');
       }
 
@@ -54,7 +58,7 @@ class TransactionReversalService {
         toWalletId: original.paymentMode === 'B2C' ? wallet.id : null,
         walletCode: wallet.walletCode,
         amount,
-        fee: 0,
+        fee: original.paymentMode === 'C2B' ? Number(original.fee || 0) : 0,
         phone: original.phone,
         reference,
         provider: 'mpesa',
@@ -66,7 +70,7 @@ class TransactionReversalService {
 
       if (original.paymentMode === 'C2B') {
         // Reserve before contacting M-Pesa so the funds cannot be withdrawn meanwhile.
-        await moveBalance(wallet, reversal, amount, 'debit', t);
+        await moveBalance(wallet, reversal, netAmount, 'debit', t);
       }
 
       await createAuditLog({
@@ -121,10 +125,13 @@ class TransactionReversalService {
         if (outcome === 'success') {
           await original.update({ status: 'reversed' }, { transaction: t });
           if (original.paymentMode === 'B2C') {
+            // B2C: devolve apenas o valor sacado; a taxa da plataforma não é devolvida
             await moveBalance(wallet, reversal, prepared.amount, 'credit', t);
           }
         } else if (outcome === 'failed' && original.paymentMode === 'C2B') {
-          await moveBalance(wallet, reversal, prepared.amount, 'credit', t);
+          // Devolve a reserva líquida (a taxa da plataforma nunca entrou na carteira)
+          const reserved = Number((prepared.amount - Number(reversal.fee || 0)).toFixed(2));
+          await moveBalance(wallet, reversal, reserved, 'credit', t);
         }
 
         await Notification.create({

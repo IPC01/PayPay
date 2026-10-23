@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
 import { isOperator, managementPath, roleLabel } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const PAGE_TITLES = [
   { path: '/admin/legal-pages', label: 'Páginas Legais' },
@@ -45,22 +46,26 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
   const titlePath = location.pathname.replace(/^\/operador(?=\/|$)/, '/admin');
   const pageTitle = isOperator(user) && titlePath === '/admin/users' ? 'Clientes' : getPageTitle(titlePath);
 
-  const loadUnreadNotifications = useCallback(async () => {
+  const loadUnreadNotifications = useCallback(async (silent = false) => {
     if (!user) {
       setUnreadNotifications([]);
       return;
     }
 
     try {
-      setNotificationsLoading(true);
+      if (!silent) setNotificationsLoading(true);
       const notifications = await authRequest('/api/notifications');
       setUnreadNotifications(notifications.filter((notification) => !notification.read));
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
-      setNotificationsLoading(false);
+      if (!silent) setNotificationsLoading(false);
     }
   }, [authRequest, user]);
+
+  // Sincronização automática do badge de notificações a cada 20 segundos,
+  // sem recarregar a página nem mostrar spinner.
+  useAutoRefresh(() => loadUnreadNotifications(true));
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -106,9 +111,6 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 min-w-0 max-w-none items-center gap-2 px-3 md:pl-6 sm:pr-4">
-        <NavLink to={managementPath(user)} aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
-          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
-        </NavLink>
         <button
           type="button"
           onClick={onToggleMobileSidebar}
@@ -121,6 +123,10 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9" />
           </svg>
         </button>
+
+        <NavLink to={managementPath(user)} aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
+          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
+        </NavLink>
 
         <h1 className="sr-only min-w-0 truncate text-base font-semibold text-gray-900 md:not-sr-only">{pageTitle}</h1>
 

@@ -32,6 +32,10 @@ export default function TransactionDetails({
     headingRef.current.focus();
   }, []);
 
+  const fee = Number(transaction.fee || 0);
+  const amount = Number(transaction.amount || 0);
+  const isReversal = transaction.type === 'reversal';
+
   const fields = [
     ['ID da Transação', transaction.id],
     ['Referência', transaction.reference],
@@ -41,7 +45,15 @@ export default function TransactionDetails({
     ['Utilizador', transaction.walletInfo?.user?.name],
     ['Email', transaction.walletInfo?.user?.email],
     ['Montante', currency(transaction.amount)],
-    ['Taxa', currency(transaction.fee)],
+    ['Taxa da plataforma', currency(transaction.fee)],
+    // C2B: a taxa é retida — mostra quanto foi efetivamente creditado na carteira
+    ...(fee > 0 && transaction.paymentMode === 'C2B' && !isReversal
+      ? [['Creditado na carteira', currency(Number((amount - fee).toFixed(2)))]]
+      : []),
+    // B2C: mostra o total debitado (valor + taxa retida pela plataforma)
+    ...(fee > 0 && transaction.paymentMode === 'B2C' && !isReversal
+      ? [['Total debitado da carteira', currency(Number((amount + fee).toFixed(2)))]]
+      : []),
     ['Telefone', transaction.phone],
     ['Provedor', transaction.provider],
     ['Modalidade', transaction.paymentMode],

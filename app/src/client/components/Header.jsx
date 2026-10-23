@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { useUi } from '../../contexts/UiContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const PAGE_TITLES = [
   { path: '/client/c2b', label: 'C2B (Depósito)' },
@@ -62,40 +63,47 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
     return '/client';
   }, []);
 
-  const loadUnreadNotifications = useCallback(async () => {
+  const loadUnreadNotifications = useCallback(async (silent = false) => {
     if (!user) {
       setUnreadNotifications([]);
       return;
     }
 
     try {
-      setNotificationsLoading(true);
+      if (!silent) setNotificationsLoading(true);
       const notifications = await authRequest('/api/notifications');
       setUnreadNotifications(notifications.filter((notification) => !notification.read));
     } catch (error) {
       console.error('Failed to load notifications:', error);
     } finally {
-      setNotificationsLoading(false);
+      if (!silent) setNotificationsLoading(false);
     }
   }, [authRequest, user]);
 
-  const loadKycStatus = useCallback(async () => {
+  const loadKycStatus = useCallback(async (silent = false) => {
     if (!user) {
       setKycStatus('DRAFT');
       return;
     }
 
     try {
-      setKycAlertLoading(true);
+      if (!silent) setKycAlertLoading(true);
       const response = await authRequest('/api/kyc');
       setKycStatus(response?.kyc?.status || 'DRAFT');
     } catch (error) {
       console.error('Failed to load KYC status:', error);
-      setKycStatus('DRAFT');
+      if (!silent) setKycStatus('DRAFT');
     } finally {
-      setKycAlertLoading(false);
+      if (!silent) setKycAlertLoading(false);
     }
   }, [authRequest, user]);
+
+  // Sincronização automática do badge de notificações e do estado KYC
+  // a cada 20 segundos, sem recarregar a página nem mostrar spinner.
+  useAutoRefresh(() => {
+    loadUnreadNotifications(true);
+    loadKycStatus(true);
+  });
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -145,9 +153,6 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
   return (
     <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-14 min-w-0 max-w-none items-center gap-2 px-3 md:pl-6 sm:pr-4">
-        <NavLink to="/client" aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
-          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
-        </NavLink>
         <button
           type="button"
           onClick={onToggleMobileSidebar}
@@ -160,6 +165,10 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="m3 10 9-7 9 7M5 9v11h5v-6h4v6h5V9" />
           </svg>
         </button>
+
+        <NavLink to="/client" aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
+          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
+        </NavLink>
 
         <h1 className="sr-only min-w-0 truncate text-base font-semibold text-gray-900 md:not-sr-only">{pageTitle}</h1>
 

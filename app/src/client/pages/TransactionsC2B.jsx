@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 function formatCurrency(value, currency = 'MZN') {
   return Number(value || 0).toLocaleString('pt-PT', {
@@ -32,6 +34,7 @@ const renderTypeLogo = (logo, provider, size = 'md') => {
 function TransactionsC2B() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
+  const { settings } = useSettings();
   const [wallets, setWallets] = useState([]);
   const [selectedWalletCode, setSelectedWalletCode] = useState('');
   const [amount, setAmount] = useState('');
@@ -44,9 +47,9 @@ function TransactionsC2B() {
     loadWallets();
   }, []);
 
-  const loadWallets = async () => {
+  const loadWallets = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/wallets');
       const filtered = data.filter(
         (wallet) =>
@@ -62,20 +65,34 @@ function TransactionsC2B() {
       );
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar carteiras',
-        message: 'Não foi possível carregar as suas carteiras para C2B.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar carteiras',
+          message: 'Não foi possível carregar as suas carteiras para C2B.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // A carteira selecionada e os campos do pagamento (valor, telefone,
+  // referência) são preservados.
+  useAutoRefresh(() => loadWallets(true));
 
   const selectedWallet = useMemo(
     () => wallets.find((w) => w.walletCode === selectedWalletCode) || null,
     [wallets, selectedWalletCode]
   );
+
+  // Simulação da taxa da plataforma (percentagem retida no depósito C2B)
+  const c2bFeePercent = Number(settings?.c2bFeePercent) || 0;
+  const depositAmount = Number(amount || 0);
+  const c2bFeeAmount =
+    depositAmount > 0 ? Number(((depositAmount * c2bFeePercent) / 100).toFixed(2)) : 0;
+  const c2bNetAmount = Number((depositAmount - c2bFeeAmount).toFixed(2));
 
   const handleSelectWallet = (code) => {
     setSelectedWalletCode(code);
@@ -287,6 +304,23 @@ function TransactionsC2B() {
                 className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
+
+            {depositAmount > 0 && (
+              <div aria-live="polite" className="space-y-2 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                  <span>Taxa da plataforma ({c2bFeePercent}%)</span>
+                  <span>{formatCurrency(c2bFeeAmount, selectedWallet?.currency || 'MZN')}</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                    Recebe na carteira
+                  </span>
+                  <span className="text-sm font-bold text-slate-900 dark:text-white">
+                    {formatCurrency(c2bNetAmount, selectedWallet?.currency || 'MZN')}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"

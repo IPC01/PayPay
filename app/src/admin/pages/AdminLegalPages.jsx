@@ -11,6 +11,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const EMPTY_FORM = { id: null, title: '', content: '', status: 'draft' };
 
@@ -80,22 +81,28 @@ function AdminLegalPages() {
     loadPages();
   }, []);
 
-  const loadPages = async () => {
+  const loadPages = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/legal-pages');
       setPages(data);
     } catch (error) {
       console.error(error);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar páginas',
-        message: 'Não foi possível carregar as páginas de documentação.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar páginas',
+          message: 'Não foi possível carregar as páginas de documentação.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O formulário e o editor não são tocados (apenas a lista `pages` é atualizada).
+  useAutoRefresh(() => loadPages(true));
 
   const updateForm = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -258,9 +265,6 @@ function AdminLegalPages() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Páginas Legais
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Crie e publique termos, políticas e outros documentos legais.
-          </p>
         </div>
       </div>
 

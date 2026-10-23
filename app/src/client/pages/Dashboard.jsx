@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -26,9 +27,9 @@ function Dashboard() {
     loadData();
   }, []);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [walletsData, transactionsData, kycData] = await Promise.all([
         authRequest('/api/wallets'),
         authRequest('/api/transactions'),
@@ -40,9 +41,13 @@ function Dashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  // nem alterar o estado atual da interface.
+  useAutoRefresh(() => loadData(true));
 
   // Estatísticas por tipo de carteira
   const walletTypeStats = wallets.reduce((acc, wallet) => {
@@ -183,26 +188,10 @@ function Dashboard() {
         </div>
       )}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Bem-vindo, {user?.name?.split(' ')[0] || 'Usuário'}
-          </h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Visão geral completa do seu ecossistema financeiro
-          </p>
-        </div>
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-            Atualizado agora
+            Sincronização automática a cada 20 segundos
           </div>
-          <button
-            onClick={loadData}
-            className="rounded-xl bg-slate-100 p-2 transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
-          >
-            <svg className="h-5 w-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
         </div>
       </div>
 

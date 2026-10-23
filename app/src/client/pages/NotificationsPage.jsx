@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { isAdmin, isStaff, managementPath } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 function formatRelative(value) {
   if (!value) return '—';
@@ -66,32 +67,41 @@ function NotificationsPage() {
     loadNotifications();
   }, []);
 
-  const loadNotifications = async () => {
+  const loadNotifications = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/notifications');
       setNotifications(data);
 
-      const unreadItems = data.filter((n) => !n.read);
-      if (unreadItems.length > 0) {
-        await Promise.allSettled(
-          unreadItems.map((n) =>
-            authRequest(`/api/notifications/${n.id}/read`, { method: 'PATCH' })
-          )
-        );
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      // Marcar como lidas apenas no carregamento inicial (não na sincronização)
+      if (!silent) {
+        const unreadItems = data.filter((n) => !n.read);
+        if (unreadItems.length > 0) {
+          await Promise.allSettled(
+            unreadItems.map((n) =>
+              authRequest(`/api/notifications/${n.id}/read`, { method: 'PATCH' })
+            )
+          );
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        }
       }
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar notificações',
-        message: err.message || 'Não foi possível carregar as notificações.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar notificações',
+          message: err.message || 'Não foi possível carregar as notificações.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O filtro ativo (todas/não lidas) é aplicado no cliente e preserva-se.
+  useAutoRefresh(() => loadNotifications(true));
 
   const markRead = async (notificationId) => {
     try {

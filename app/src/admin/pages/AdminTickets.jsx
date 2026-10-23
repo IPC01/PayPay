@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { assetUrl } from '../../services/api';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
   open: 'Aberto',
@@ -54,22 +55,28 @@ function AdminTickets() {
     loadTickets();
   }, []);
 
-  const loadTickets = async () => {
+  const loadTickets = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/tickets');
       setTickets(data);
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar tickets',
-        message: err.message || 'Não foi possível carregar os tickets.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar tickets',
+          message: err.message || 'Não foi possível carregar os tickets.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O ticket aberto e a caixa de resposta não são alterados.
+  useAutoRefresh(() => loadTickets(true));
 
   const openTicket = async (ticket) => {
     setSelectedTicket(ticket);
@@ -403,9 +410,6 @@ function AdminTickets() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Tickets de Clientes
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Veja todos os tickets abertos, clique numa linha para abrir os detalhes e responder diretamente.
-          </p>
         </div>
       </div>
 

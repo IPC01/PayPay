@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { isPromoActive } from '../../helpers/packagePricing';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 import {
   Check, X, Clock, Zap, Crown, Star, Gift, Shield, RefreshCw, Wallet, Package
 } from 'lucide-react';
@@ -62,9 +63,9 @@ function Packages() {
     if (activePackage) subscriptionHeadingRef.current?.focus();
   }, [activePackage]);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [packagesData, subsData, walletTypesData] = await Promise.all([
         authRequest('/api/packages'),
         authRequest('/api/subscriptions'),
@@ -74,15 +75,21 @@ function Packages() {
       setSubscriptions(subsData);
       setWalletTypes(walletTypesData);
     } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar dados',
-        message: error.message || 'Não foi possível carregar os pacotes e subscrições.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar dados',
+          message: error.message || 'Não foi possível carregar os pacotes e subscrições.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O fluxo de subscrição (passos, método e número de pagamento) preserva-se.
+  useAutoRefresh(() => loadData(true));
 
   const paymentMethods = useMemo(() => {
     return walletTypes

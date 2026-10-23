@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../../contexts/AuthContext';
 import { managementPath } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const DEFAULT_GROWTH = [8, 14, 18, 25, 32, 42, 51];
 const DEFAULT_TRANSACTIONS = [4, 6, 5, 9, 11, 13, 16];
@@ -35,9 +36,9 @@ function AdminDashboard() {
     loadStats();
   }, []);
 
-  const loadStats = async () => {
+  const loadStats = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [data, subscriptionData] = await Promise.all([
         authRequest('/api/admin/stats'),
         authRequest('/api/admin/subscription-stats')
@@ -47,9 +48,13 @@ function AdminDashboard() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página
+  // nem alterar o estado atual da interface.
+  useAutoRefresh(() => loadStats(true));
 
   const walletHealth = useMemo(() => {
     if (!stats) return 0;
@@ -89,6 +94,23 @@ function AdminDashboard() {
       };
     });
   }, [stats]);
+
+  // Evolução das taxas retidas pela plataforma (últimos 7 dias)
+  const feeChartData = useMemo(() => {
+    const series = stats?.dailyFeeRevenue || [];
+    const now = new Date();
+    return series.map((value, index) => {
+      const day = new Date(now);
+      day.setDate(now.getDate() - (series.length - 1 - index));
+      return {
+        dia: day.toLocaleDateString('pt-PT'),
+        taxas: Number(Number(value || 0).toFixed(2))
+      };
+    });
+  }, [stats]);
+
+  const formatMZN = (value) =>
+    Number(value || 0).toLocaleString('pt-PT', { style: 'currency', currency: 'MZN' });
 
   const pieData = useMemo(() => [
     { name: 'Carteiras Ativas', value: walletHealth, color: '#10b981' },
@@ -218,6 +240,71 @@ function AdminDashboard() {
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
             {packageStats?.expiredSubscriptions ?? 0} expiradas · {packageStats?.cancelledSubscriptions ?? 0} canceladas
           </p>
+        </div>
+      </div>
+
+      {/* Lucros da plataforma (taxas retidas em C2B/B2C) */}
+      <div>
+        <h2 className="mb-3 text-lg font-semibold text-slate-900 dark:text-white">
+          Lucros da plataforma (taxas retidas)
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total acumulado em taxas</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+              {loading ? '...' : formatMZN(stats?.totalFeeRevenue)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Taxas C2B + B2C retidas desde o início</p>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Taxas de depósitos (C2B)</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+              {loading ? '...' : formatMZN(stats?.c2bFeeRevenue)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Percentagem retida nas entradas de valores</p>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Taxas de saques (B2C)</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+              {loading ? '...' : formatMZN(stats?.b2cFeeRevenue)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Percentagem retida nos levantamentos</p>
+          </div>
+          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Taxas este mês</p>
+            <p className="mt-4 text-4xl font-semibold text-slate-900 dark:text-white">
+              {loading ? '...' : formatMZN(stats?.monthlyFeeRevenue)}
+            </p>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Lucro do mês corrente em taxas</p>
+          </div>
+        </div>
+
+        {/* Evolução diária das taxas retidas */}
+        <div className="mt-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">
+            Taxas retidas nos últimos 7 dias
+          </h3>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={feeChartData}>
+              <defs>
+                <linearGradient id="colorTaxas" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-700" />
+              <XAxis dataKey="dia" className="text-xs text-slate-500" />
+              <YAxis className="text-xs text-slate-500" />
+              <Tooltip content={<CustomTooltip />} />
+              <Area
+                type="monotone"
+                dataKey="taxas"
+                stroke="#f59e0b"
+                fill="url(#colorTaxas)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

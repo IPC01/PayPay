@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const initialForm = {
   id: null,
@@ -41,24 +42,30 @@ function AdminPackages() {
     loadPackages();
   }, []);
 
-  const loadPackages = async () => {
+  const loadPackages = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/packages');
       setPackages(data);
       setSelectedPackage((current) =>
         current ? data.find((p) => p.id === current.id) || current : null
       );
     } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar pacotes',
-        message: 'Não foi possível carregar os pacotes. Tente novamente.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar pacotes',
+          message: 'Não foi possível carregar os pacotes. Tente novamente.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Apenas a lista de pacotes é atualizada — o formulário permanece intacto.
+  useAutoRefresh(() => loadPackages(true));
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -337,10 +344,7 @@ function AdminPackages() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Gestão de Pacotes
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Crie, edite e remova pacotes de assinatura para a plataforma.
-          </p>
+          </h1>    
         </div>
         <div className="flex items-center gap-3">
           {!showForm && !selectedPackage && (

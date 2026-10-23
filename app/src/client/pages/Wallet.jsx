@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 import Transactions from './Transactions';
 
 const STATUS_STYLES = {
@@ -44,25 +45,25 @@ function Wallets() {
   const [hasActivePackage, setHasActivePackage] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
-  async function loadKyc() {
+  async function loadKyc(silent = false) {
     try {
-      setKycLoading(true);
+      if (!silent) setKycLoading(true);
       const data = await authRequest('/api/kyc');
       const currentKyc = data?.kyc || null;
       setKyc(currentKyc);
       return currentKyc;
     } catch (err) {
       console.error(err);
-      setKyc(null);
+      if (!silent) setKyc(null);
       return null;
     } finally {
-      setKycLoading(false);
+      if (!silent) setKycLoading(false);
     }
   }
 
-  async function loadSubscriptionStatus() {
+  async function loadSubscriptionStatus(silent = false) {
     try {
-      setSubscriptionLoading(true);
+      if (!silent) setSubscriptionLoading(true);
       const subscriptions = await authRequest('/api/subscriptions');
       const active = (subscriptions || []).some(
         (sub) => sub.status === 'active' && new Date(sub.expiresAt) > new Date()
@@ -71,10 +72,10 @@ function Wallets() {
       return active;
     } catch (err) {
       console.error(err);
-      setHasActivePackage(false);
+      if (!silent) setHasActivePackage(false);
       return false;
     } finally {
-      setSubscriptionLoading(false);
+      if (!silent) setSubscriptionLoading(false);
     }
   }
 
@@ -103,9 +104,9 @@ function Wallets() {
     return () => window.removeEventListener('keydown', onKey);
   }, [modalOpen]);
 
-  const loadData = async () => {
+  const loadData = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const [walletsData, typesData] = await Promise.all([
         authRequest('/api/wallets'),
         authRequest('/api/wallet-types')
@@ -114,19 +115,33 @@ function Wallets() {
       const activeTypes = typesData.filter((type) => type.status);
       setWalletTypes(activeTypes);
       if (activeTypes.length > 0) {
-        setFormData((prev) => ({ ...prev, walletTypeId: String(activeTypes[0].id) }));
+        // Mantém o tipo já escolhido no formulário; só define o padrão se vazio
+        setFormData((prev) =>
+          prev.walletTypeId ? prev : { ...prev, walletTypeId: String(activeTypes[0].id) }
+        );
       }
     } catch (err) {
       console.error(err);
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar dados',
-        message: 'Não foi possível carregar as carteiras.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar dados',
+          message: 'Não foi possível carregar as carteiras.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // O formulário de nova carteira e o modal de detalhes são preservados.
+  useAutoRefresh(async () => {
+    const currentKyc = await loadKyc(true);
+    if (currentKyc?.status === 'APPROVED') {
+      await Promise.all([loadData(true), loadSubscriptionStatus(true)]);
+    }
+  });
 
   const handleCreate = async (e) => {
     e.preventDefault();

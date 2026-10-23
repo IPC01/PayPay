@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const initialForm = {
   id: null,
@@ -26,24 +27,30 @@ function AdminWalletTypes() {
     loadTypes();
   }, []);
 
-  const loadTypes = async () => {
+  const loadTypes = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/wallet-types');
       setTypes(data);
       setSelectedType((current) =>
         current ? data.find((t) => t.id === current.id) || current : null
       );
     } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar tipos de carteira',
-        message: 'Não foi possível carregar os tipos de carteira. Tente novamente.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar tipos de carteira',
+          message: 'Não foi possível carregar os tipos de carteira. Tente novamente.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Apenas a lista é atualizada — o formulário permanece intacto.
+  useAutoRefresh(() => loadTypes(true));
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -249,9 +256,7 @@ function AdminWalletTypes() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Tipos de Carteira
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Gira os tipos de carteira disponíveis e ativos no sistema.
-          </p>
+ 
         </div>
         <div className="flex items-center gap-3">
           {!showForm && !selectedType && (

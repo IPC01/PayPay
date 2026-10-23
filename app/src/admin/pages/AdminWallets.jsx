@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { isAdmin } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 import AdminTransactions from './AdminTransactions';
 
 function formatCurrency(value) {
@@ -63,17 +64,21 @@ function AdminWallets() {
     loadWallets();
   }, []);
 
-  const loadWallets = async () => {
+  const loadWallets = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/wallets');
       setWallets(data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Pesquisa/ordenação e a carteira selecionada são preservadas.
+  useAutoRefresh(() => loadWallets(true));
 
   const toggleWalletStatus = async (event, wallet) => {
     if (event) event.stopPropagation();
@@ -259,9 +264,7 @@ function AdminWallets() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Gestão de Carteiras
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Veja todas as carteiras registadas e o seu estado atual.
-          </p>
+      
         </div>
       </div>
 

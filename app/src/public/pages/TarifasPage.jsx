@@ -44,13 +44,15 @@ function TarifasPage() {
   }, []);
 
   const platformName = settings?.platformName || 'Romenapay';
-  const withdrawalFeeAmount = Number(settings?.withdrawalFeeAmount) || 0;
+  const c2bFeePercent = Number(settings?.c2bFeePercent) || 0;
+  const withdrawalFeePercent = Number(settings?.withdrawalFeePercent) || 0;
+  const c2bFeeLabel = c2bFeePercent > 0 ? `${c2bFeePercent}%` : 'Grátis';
   const withdrawalFeeLabel =
-    withdrawalFeeAmount > 0 ? formatPrice(withdrawalFeeAmount) : 'Grátis';
+    withdrawalFeePercent > 0 ? `${withdrawalFeePercent}%` : 'Grátis';
 
   const feeTable = [
     { service: 'Transferência interna', fee: 'Grátis', time: 'Instantâneo' },
-    { service: 'Depósito via M-Pesa', fee: 'Grátis', time: 'Instantâneo' },
+    { service: 'Depósito via M-Pesa (C2B)', fee: c2bFeeLabel, time: 'Instantâneo' },
     { service: 'Saque (B2C)', fee: withdrawalFeeLabel, time: 'Instantâneo' }
   ];
 

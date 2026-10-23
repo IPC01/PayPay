@@ -61,20 +61,32 @@ class WalletPaymentService {
         if (paymentMode === 'C2B' && wallet.allowC2B === false) {
           throw paymentError('Wallet is not authorized for C2B transactions', 403);
         }
+        if (paymentMode === 'C2B') {
+          // Taxa da plataforma (percentagem) retida na entrada de valores C2B
+          const settings = await Setting.findOne({ transaction: t });
+          const percent = Number(settings?.c2bFeePercent || 0);
+          if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+            throw paymentError('Invalid C2B fee configuration', 503);
+          }
+          fee = Number(((value * percent) / 100).toFixed(2));
+        }
         if (paymentMode === 'B2C') {
           if (wallet.allowB2C === false || wallet.allowWithdraw === false) {
             throw paymentError('Wallet is not authorized for B2C withdrawals', 403);
           }
           const settings = await Setting.findOne({ transaction: t });
-          fee = Number(settings?.withdrawalFeeAmount || 0);
-          if (!Number.isFinite(fee) || fee < 0) throw paymentError('Invalid withdrawal fee configuration', 503);
-          fee = Number(fee.toFixed(2));
+          // Taxa da plataforma (percentagem) retida no saque B2C
+          const percent = Number(settings?.withdrawalFeePercent || 0);
+          if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+            throw paymentError('Invalid withdrawal fee configuration', 503);
+          }
+          fee = Number(((value * percent) / 100).toFixed(2));
           const min = Number(settings?.withdrawalMinValue || 0);
           const max = Number(settings?.withdrawalMaxValue || 0);
           if (value < min) throw paymentError(`O valor mínimo de saque é ${min.toFixed(2)}.`);
           if (max > 0 && value > max) throw paymentError(`O valor máximo de saque é ${max.toFixed(2)}.`);
           if (Number(wallet.balance) < Number((value + fee).toFixed(2))) {
-            throw paymentError('Saldo insuficiente para cobrir o saque e o custo fixo.');
+            throw paymentError('Saldo insuficiente para cobrir o saque e a taxa da plataforma.');
           }
         }
         walletPrefix = walletType.referencePrefix;
@@ -177,7 +189,9 @@ class WalletPaymentService {
         if (prepared.walletId) {
           wallet = await Wallet.findByPk(prepared.walletId, { transaction: t, lock: t.LOCK.UPDATE });
           if (paymentMode === 'C2B' && outcome === 'success') {
-            await moveBalance(wallet, transaction, value, 'credit', t);
+            // Credita o valor líquido: a taxa da plataforma (percentagem) fica retida
+            const netAmount = Number((value - Number(transaction.fee || 0)).toFixed(2));
+            await moveBalance(wallet, transaction, netAmount, 'credit', t);
           } else if (paymentMode === 'B2C' && outcome === 'failed') {
             await moveBalance(wallet, transaction, Number((value + Number(transaction.fee)).toFixed(2)), 'credit', t);
           }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
   active: 'Ativa',
@@ -79,24 +80,30 @@ function AdminSubscriptions() {
     loadSubscriptions();
   }, []);
 
-  const loadSubscriptions = async () => {
+  const loadSubscriptions = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const data = await authRequest('/api/admin/subscriptions');
       setSubscriptions(data);
       setSelectedSubscription((current) =>
         current ? data.find((s) => s.id === current.id) || current : null
       );
     } catch (error) {
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar subscrições',
-        message: error.message || 'Não foi possível carregar as subscrições.'
-      });
+      if (!silent) {
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar subscrições',
+          message: error.message || 'Não foi possível carregar as subscrições.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Pesquisa/ordenação são aplicadas no cliente, logo os filtros preservam-se.
+  useAutoRefresh(() => loadSubscriptions(true));
 
   const handleRowKeyDown = (event, sub) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -205,10 +212,7 @@ function AdminSubscriptions() {
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Gestão de Subscrições
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Veja e gerencie todas as subscrições da plataforma. Os pagamentos são processados
-            diretamente na API de pagamentos principal, sem debitar nenhuma carteira.
-          </p>
+      
         </div>
       </div>
 

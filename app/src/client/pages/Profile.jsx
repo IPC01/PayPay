@@ -6,6 +6,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { isStaff, managementPath, roleLabel } from '../../helpers/roles';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const KYC_STYLES = {
   APPROVED: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
@@ -68,24 +69,30 @@ function Profile() {
     confirmPassword: ''
   });
 
+  const loadDashboardData = async () => {
+    try {
+      const [kycResponse, settingsResponse] = await Promise.all([
+        authRequest('/api/kyc'),
+        authRequest('/api/settings')
+      ]);
+      setKycStatus(kycResponse?.kyc?.status || 'DRAFT');
+      setCompanyInfo({
+        ...settingsResponse,
+        logoImg: assetUrl(settingsResponse?.logoImg)
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
-    const loadDashboardData = async () => {
-      try {
-        const [kycResponse, settingsResponse] = await Promise.all([
-          authRequest('/api/kyc'),
-          authRequest('/api/settings')
-        ]);
-        setKycStatus(kycResponse?.kyc?.status || 'DRAFT');
-        setCompanyInfo({
-          ...settingsResponse,
-          logoImg: assetUrl(settingsResponse?.logoImg)
-        });
-      } catch (err) {
-        console.error(err);
-      }
-    };
     loadDashboardData();
   }, [authRequest]);
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Apenas o estado do KYC e a info da empresa são atualizados — o formulário
+  // de alteração de senha não é tocado.
+  useAutoRefresh(() => loadDashboardData());
 
   const passwordMismatch =
     passwordData.confirmPassword.length > 0 &&

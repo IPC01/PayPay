@@ -7,6 +7,7 @@ import { transactionStatusNotification } from '../../helpers/transactionStatus';
 import TransactionDetails from '../../shared/components/TransactionDetails';
 import ReversalConfirmation from '../../shared/components/ReversalConfirmation';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
+import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 function Transactions({ adminView = false, wallet = null }) {
   const { authRequest } = useAuth();
@@ -27,26 +28,34 @@ function Transactions({ adminView = false, wallet = null }) {
     loadTransactions();
   }, [adminView, wallet?.id]);
 
-  const loadTransactions = async () => {
+  const loadTransactions = async (silent = false) => {
     try {
-      setLoading(true);
-      setLoadError(null);
+      if (!silent) {
+        setLoading(true);
+        setLoadError(null);
+      }
       const endpoint = adminView ? '/api/admin/transactions' : wallet ? `/api/transactions?walletId=${encodeURIComponent(wallet.id)}` : '/api/transactions';
       const data = await authRequest(endpoint);
       setTransactions(data);
       setSelectedTransaction((current) => current ? data.find((tx) => tx.id === current.id) || current : null);
     } catch (err) {
       console.error(err);
-      setLoadError(err.message || 'Não foi possível carregar o histórico de transações.');
-      notify({
-        type: 'error',
-        title: 'Erro ao carregar transações',
-        message: err.message || 'Não foi possível carregar o histórico de transações.'
-      });
+      if (!silent) {
+        setLoadError(err.message || 'Não foi possível carregar o histórico de transações.');
+        notify({
+          type: 'error',
+          title: 'Erro ao carregar transações',
+          message: err.message || 'Não foi possível carregar o histórico de transações.'
+        });
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
+
+  // Sincronização automática a cada 20 segundos, sem recarregar a página.
+  // Filtro, pesquisa e transação selecionada são preservados.
+  useAutoRefresh(() => loadTransactions(true));
 
   const reverseTransaction = async (tx) => {
     if (!(await confirm({
@@ -254,7 +263,7 @@ function Transactions({ adminView = false, wallet = null }) {
     return (
       <div role="alert" className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700 dark:text-rose-300">
         <p>{loadError}</p>
-        <button type="button" onClick={loadTransactions} className="mt-2 underline">Tentar novamente</button>
+        <button type="button" onClick={() => loadTransactions()} className="mt-2 underline">Tentar novamente</button>
       </div>
     );
   }
@@ -269,15 +278,6 @@ function Transactions({ adminView = false, wallet = null }) {
             {wallet ? `Todos os movimentos associados à carteira ${wallet.walletCode || wallet.id}, em qualquer estado.` : adminView ? 'Visualize todas as transações do sistema' : 'Gerencie e acompanhe suas transações pessoais'}
           </p>
         </div>
-        <button
-          onClick={loadTransactions}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-200 transition hover:bg-brand-700 dark:shadow-brand-950"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Atualizar
-        </button>
       </div>
 
       {/* Cards de Estatísticas */}

@@ -53,14 +53,23 @@ class SettingsController {
 
   async saveSettings(req, res) {
     try {
-      const withdrawalFeeAmount = Number(req.body.withdrawalFeeAmount ?? 0);
-      if (!Number.isFinite(withdrawalFeeAmount) || withdrawalFeeAmount < 0 ||
-          withdrawalFeeAmount > 99999999.99 ||
-          Math.abs(withdrawalFeeAmount - Number(withdrawalFeeAmount.toFixed(2))) > 0.000001) {
-        return res.status(400).json({ error: 'O custo do saque deve ser um valor não negativo com até duas casas decimais.' });
+      // Taxas da plataforma em percentagem (0-100, até 2 casas decimais)
+      const parsePercent = (raw) => {
+        const value = Number(raw ?? 0);
+        if (!Number.isFinite(value) || value < 0 || value > 100 ||
+            Math.abs(value - Number(value.toFixed(2))) > 0.000001) {
+          return null;
+        }
+        return Number(value.toFixed(2));
+      };
+      const c2bFeePercent = parsePercent(req.body.c2bFeePercent);
+      const withdrawalFeePercent = parsePercent(req.body.withdrawalFeePercent);
+      if (c2bFeePercent === null || withdrawalFeePercent === null) {
+        return res.status(400).json({ error: 'As taxas da plataforma devem ser percentagens entre 0 e 100 com até duas casas decimais.' });
       }
       const payload = {
-        withdrawalFeeAmount,
+        c2bFeePercent,
+        withdrawalFeePercent,
         withdrawalMinValue: Number.isFinite(parseFloat(req.body.withdrawalMinValue)) ? parseFloat(req.body.withdrawalMinValue) : 0.0,
         withdrawalMaxValue: Number.isFinite(parseFloat(req.body.withdrawalMaxValue)) ? parseFloat(req.body.withdrawalMaxValue) : 0.0
       };
