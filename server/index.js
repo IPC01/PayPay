@@ -145,6 +145,7 @@ async function ensureWithdrawalReferenceColumns() {
 
   for (const [tableName, columnName, attributes] of [
     ['wallet_types', 'referencePrefix', { type: DataTypes.STRING(32), allowNull: true }],
+    ['wallets', 'reference', { type: DataTypes.STRING(8), allowNull: true }],
     ['withdrawal_requests', 'reference', { type: DataTypes.STRING, allowNull: true }],
     ['transactions', 'originalTransactionId', { type: DataTypes.UUID, allowNull: true }]
   ]) {

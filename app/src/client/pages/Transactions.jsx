@@ -17,6 +17,8 @@ function Transactions({ adminView = false, wallet = null }) {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [wallets, setWallets] = useState([]);
+  const [selectedWalletId, setSelectedWalletId] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [reversingId, setReversingId] = useState(null);
   const [queryingStatusId, setQueryingStatusId] = useState(null);
@@ -26,7 +28,15 @@ function Transactions({ adminView = false, wallet = null }) {
 
   useEffect(() => {
     loadTransactions();
-  }, [adminView, wallet?.id]);
+  }, [adminView, wallet?.id, selectedWalletId]);
+
+  // Carteiras do utilizador para o filtro (apenas na página de histórico geral)
+  useEffect(() => {
+    if (adminView || wallet) return;
+    authRequest('/api/wallets')
+      .then((data) => setWallets(data || []))
+      .catch(() => {});
+  }, []);
 
   const loadTransactions = async (silent = false) => {
     try {
@@ -34,7 +44,12 @@ function Transactions({ adminView = false, wallet = null }) {
         setLoading(true);
         setLoadError(null);
       }
-      const endpoint = adminView ? '/api/admin/transactions' : wallet ? `/api/transactions?walletId=${encodeURIComponent(wallet.id)}` : '/api/transactions';
+      const effectiveWalletId = wallet?.id || selectedWalletId;
+      const endpoint = adminView
+        ? '/api/admin/transactions'
+        : effectiveWalletId
+          ? `/api/transactions?walletId=${encodeURIComponent(effectiveWalletId)}`
+          : '/api/transactions';
       const data = await authRequest(endpoint);
       setTransactions(data);
       setSelectedTransaction((current) => current ? data.find((tx) => tx.id === current.id) || current : null);
@@ -382,6 +397,22 @@ function Transactions({ adminView = false, wallet = null }) {
           >
             Falhas
           </button>
+
+          {!adminView && !wallet && (
+            <select
+              value={selectedWalletId}
+              onChange={(e) => setSelectedWalletId(e.target.value)}
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              aria-label="Filtrar por carteira"
+            >
+              <option value="">Todas as carteiras</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.walletName || w.walletCode} ({w.walletCode})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div className="relative">

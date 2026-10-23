@@ -31,6 +31,15 @@ const renderTypeLogo = (logo, provider, size = 'md') => {
   return logo;
 };
 
+// Gera a referência inicial do cliente (8 caracteres alfanuméricos); o servidor
+// associa um código aleatório de 12 caracteres para garantir que nunca se repete.
+const generateInitialReference = () => {
+  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const bytes = new Uint8Array(8);
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+};
+
 function TransactionsC2B() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -39,7 +48,6 @@ function TransactionsC2B() {
   const [selectedWalletCode, setSelectedWalletCode] = useState('');
   const [amount, setAmount] = useState('');
   const [phone, setPhone] = useState('');
-  const [reference, setReference] = useState('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -140,7 +148,7 @@ function TransactionsC2B() {
           walletCode: selectedWalletCode,
           amount: Number(amount),
           phone: phone.trim(),
-          reference: reference.trim()
+          reference: generateInitialReference()
         }
       });
 
@@ -153,7 +161,6 @@ function TransactionsC2B() {
       });
       setAmount('');
       setPhone('');
-      setReference('');
       await loadWallets();
     } catch (err) {
       notify({
@@ -286,22 +293,6 @@ function TransactionsC2B() {
                 required
                 placeholder="Ex: 84xxxxxxx"
                 className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Referência <span className="text-slate-400">(opcional)</span>
-              </label>
-              <input
-                type="text"
-                value={reference}
-                onChange={(event) =>
-                  setReference(event.target.value.replace(/[^A-Za-z0-9]/g, ''))
-                }
-                maxLength={20}
-                placeholder="Gerada automaticamente (até 20 letras/números)"
-                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
               />
             </div>
 

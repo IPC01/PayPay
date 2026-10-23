@@ -37,6 +37,7 @@ function Wallets() {
   const [formData, setFormData] = useState({
     walletName: '',
     walletTypeId: '',
+    reference: '',
     currency: 'MZN'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,6 +45,9 @@ function Wallets() {
   const [kycLoading, setKycLoading] = useState(true);
   const [hasActivePackage, setHasActivePackage] = useState(false);
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editData, setEditData] = useState({ walletName: '', reference: '' });
+  const [editSaving, setEditSaving] = useState(false);
 
   async function loadKyc(silent = false) {
     try {
@@ -152,6 +156,7 @@ function Wallets() {
         body: {
           walletName: formData.walletName,
           walletTypeId: formData.walletTypeId,
+          reference: formData.reference,
           currency: formData.currency
         }
       });
@@ -161,7 +166,7 @@ function Wallets() {
         message: `Carteira ${data.wallet.walletCode} criada com sucesso!`
       });
       setModalOpen(false);
-      setFormData({ walletName: '', walletTypeId: walletTypes[0]?.id || '', currency: 'MZN' });
+      setFormData({ walletName: '', walletTypeId: walletTypes[0]?.id || '', reference: '', currency: 'MZN' });
       loadData();
     } catch (err) {
       notify({
@@ -198,6 +203,48 @@ function Wallets() {
     setSelectedWallet(null);
     setAuditLogs([]);
     setShowAudit(false);
+  };
+
+  const openEditWallet = () => {
+    if (!selectedWallet) return;
+    setEditData({
+      walletName: selectedWallet.walletName || '',
+      reference: selectedWallet.reference || ''
+    });
+    setEditOpen(true);
+  };
+
+  const closeEditWallet = () => setEditOpen(false);
+
+  const handleEditSubmit = async (event) => {
+    event.preventDefault();
+    if (!selectedWallet || editSaving) return;
+    try {
+      setEditSaving(true);
+      const data = await authRequest(`/api/wallets/${selectedWallet.id}`, {
+        method: 'PUT',
+        body: {
+          walletName: editData.walletName.trim(),
+          reference: editData.reference
+        }
+      });
+      notify({
+        type: 'success',
+        title: 'Carteira atualizada',
+        message: 'O nome e a referência da carteira foram atualizados.'
+      });
+      setEditOpen(false);
+      setSelectedWallet((current) => (current ? { ...current, ...data.wallet } : current));
+      await loadData(true);
+    } catch (err) {
+      notify({
+        type: 'error',
+        title: 'Erro ao atualizar carteira',
+        message: err.message || 'Não foi possível atualizar a carteira.'
+      });
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const handleRowKeyDown = (event, wallet) => {
@@ -336,16 +383,29 @@ function Wallets() {
                   {selectedWallet.walletCode}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={closeWalletDetails}
-                className="shrink-0 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                aria-label="Fechar detalhes"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={openEditWallet}
+                  className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                  aria-label="Editar carteira"
+                  title="Editar nome e referência"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={closeWalletDetails}
+                  className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                  aria-label="Fechar detalhes"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Corpo */}
@@ -369,6 +429,12 @@ function Wallets() {
                 <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</p>
                   <div className="mt-0.5">{getStatusBadge(selectedWallet.status)}</div>
+                </div>
+                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Referência</p>
+                  <p className="mt-0.5 font-mono text-xs font-semibold text-slate-900 dark:text-white">
+                    {selectedWallet.reference || '—'}
+                  </p>
                 </div>
                 <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
                   <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Tipo</p>
@@ -825,6 +891,28 @@ function Wallets() {
 
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Referência <span className="text-slate-400">(opcional, até 8 caracteres)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.reference}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        reference: e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)
+                      })
+                    }
+                    maxLength={8}
+                    placeholder="Ex: LOJA123"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    Usada como referência inicial nas transações desta carteira; o sistema acrescenta um código aleatório de 12 caracteres para garantir que nunca se repete.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
                     Moeda <span className="text-rose-600">*</span>
                   </label>
                   <select
@@ -853,6 +941,98 @@ function Wallets() {
                   className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isSubmitting ? 'Criando...' : 'Criar carteira'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Editar Carteira */}
+      {editOpen && selectedWallet && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm"
+          onClick={closeEditWallet}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                  Editar carteira
+                </h3>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  Apenas o nome e a referência podem ser alterados
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditWallet}
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Fechar"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit}>
+              <div className="space-y-3 px-5 py-4">
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Nome da carteira <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.walletName}
+                    onChange={(e) => setEditData({ ...editData, walletName: e.target.value })}
+                    placeholder="Ex: Minha Carteira Principal"
+                    required
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    Referência <span className="text-slate-400">(opcional, até 8 caracteres)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editData.reference}
+                    onChange={(e) =>
+                      setEditData({
+                        ...editData,
+                        reference: e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)
+                      })
+                    }
+                    maxLength={8}
+                    placeholder="Ex: LOJA123"
+                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                    Usada como referência inicial nas transações desta carteira; o sistema acrescenta um código aleatório de 12 caracteres para garantir que nunca se repete.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:justify-end dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={closeEditWallet}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSaving || !editData.walletName.trim()}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {editSaving ? 'Guardando...' : 'Guardar alterações'}
                 </button>
               </div>
             </form>

@@ -3,6 +3,7 @@ const { Wallet, WalletType, Notification, User, Role } = require('../models');
 const { isAdmin, isOperator, isStaff } = require('../middleware/staffAccess');
 const generateUniqueCode = require('../helpers/generateCode');
 const { createAuditLog } = require('../helpers/auditLogger');
+const { sanitizePrefix } = require('../helpers/mpesaPayment');
 const { hasApprovedKyc } = require('../helpers/kycHelper');
 const { hasActivePackage } = require('../helpers/subscriptionHelper');
 
@@ -32,6 +33,17 @@ class WalletController {
         });
       }
 
+      // Referência inicial opcional (até 8 caracteres alfanuméricos) associada à carteira
+      let reference = null;
+      if (typeof req.body.reference === 'string' && req.body.reference.trim()) {
+        reference = sanitizePrefix(req.body.reference);
+        if (!reference) {
+          return res.status(400).json({
+            error: 'A referência deve ter de 1 a 8 caracteres, apenas letras e números.'
+          });
+        }
+      }
+
       // gerar wallet code único usando o helper
       let walletCode;
       try {
@@ -47,6 +59,7 @@ class WalletController {
         walletTypeId,
         walletCode,
         walletName,
+        reference,
         currency: currency || 'MZN',
         balance: 0.00,
         allowC2B: typeof allowC2B === 'boolean' ? allowC2B : true,
@@ -172,9 +185,10 @@ class WalletController {
     try {
       const userId = req.user.userId;
       const { id } = req.params;
-      const { walletName, walletTypeId, currency, status, isActive, allowC2B, allowB2C, allowWithdraw } = req.body;
+      const { walletName, walletTypeId, currency, status, isActive, allowC2B, allowB2C, allowWithdraw, reference } = req.body;
 
-      const where = isAdmin(req.user) ? { id } : { id, userId };
+      const adminEditing = isAdmin(req.user);
+      const where = adminEditing ? { id } : { id, userId };
       const wallet = await Wallet.findOne({ where });
 
       if (!wallet) {
@@ -190,22 +204,39 @@ class WalletController {
       const changeMessages = [];
 
       if (walletName) wallet.walletName = walletName;
-      if (currency) wallet.currency = currency;
-      if (walletTypeId) wallet.walletTypeId = walletTypeId;
-      if (typeof allowC2B !== 'undefined' && wallet.allowC2B !== !!allowC2B) {
+      // Referência inicial da carteira (até 8 caracteres alfanuméricos); texto vazio limpa
+      if (typeof reference === 'string') {
+        const trimmed = reference.trim();
+        if (!trimmed) {
+          wallet.reference = null;
+        } else {
+          const sanitized = sanitizePrefix(trimmed);
+          if (!sanitized) {
+            return res.status(400).json({
+              error: 'A referência deve ter de 1 a 8 caracteres, apenas letras e números.'
+            });
+          }
+          wallet.reference = sanitized;
+        }
+      }
+      // Apenas administradores podem alterar moeda, tipo, permissões e estado;
+      // o cliente pode mudar apenas o nome e a referência da própria carteira.
+      if (currency && adminEditing) wallet.currency = currency;
+      if (walletTypeId && adminEditing) wallet.walletTypeId = walletTypeId;
+      if (adminEditing && typeof allowC2B !== 'undefined' && wallet.allowC2B !== !!allowC2B) {
         wallet.allowC2B = !!allowC2B;
         changeMessages.push(`C2B ${wallet.allowC2B ? 'ativada' : 'desativada'}`);
       }
-      if (typeof allowB2C !== 'undefined' && wallet.allowB2C !== !!allowB2C) {
+      if (adminEditing && typeof allowB2C !== 'undefined' && wallet.allowB2C !== !!allowB2C) {
         wallet.allowB2C = !!allowB2C;
         changeMessages.push(`B2C ${wallet.allowB2C ? 'ativada' : 'desativada'}`);
       }
-      if (typeof allowWithdraw !== 'undefined' && wallet.allowWithdraw !== !!allowWithdraw) {
+      if (adminEditing && typeof allowWithdraw !== 'undefined' && wallet.allowWithdraw !== !!allowWithdraw) {
         wallet.allowWithdraw = !!allowWithdraw;
         changeMessages.push(`Saque ${wallet.allowWithdraw ? 'ativado' : 'desativado'}`);
       }
 
-      if (typeof isActive !== 'undefined') {
+      if (adminEditing && typeof isActive !== 'undefined') {
         const newStatus = isActive ? 'ACTIVE' : 'FROZEN';
         if (wallet.status !== newStatus) {
           wallet.status = newStatus;
@@ -213,7 +244,7 @@ class WalletController {
             changeMessages.push('Carteira desativada');
           }
         }
-      } else if (status) {
+      } else if (adminEditing && status) {
         const validStatuses = ['ACTIVE', 'FROZEN', 'CLOSED'];
         if (!validStatuses.includes(status)) {
           return res.status(400).json({ error: 'Invalid status' });

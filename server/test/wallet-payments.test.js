@@ -18,7 +18,7 @@ function row(data) {
 }
 
 function setup(t, { balance = 1000, response = { output_ResponseCode: 'INS-0', output_ResponseDesc: 'Confirmed',
-  output_ConversationID: 'conversation', output_TransactionID: 'provider-tx' }, error, fee = 10 } = {}) {
+  output_ConversationID: 'conversation', output_TransactionID: 'provider-tx' }, error, fee = 10, c2bFee = 0 } = {}) {
   const wallet = row({
     id: 'wallet-id', userId: 7, walletCode: '000001', walletTypeId: 1,
     status: 'ACTIVE', currency: 'MZN', balance, allowB2C: true, allowWithdraw: true, allowC2B: true
@@ -47,8 +47,10 @@ function setup(t, { balance = 1000, response = { output_ResponseCode: 'INS-0', o
   t.mock.method(models.WalletType, 'findByPk', async () => ({
     id: 1, code: 'mpesa', status: true, referencePrefix: 'PAY'
   }));
+  // As taxas são percentagens; com o valor 100 usado nos testes, a percentagem
+  // coincide com o valor absoluto (10% de 100 = 10).
   t.mock.method(models.Setting, 'findOne', async () => ({
-    withdrawalFeeAmount: fee, withdrawalMinValue: 20, withdrawalMaxValue: 500
+    withdrawalFeePercent: fee, c2bFeePercent: c2bFee, withdrawalMinValue: 20, withdrawalMaxValue: 500
   }));
   t.mock.method(models.Transaction, 'findOne', async ({ where }) =>
     transactions.find((tx) => tx.reference === where.reference) || null);
@@ -98,7 +100,7 @@ test('generated platform references are prefixed and distinct', () => {
   assert.match(generateReference(), /^[A-Z0-9]{20}$/);
 });
 
-test('B2C reserves amount plus fixed fee and persists actual provider response', async (t) => {
+test('B2C reserves amount plus platform fee and persists actual provider response', async (t) => {
   const state = setup(t);
   const result = await WalletPaymentService.execute(input);
   assert.equal(result.success, true);
@@ -128,7 +130,18 @@ test('C2B credits the full amount and charges no fee', async (t) => {
   assert.equal(state.requests.length, 0);
 });
 
-test('confirmed B2C rejection refunds amount and fixed fee', async (t) => {
+test('C2B retains the platform percentage fee and credits the net amount', async (t) => {
+  const state = setup(t, { c2bFee: 10 });
+  const result = await WalletPaymentService.execute({ ...input, paymentMode: 'C2B' });
+  assert.equal(result.success, true);
+  assert.equal(result.transaction.fee, 10);
+  assert.equal(state.wallet.balance, 1090);
+  assert.equal(state.ledger[0].type, 'credit');
+  assert.equal(state.ledger[0].amount, 90);
+  assert.equal(state.requests.length, 0);
+});
+
+test('confirmed B2C rejection refunds amount and platform fee', async (t) => {
   const state = setup(t, { response: { output_ResponseCode: 'INS-2051', output_ResponseDesc: 'MSISDN invalid' } });
   const result = await WalletPaymentService.execute(input);
   assert.equal(result.success, false);
@@ -205,22 +218,28 @@ test('concurrent B2C requests cannot spend the same available balance', async (t
   assert.equal(state.wallet.balance, 0);
 });
 
-test('repeated reference cannot send another payment', async (t) => {
+test('repeated initial reference generates a new unique reference', async (t) => {
   const state = setup(t);
-  await WalletPaymentService.execute({ ...input, reference: 'ORDER1' });
-  await assert.rejects(WalletPaymentService.execute({ ...input, reference: 'ORDER1' }), /Reference already used/);
+  const first = await WalletPaymentService.execute({ ...input, reference: 'ORDER1' });
+  const second = await WalletPaymentService.execute({ ...input, reference: 'ORDER1' });
+  assert.equal(state.calls.length, 2);
+  assert.notEqual(first.reference, second.reference);
+  // Base inicial (até 8 caracteres) + sufixo aleatório até 20 caracteres no total
+  assert.match(first.reference, /^ORDER1[A-Z0-9]{14}$/);
+  assert.match(second.reference, /^ORDER1[A-Z0-9]{14}$/);
+});
+
+test('initial references are sanitized and empty ones refused before any payment', async (t) => {
+  const state = setup(t);
+  // Caracteres inválidos são removidos e a base é limitada a 8 caracteres
+  const result = await WalletPaymentService.execute({ ...input, reference: 'order-123-xyz' });
+  assert.match(result.reference, /^ORDER123[A-Z0-9]{12}$/);
+  // Uma referência sem qualquer carácter alfanumérico é recusada
+  await assert.rejects(WalletPaymentService.execute({ ...input, reference: '---' }), /1 a 8 caracteres/);
   assert.equal(state.calls.length, 1);
 });
 
-test('references M-Pesa would reject are refused before any payment', async (t) => {
-  const state = setup(t);
-  for (const reference of ['ORDER-1', 'A'.repeat(21), 'ref 1']) {
-    await assert.rejects(WalletPaymentService.execute({ ...input, reference }), /1 a 20 caracteres/);
-  }
-  assert.equal(state.calls.length, 0);
-});
-
-test('zero fixed fee and minimum/maximum boundaries are accepted', async (t) => {
+test('zero percent fee and minimum/maximum boundaries are accepted', async (t) => {
   const state = setup(t, { fee: 0 });
   await WalletPaymentService.execute({ ...input, amount: 20 });
   await WalletPaymentService.execute({ ...input, amount: 500 });

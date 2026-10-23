@@ -24,7 +24,13 @@ Wallet.init(
      walletName: {
       type: DataTypes.STRING,
       allowNull: false,
-     
+
+    },
+    // Referência inicial opcional (até 8 caracteres alfanuméricos) usada como base
+    // nas referências das transações desta carteira
+    reference: {
+      type: DataTypes.STRING(8),
+      allowNull: true
     },
     walletTypeId: {
   type: DataTypes.INTEGER,

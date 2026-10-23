@@ -4,7 +4,7 @@ const PaymentService = require('./PaymentService');
 const { createAuditLog } = require('../helpers/auditLogger');
 const {
   paymentError, normalizePhone, normalizeAmount, generateReference, getOutcome, responseMessage,
-  validateReference, toThirdPartyReference
+  sanitizePrefix, toThirdPartyReference
 } = require('../helpers/mpesaPayment');
 
 async function generateUniqueReference(prefix, t) {
@@ -39,9 +39,16 @@ class WalletPaymentService {
     if (reference != null && reference !== '' && typeof reference !== 'string') {
       throw paymentError('Invalid transaction reference');
     }
-    const providedReference = typeof reference === 'string' && reference.trim()
-      ? validateReference(reference)
-      : null;
+    // A referência enviada pelo cliente é apenas a base inicial (até 8 caracteres
+    // alfanuméricos); o sistema associa um código aleatório de 12+ caracteres para
+    // garantir que a referência final nunca se repete.
+    let providedBase = null;
+    if (typeof reference === 'string' && reference.trim()) {
+      providedBase = sanitizePrefix(reference);
+      if (!providedBase) {
+        throw paymentError('A referência inicial deve ter de 1 a 8 caracteres, apenas letras e números.');
+      }
+    }
 
     const prepared = await sequelize.transaction(async (t) => {
       let wallet = null;
@@ -91,14 +98,13 @@ class WalletPaymentService {
         }
         walletPrefix = walletType.referencePrefix;
       }
-      if (providedReference) {
-        reference = providedReference;
-        if (await Transaction.findOne({ where: { reference }, transaction: t })) {
-          throw paymentError('Reference already used for another transaction', 409);
-        }
-      } else {
-        reference = await generateUniqueReference(walletPrefix, t);
-      }
+      // Base inicial: referência enviada pelo cliente, referência da carteira ou
+      // prefixo do tipo de carteira + sufixo aleatório; em caso de colisão, um novo
+      // sufixo é gerado automaticamente.
+      reference = await generateUniqueReference(
+        providedBase || sanitizePrefix(wallet?.reference) || walletPrefix,
+        t
+      );
       const transaction = await Transaction.create({
         fromWalletId: paymentMode === 'B2C' ? wallet.id : null,
         toWalletId: paymentMode === 'C2B' ? wallet?.id || null : null,
