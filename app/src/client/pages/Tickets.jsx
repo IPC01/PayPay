@@ -36,6 +36,465 @@ function formatDateTime(value) {
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-PT');
 }
 
+const resolveAttachmentUrl = (url) => assetUrl(url) || '';
+
+// ── Cabeçalho da página ──────────────────────────────────────────────────
+function Header({ formOpen, selectedTicket, onNew }) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
+          Suporte
+        </p>
+        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+          Tickets de Suporte
+        </h1>
+
+      </div>
+      {!formOpen && !selectedTicket && (
+        <button
+          type="button"
+          onClick={onNew}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-brand-600/20 transition hover:bg-brand-700"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Novo ticket
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ── Formulário de novo ticket ────────────────────────────────────────────
+function NewTicketForm({
+  subject,
+  description,
+  attachmentFile,
+  sending,
+  onSubjectChange,
+  onDescriptionChange,
+  onFileChange,
+  onSubmit,
+  onCancel
+}) {
+  return (
+    <section className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-700">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
+            Novo ticket
+          </p>
+          <h2 className="mt-1 text-base font-bold text-slate-900 dark:text-white">
+            Abrir novo ticket
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          ← Voltar
+        </button>
+      </div>
+
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Assunto <span className="text-rose-600">*</span>
+          </label>
+          <input
+            value={subject}
+            onChange={(e) => onSubjectChange(e.target.value)}
+            required
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            placeholder="Descreva o problema em poucas palavras"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Descrição <span className="text-rose-600">*</span>
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => onDescriptionChange(e.target.value)}
+            required
+            rows={5}
+            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+            placeholder="Conte-nos o que está a acontecer..."
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Imagem <span className="text-slate-400">(opcional)</span>
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => onFileChange(e.target.files?.[0] || null)}
+            className="w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700 dark:text-slate-300"
+          />
+          {attachmentFile && (
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Anexo: {attachmentFile.name}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={sending}
+            className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {sending ? 'A enviar...' : 'Enviar ticket'}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+// ── Lista de tickets ─────────────────────────────────────────────────────
+function TicketList({ tickets, loading, deletingId, onOpen, onDelete, onNew }) {
+  const handleTicketKeyDown = (event, ticket) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onOpen(null, ticket);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+            Meus tickets
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+            Clique num ticket para abrir a conversa.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
+          {tickets.length}
+        </span>
+      </div>
+
+      {loading ? (
+        <div className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
+          A carregar tickets...
+        </div>
+      ) : tickets.length === 0 ? (
+        <div className="py-10 text-center">
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Ainda não tem tickets.
+          </p>
+          <button
+            type="button"
+            onClick={onNew}
+            className="mt-3 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
+          >
+            Abrir primeiro ticket
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
+          {tickets.map((ticket) => (
+            <div
+              key={ticket.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => onOpen(null, ticket)}
+              onKeyDown={(event) => handleTicketKeyDown(event, ticket)}
+              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900 dark:text-white">
+                    {ticket.subject}
+                  </p>
+                  <p className="mt-0.5 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">
+                    {ticket.description}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    STATUS_STYLES[ticket.status] ||
+                    'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  {STATUS_LABELS[ticket.status] || ticket.status}
+                </span>
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                <div>
+                  <span className="block uppercase tracking-wider">Prioridade</span>
+                  <span
+                    className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      PRIORITY_STYLES[ticket.priority] ||
+                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                    }`}
+                  >
+                    {ticket.priority || '—'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="block uppercase tracking-wider">Atualizado</span>
+                  <span className="text-slate-700 dark:text-slate-300">
+                    {formatDate(ticket.updatedAt)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
+                <button
+                  type="button"
+                  onClick={(event) => onOpen(event, ticket)}
+                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
+                >
+                  Ver conversa
+                </button>
+                <button
+                  type="button"
+                  onClick={(event) => onDelete(event, ticket.id)}
+                  disabled={deletingId === ticket.id}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300"
+                >
+                  {deletingId === ticket.id ? 'A excluir...' : 'Excluir'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── Detalhe compacto do ticket ───────────────────────────────────────────
+function TicketDetails({
+  ticket,
+  messages,
+  replyText,
+  sending,
+  deletingId,
+  onReplyChange,
+  onReplySubmit,
+  onClose,
+  onDelete
+}) {
+  if (!ticket) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* Barra de contexto */}
+      <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+            Ticket selecionado
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
+            {ticket.subject}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          ← Voltar à lista
+        </button>
+      </div>
+
+      <div className="max-w-2xl">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
+                Ticket
+              </p>
+              <h2 className="mt-1 truncate text-base font-bold text-slate-900 dark:text-white">
+                {ticket.subject}
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="shrink-0 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+              aria-label="Fechar detalhes"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Corpo */}
+          <div className="space-y-3 px-4 py-3">
+            {/* Meta */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</p>
+                <span
+                  className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    STATUS_STYLES[ticket.status] ||
+                    'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  {STATUS_LABELS[ticket.status] || ticket.status}
+                </span>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                  Prioridade
+                </p>
+                <span
+                  className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    PRIORITY_STYLES[ticket.priority] ||
+                    'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                  }`}
+                >
+                  {ticket.priority || '—'}
+                </span>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                  Atualizado
+                </p>
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-900 dark:text-white">
+                  {formatDate(ticket.updatedAt)}
+                </p>
+              </div>
+            </div>
+
+            {/* Descrição */}
+            <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                Descrição
+              </p>
+              <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                {ticket.description}
+              </p>
+            </div>
+
+            {/* Anexo */}
+            {ticket.attachmentUrl && (
+              <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                    Anexo
+                  </p>
+                  <a
+                    href={resolveAttachmentUrl(ticket.attachmentUrl)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                  >
+                    Abrir
+                  </a>
+                </div>
+                <img
+                  src={resolveAttachmentUrl(ticket.attachmentUrl)}
+                  alt="Anexo do ticket"
+                  className="mt-2 max-h-64 w-full rounded-lg object-contain"
+                />
+              </div>
+            )}
+
+            {/* Conversa */}
+            <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                Conversa ({messages.length})
+              </p>
+              {messages.length === 0 ? (
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  Nenhuma mensagem ainda. Envie a primeira resposta abaixo.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {messages.map((message) => {
+                    const isAdmin = message.senderType === 'admin';
+                    return (
+                      <div
+                        key={message.id}
+                        className={`rounded-xl px-3 py-2 ${
+                          isAdmin
+                            ? 'bg-brand-50 dark:bg-brand-900/20'
+                            : 'bg-white dark:bg-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-white">
+                            {isAdmin ? 'Admin / Suporte' : message.User?.name || 'Você'}
+                          </p>
+                          <span className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
+                            {formatDateTime(message.createdAt)}
+                          </span>
+                        </div>
+                        <p className="mt-1 whitespace-pre-line text-xs text-slate-700 dark:text-slate-300">
+                          {message.message}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Resposta */}
+            <form onSubmit={onReplySubmit} className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+              <label className="block text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                Responder
+              </label>
+              <textarea
+                value={replyText}
+                onChange={(e) => onReplyChange(e.target.value)}
+                rows={3}
+                placeholder="Digite sua resposta aqui..."
+                className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+              <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  type="submit"
+                  disabled={sending || !replyText.trim()}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {sending ? 'A enviar...' : 'Enviar resposta'}
+                </button>
+              </div>
+            </form>
+
+            {/* Excluir */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={(event) => onDelete(event, ticket.id)}
+                disabled={deletingId === ticket.id}
+                className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300"
+              >
+                {deletingId === ticket.id ? 'A excluir...' : 'Excluir ticket'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Componente principal ─────────────────────────────────────────────────
 function Tickets() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -52,10 +511,9 @@ function Tickets() {
   const [attachmentFile, setAttachmentFile] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  const resolveAttachmentUrl = (url) => assetUrl(url) || '';
-
   useEffect(() => {
     loadTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTickets = async (silent = false) => {
@@ -81,7 +539,6 @@ function Tickets() {
   };
 
   // Sincronização automática a cada 20 segundos, sem recarregar a página.
-  // O ticket aberto, a caixa de resposta e o formulário não são alterados.
   useAutoRefresh(() => loadTickets(true));
 
   const openTicket = async (event, ticket) => {
@@ -218,449 +675,48 @@ function Tickets() {
     }
   };
 
-  const handleTicketKeyDown = (event, ticket) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      openTicket(null, ticket);
-    }
-  };
-
-  // ── Cabeçalho da página ──────────────────────────────────────────────────
-  const Header = () => (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-          Suporte
-        </p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-          Tickets de Suporte
-        </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Crie um novo pedido de suporte ou acompanhe o estado de um ticket já criado.
-        </p>
-      </div>
-      {!formOpen && !selectedTicket && (
-        <button
-          type="button"
-          onClick={() => setFormOpen(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-brand-600/20 transition hover:bg-brand-700"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Novo ticket
-        </button>
-      )}
-    </div>
-  );
-
-  // ── Formulário de novo ticket ────────────────────────────────────────────
-  const NewTicketForm = () => (
-    <section className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-200 pb-3 dark:border-slate-700">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-            Novo ticket
-          </p>
-          <h2 className="mt-1 text-base font-bold text-slate-900 dark:text-white">
-            Abrir novo ticket
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={() => setFormOpen(false)}
-          className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-        >
-          ← Voltar
-        </button>
-      </div>
-
-      <form onSubmit={createTicket} className="space-y-4">
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Assunto <span className="text-rose-600">*</span>
-          </label>
-          <input
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            placeholder="Descreva o problema em poucas palavras"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Descrição <span className="text-rose-600">*</span>
-          </label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            rows={5}
-            className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-            placeholder="Conte-nos o que está a acontecer..."
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Imagem <span className="text-slate-400">(opcional)</span>
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setAttachmentFile(e.target.files?.[0] || null)}
-            className="w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-brand-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700 dark:text-slate-300"
-          />
-          {attachmentFile && (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Anexo: {attachmentFile.name}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
-          <button
-            type="button"
-            onClick={() => setFormOpen(false)}
-            className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={sending}
-            className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {sending ? 'A enviar...' : 'Enviar ticket'}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-
-  // ── Lista de tickets ─────────────────────────────────────────────────────
-  const TicketList = () => (
-    <section className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-            Meus tickets
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-            Clique num ticket para abrir a conversa.
-          </p>
-        </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-          {tickets.length}
-        </span>
-      </div>
-
-      {loading ? (
-        <div className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-          A carregar tickets...
-        </div>
-      ) : tickets.length === 0 ? (
-        <div className="py-10 text-center">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Ainda não tem tickets.
-          </p>
-          <button
-            type="button"
-            onClick={() => setFormOpen(true)}
-            className="mt-3 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700"
-          >
-            Abrir primeiro ticket
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-          {tickets.map((ticket) => (
-            <div
-              key={ticket.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openTicket(null, ticket)}
-              onKeyDown={(event) => handleTicketKeyDown(event, ticket)}
-              className="cursor-pointer rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-semibold text-slate-900 dark:text-white">
-                    {ticket.subject}
-                  </p>
-                  <p className="mt-0.5 line-clamp-1 text-xs text-slate-500 dark:text-slate-400">
-                    {ticket.description}
-                  </p>
-                </div>
-                <span
-                  className={`shrink-0 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                    STATUS_STYLES[ticket.status] ||
-                    'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                  }`}
-                >
-                  {STATUS_LABELS[ticket.status] || ticket.status}
-                </span>
-              </div>
-
-              <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                <div>
-                  <span className="block uppercase tracking-wider">Prioridade</span>
-                  <span
-                    className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      PRIORITY_STYLES[ticket.priority] ||
-                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    {ticket.priority || '—'}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="block uppercase tracking-wider">Atualizado</span>
-                  <span className="text-slate-700 dark:text-slate-300">
-                    {formatDate(ticket.updatedAt)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={(event) => openTicket(event, ticket)}
-                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-700"
-                >
-                  Ver conversa
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => deleteTicket(event, ticket.id)}
-                  disabled={deletingId === ticket.id}
-                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300"
-                >
-                  {deletingId === ticket.id ? 'A excluir...' : 'Excluir'}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-
-  // ── Detalhe compacto do ticket ───────────────────────────────────────────
-  const TicketDetails = () => {
-    if (!selectedTicket) return null;
-
-    return (
-      <div className="space-y-4">
-        {/* Barra de contexto */}
-        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-              Ticket selecionado
-            </p>
-            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
-              {selectedTicket.subject}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={closeTicket}
-            className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            ← Voltar à lista
-          </button>
-        </div>
-
-        <div className="max-w-2xl">
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-                  Ticket
-                </p>
-                <h2 className="mt-1 truncate text-base font-bold text-slate-900 dark:text-white">
-                  {selectedTicket.subject}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeTicket}
-                className="shrink-0 rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                aria-label="Fechar detalhes"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Corpo */}
-            <div className="space-y-3 px-4 py-3">
-              {/* Meta */}
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</p>
-                  <span
-                    className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      STATUS_STYLES[selectedTicket.status] ||
-                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    {STATUS_LABELS[selectedTicket.status] || selectedTicket.status}
-                  </span>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                    Prioridade
-                  </p>
-                  <span
-                    className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                      PRIORITY_STYLES[selectedTicket.priority] ||
-                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                    }`}
-                  >
-                    {selectedTicket.priority || '—'}
-                  </span>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-2.5 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                    Atualizado
-                  </p>
-                  <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-900 dark:text-white">
-                    {formatDate(selectedTicket.updatedAt)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Descrição */}
-              <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                  Descrição
-                </p>
-                <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                  {selectedTicket.description}
-                </p>
-              </div>
-
-              {/* Anexo */}
-              {selectedTicket.attachmentUrl && (
-                <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                      Anexo
-                    </p>
-                    <a
-                      href={resolveAttachmentUrl(selectedTicket.attachmentUrl)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                    >
-                      Abrir
-                    </a>
-                  </div>
-                  <img
-                    src={resolveAttachmentUrl(selectedTicket.attachmentUrl)}
-                    alt="Anexo do ticket"
-                    className="mt-2 max-h-64 w-full rounded-lg object-contain"
-                  />
-                </div>
-              )}
-
-              {/* Conversa */}
-              <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                  Conversa ({messages.length})
-                </p>
-                {messages.length === 0 ? (
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                    Nenhuma mensagem ainda. Envie a primeira resposta abaixo.
-                  </p>
-                ) : (
-                  <div className="mt-2 space-y-2">
-                    {messages.map((message) => {
-                      const isAdmin = message.senderType === 'admin';
-                      return (
-                        <div
-                          key={message.id}
-                          className={`rounded-xl px-3 py-2 ${
-                            isAdmin
-                              ? 'bg-brand-50 dark:bg-brand-900/20'
-                              : 'bg-white dark:bg-slate-800'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-white">
-                              {isAdmin ? 'Admin / Suporte' : message.User?.name || 'Você'}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
-                              {formatDateTime(message.createdAt)}
-                            </span>
-                          </div>
-                          <p className="mt-1 whitespace-pre-line text-xs text-slate-700 dark:text-slate-300">
-                            {message.message}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Resposta */}
-              <form onSubmit={sendReply} className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
-                <label className="block text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                  Responder
-                </label>
-                <textarea
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  rows={3}
-                  placeholder="Digite sua resposta aqui..."
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-                />
-                <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                  <button
-                    type="submit"
-                    disabled={sending || !replyText.trim()}
-                    className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {sending ? 'A enviar...' : 'Enviar resposta'}
-                  </button>
-                </div>
-              </form>
-
-              {/* Excluir */}
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={(event) => deleteTicket(event, selectedTicket.id)}
-                  disabled={deletingId === selectedTicket.id}
-                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-[11px] font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-rose-900/50 dark:bg-rose-900/20 dark:text-rose-300"
-                >
-                  {deletingId === selectedTicket.id ? 'A excluir...' : 'Excluir ticket'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   // ── Render principal ─────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
-      <Header />
+      <Header
+        formOpen={formOpen}
+        selectedTicket={selectedTicket}
+        onNew={() => setFormOpen(true)}
+      />
 
       {formOpen ? (
-        <NewTicketForm />
+        <NewTicketForm
+          subject={subject}
+          description={description}
+          attachmentFile={attachmentFile}
+          sending={sending}
+          onSubjectChange={setSubject}
+          onDescriptionChange={setDescription}
+          onFileChange={setAttachmentFile}
+          onSubmit={createTicket}
+          onCancel={() => setFormOpen(false)}
+        />
       ) : selectedTicket ? (
-        <TicketDetails />
+        <TicketDetails
+          ticket={selectedTicket}
+          messages={messages}
+          replyText={replyText}
+          sending={sending}
+          deletingId={deletingId}
+          onReplyChange={setReplyText}
+          onReplySubmit={sendReply}
+          onClose={closeTicket}
+          onDelete={deleteTicket}
+        />
       ) : (
-        <TicketList />
+        <TicketList
+          tickets={tickets}
+          loading={loading}
+          deletingId={deletingId}
+          onOpen={openTicket}
+          onDelete={deleteTicket}
+          onNew={() => setFormOpen(true)}
+        />
       )}
     </div>
   );

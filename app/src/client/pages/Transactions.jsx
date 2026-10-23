@@ -16,6 +16,7 @@ function Transactions({ adminView = false, wallet = null }) {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [wallets, setWallets] = useState([]);
   const [selectedWalletId, setSelectedWalletId] = useState('');
@@ -28,6 +29,7 @@ function Transactions({ adminView = false, wallet = null }) {
 
   useEffect(() => {
     loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminView, wallet?.id, selectedWalletId]);
 
   // Carteiras do utilizador para o filtro (apenas na página de histórico geral)
@@ -36,6 +38,7 @@ function Transactions({ adminView = false, wallet = null }) {
     authRequest('/api/wallets')
       .then((data) => setWallets(data || []))
       .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadTransactions = async (silent = false) => {
@@ -52,7 +55,9 @@ function Transactions({ adminView = false, wallet = null }) {
           : '/api/transactions';
       const data = await authRequest(endpoint);
       setTransactions(data);
-      setSelectedTransaction((current) => current ? data.find((tx) => tx.id === current.id) || current : null);
+      setSelectedTransaction((current) =>
+        current ? data.find((tx) => tx.id === current.id) || current : null
+      );
     } catch (err) {
       console.error(err);
       if (!silent) {
@@ -81,7 +86,9 @@ function Transactions({ adminView = false, wallet = null }) {
     }))) return;
     try {
       setReversingId(tx.id);
-      const endpoint = adminView ? `/api/admin/transactions/${tx.id}/reverse` : `/api/transactions/${tx.id}/reverse`;
+      const endpoint = adminView
+        ? `/api/admin/transactions/${tx.id}/reverse`
+        : `/api/transactions/${tx.id}/reverse`;
       const result = await authRequest(endpoint, { method: 'POST' });
       notify(reversalResultNotification(result));
       await loadTransactions();
@@ -102,19 +109,25 @@ function Transactions({ adminView = false, wallet = null }) {
       setQueryingStatusId(tx.id);
       setQueryError(null);
       setQueryResult(null);
-      const endpoint = adminView ? `/api/admin/transactions/${tx.id}/status` : `/api/transactions/${tx.id}/status`;
+      const endpoint = adminView
+        ? `/api/admin/transactions/${tx.id}/status`
+        : `/api/transactions/${tx.id}/status`;
       const result = await authRequest(endpoint);
       setQueryResult(result);
-      setTransactions((current) => current.map((transaction) => (
-        transaction.id === tx.id ? { ...transaction, status: result.status } : transaction
-      )));
-      setSelectedTransaction((current) => (
+      setTransactions((current) =>
+        current.map((transaction) =>
+          transaction.id === tx.id ? { ...transaction, status: result.status } : transaction
+        )
+      );
+      setSelectedTransaction((current) =>
         current?.id === tx.id ? { ...current, status: result.status } : current
-      ));
+      );
       notify(transactionStatusNotification(result));
       await loadTransactions();
     } catch (err) {
-      setQueryError(err.message || 'Não foi possível consultar o estado. Tente novamente mais tarde.');
+      setQueryError(
+        err.message || 'Não foi possível consultar o estado. Tente novamente mais tarde.'
+      );
       notify({
         type: 'error',
         title: 'Não foi possível consultar o estado',
@@ -186,14 +199,14 @@ function Transactions({ adminView = false, wallet = null }) {
   const getTransactionType = (type) => {
     const typeMap = {
       c2b: { label: 'C2B', icon: '⬅️', className: 'text-green-600 dark:text-green-400' },
-      b2c: { label: 'B2C', icon: '➡️', className: 'text-blue-600 dark:text-blue-400' },
-      deposit: { label: 'Depósito', className: 'text-green-600 dark:text-green-400' },
-      withdrawal: { label: 'Levantamento', className: 'text-red-600 dark:text-red-400' },
-      transfer: { label: 'Transferência', className: 'text-blue-600 dark:text-blue-400' },
+      withdrawal: { label: 'Levantamento', icon: '➡️', className: 'text-red-600 dark:text-red-400' },
       reversal: { label: 'Estorno', icon: '↩️', className: 'text-purple-600 dark:text-purple-400' }
     };
 
-    const config = typeMap[type] || { label: type?.toString().toUpperCase() || 'Desconhecido', className: 'text-slate-600' };
+    const config = typeMap[type] || {
+      label: type?.toString().toUpperCase() || 'Desconhecido',
+      className: 'text-slate-600'
+    };
     return (
       <div className="flex items-center gap-2">
         {config.icon ? <span className="text-lg">{config.icon}</span> : null}
@@ -202,28 +215,30 @@ function Transactions({ adminView = false, wallet = null }) {
     );
   };
 
-  const filteredTransactions = transactions.filter(tx => {
-    const matchesFilter = filter === 'all' || tx.status === filter;
-    const matchesSearch = searchTerm === '' || 
+  const filteredTransactions = transactions.filter((tx) => {
+    const matchesStatus = filter === 'all' || tx.status === filter;
+    const matchesType = typeFilter === 'all' || tx.type === typeFilter;
+    const matchesSearch =
+      searchTerm === '' ||
       tx.id.toString().includes(searchTerm) ||
       tx.walletCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tx.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return matchesStatus && matchesType && matchesSearch;
   });
 
   const stats = {
     total: transactions.length,
-    success: transactions.filter(tx => tx.status === 'success').length,
-    pending: transactions.filter(tx => tx.status === 'pending').length,
-    failed: transactions.filter(tx => tx.status === 'failed').length,
+    success: transactions.filter((tx) => tx.status === 'success').length,
+    pending: transactions.filter((tx) => tx.status === 'pending').length,
+    failed: transactions.filter((tx) => tx.status === 'failed').length,
     totalAmount: transactions
-      .filter(tx => tx.status === 'success')
+      .filter((tx) => tx.status === 'success')
       .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
   };
 
   const formatCurrency = (amount) => {
-    return Number(amount).toLocaleString('pt-PT', { 
-      style: 'currency', 
+    return Number(amount).toLocaleString('pt-PT', {
+      style: 'currency',
       currency: 'MZN',
       minimumFractionDigits: 2
     });
@@ -259,6 +274,14 @@ function Transactions({ adminView = false, wallet = null }) {
     });
   };
 
+  const hasActiveFilters = filter !== 'all' || typeFilter !== 'all' || selectedWalletId;
+
+  const clearFilters = () => {
+    setFilter('all');
+    setTypeFilter('all');
+    setSelectedWalletId('');
+  };
+
   if (selectedTransaction) {
     return (
       <TransactionDetails
@@ -276,9 +299,14 @@ function Transactions({ adminView = false, wallet = null }) {
 
   if (loadError) {
     return (
-      <div role="alert" className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700 dark:text-rose-300">
+      <div
+        role="alert"
+        className="rounded-2xl border border-rose-200 p-4 text-sm text-rose-700 dark:text-rose-300"
+      >
         <p>{loadError}</p>
-        <button type="button" onClick={() => loadTransactions()} className="mt-2 underline">Tentar novamente</button>
+        <button type="button" onClick={() => loadTransactions()} className="mt-2 underline">
+          Tentar novamente
+        </button>
       </div>
     );
   }
@@ -288,10 +316,13 @@ function Transactions({ adminView = false, wallet = null }) {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{wallet ? 'Transações da carteira' : adminView ? 'Transações da Plataforma' : 'Transações'}</h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            {wallet ? `Todos os movimentos associados à carteira ${wallet.walletCode || wallet.id}, em qualquer estado.` : adminView ? 'Visualize todas as transações do sistema' : 'Gerencie e acompanhe suas transações pessoais'}
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {wallet
+              ? 'Transações da carteira'
+              : adminView
+                ? 'Transações da Plataforma'
+                : 'Transações'}
+          </h2>
         </div>
       </div>
 
@@ -343,7 +374,9 @@ function Transactions({ adminView = false, wallet = null }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Valor Total</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{formatCurrency(stats.totalAmount)}</p>
+              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
+                {formatCurrency(stats.totalAmount)}
+              </p>
             </div>
             <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
               <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -357,47 +390,35 @@ function Transactions({ adminView = false, wallet = null }) {
       {/* Filtros e Busca */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              filter === 'all'
-                ? 'bg-brand-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
+          {/* Combobox: Status */}
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            aria-label="Filtrar por estado"
           >
-            Todas
-          </button>
-          <button
-            onClick={() => setFilter('success')}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              filter === 'success'
-                ? 'bg-green-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            Sucesso
-          </button>
-          <button
-            onClick={() => setFilter('pending')}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              filter === 'pending'
-                ? 'bg-yellow-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            Pendentes
-          </button>
-          <button
-            onClick={() => setFilter('failed')}
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              filter === 'failed'
-                ? 'bg-red-600 text-white shadow-sm'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            Falhas
-          </button>
+            <option value="all">Todos os estados</option>
+            <option value="success">Sucesso</option>
+            <option value="pending">Pendente</option>
+            <option value="processing">Processando</option>
+            <option value="failed">Falhou</option>
+            <option value="reversed">Estornada</option>
+          </select>
 
+          {/* Combobox: Tipo de transação */}
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            aria-label="Filtrar por tipo"
+          >
+            <option value="all">Todos os tipos</option>
+            <option value="c2b">C2B</option>  
+            <option value="withdrawal">Levantamento</option>
+            <option value="reversal">Estorno</option>
+          </select>
+
+          {/* Combobox: Carteira (apenas no histórico geral do cliente) */}
           {!adminView && !wallet && (
             <select
               value={selectedWalletId}
@@ -413,10 +434,26 @@ function Transactions({ adminView = false, wallet = null }) {
               ))}
             </select>
           )}
+
+          {/* Reset rápido dos filtros */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+            >
+              Limpar filtros
+            </button>
+          )}
         </div>
 
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg
+            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -465,7 +502,9 @@ function Transactions({ adminView = false, wallet = null }) {
                     <div className="flex justify-center">
                       <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent"></div>
                     </div>
-                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">A carregar transações...</p>
+                    <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      A carregar transações...
+                    </p>
                   </td>
                 </tr>
               ) : filteredTransactions.length === 0 ? (
@@ -477,12 +516,15 @@ function Transactions({ adminView = false, wallet = null }) {
                     <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                       Nenhuma transação encontrada
                     </p>
-                    {searchTerm && (
+                    {(searchTerm || hasActiveFilters) && (
                       <button
-                        onClick={() => setSearchTerm('')}
+                        onClick={() => {
+                          setSearchTerm('');
+                          clearFilters();
+                        }}
                         className="mt-4 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400"
                       >
-                        Limpar busca
+                        Limpar busca e filtros
                       </button>
                     )}
                   </td>
@@ -505,8 +547,16 @@ function Transactions({ adminView = false, wallet = null }) {
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       <div className="flex items-center gap-2">
-                        {renderTypeLogo(getWalletTypeLogo({ imageUrl: tx.walletTypeImageUrl || tx.wallet?.WalletType?.imageUrl, code: tx.walletTypeCode || tx.wallet?.WalletType?.code }), tx.walletTypeName || tx.wallet?.WalletType?.name)}
-                        <span>{wallet?.walletCode || tx.walletCode || tx.wallet?.code || 'N/A'}</span>
+                        {renderTypeLogo(
+                          getWalletTypeLogo({
+                            imageUrl: tx.walletTypeImageUrl || tx.wallet?.WalletType?.imageUrl,
+                            code: tx.walletTypeCode || tx.wallet?.WalletType?.code
+                          }),
+                          tx.walletTypeName || tx.wallet?.WalletType?.name
+                        )}
+                        <span>
+                          {wallet?.walletCode || tx.walletCode || tx.wallet?.code || 'N/A'}
+                        </span>
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
@@ -528,20 +578,6 @@ function Transactions({ adminView = false, wallet = null }) {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
                       {formatDate(tx.createdAt)}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSelectedTransaction(tx);
-                          setQueryResult(null);
-                          setQueryError(null);
-                        }}
-                        className="text-brand-600 hover:text-brand-700 dark:text-brand-400"
-                      >
-                        Ver detalhes / Ações
-                      </button>
-                    </td>
                   </tr>
                 ))
               )}
@@ -549,7 +585,6 @@ function Transactions({ adminView = false, wallet = null }) {
           </table>
         </div>
       </div>
-
     </div>
   );
 }

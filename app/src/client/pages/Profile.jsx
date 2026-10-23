@@ -219,45 +219,12 @@ function Profile() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-            Conta
-          </p>
+
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Perfil do Utilizador
           </h1>
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Gerencie as suas informações pessoais e configurações de segurança.
-          </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                isStaff(user)
-                  ? managementPath(user, '/admin/notifications')
-                  : '/client/notifications'
-              )
-            }
-            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-            aria-label="Abrir notificações"
-            title="Notificações"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
-            </svg>
-          </button>
-          <span className="rounded-full bg-brand-100 px-3 py-1 text-[11px] font-semibold text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
-            {roleLabel(user)}
-          </span>
-          <span
-            className={`rounded-full px-3 py-1 text-[11px] font-semibold ${
-              KYC_STYLES[kycStatus] || KYC_STYLES.DRAFT
-            }`}
-          >
-            {KYC_LABELS[kycStatus] || KYC_LABELS.DRAFT}
-          </span>
-        </div>
+       
       </div>
 
       {/* Grid principal */}

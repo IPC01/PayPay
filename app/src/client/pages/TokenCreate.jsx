@@ -338,7 +338,7 @@ function ApiKeys() {
   if (kyc?.status !== 'APPROVED') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="w-full max-w-xl rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div className="w-full w-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-rose-600">
             Atenção
           </p>
@@ -392,7 +392,7 @@ function ApiKeys() {
           </button>
         </div>
 
-        <div className="max-w-xl">
+        <div className="w-full">
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
               <div className="min-w-0">
@@ -547,9 +547,6 @@ function ApiKeys() {
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                 Chaves de Acesso
               </h1>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                Gerencie suas chaves de acesso para conexões externas ao sistema
-              </p>
             </div>
             <button
               type="button"

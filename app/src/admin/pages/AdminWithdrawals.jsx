@@ -255,7 +255,7 @@ function AdminWithdrawals() {
           </div>
 
           {/* Card de detalhes compacto, largura limitada */}
-          <div className="max-w-xl">
+          <div className="w-full">
             <WithdrawalDetailsCard request={selectedRequest} onClose={closeDetails} />
           </div>
         </div>

@@ -453,7 +453,7 @@ function AdminWalletTypes() {
             </button>
           </div>
 
-          <div className="max-w-xl">
+          <div className="w-full">
             <TypeDetailsCard type={selectedType} onClose={() => setSelectedType(null)} />
           </div>
         </div>

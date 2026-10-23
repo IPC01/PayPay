@@ -157,15 +157,9 @@ function NotificationsPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-            Notificações
-          </p>
           <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
             Suas notificações
           </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Veja os avisos de saque, aprovações e atualizações do sistema.
-          </p>
         </div>
         {!loading && notifications.length > 0 && (
           <span className="inline-flex self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">

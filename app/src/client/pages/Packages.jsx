@@ -682,9 +682,6 @@ function Packages() {
         <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
           Pacotes e Subscrições
         </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Veja os pacotes disponíveis e subscreva ao que melhor atende às suas necessidades.
-        </p>
       </div>
 
       {/* Pacotes */}

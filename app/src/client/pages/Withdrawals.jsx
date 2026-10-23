@@ -1,22 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { getWalletTypeLogo } from '../../helpers/walletTypeLogos';
 import { useAutoRefresh } from '../../helpers/useAutoRefresh';
-
-const STATUS_STYLES = {
-  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200',
-  approved: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
-  rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
-};
-
-const STATUS_LABELS = {
-  pending: 'Em confirmação',
-  approved: 'Concluído',
-  rejected: 'Não realizado'
-};
 
 function formatCurrency(value, currency = 'MZN') {
   return new Intl.NumberFormat('pt-PT', { style: 'currency', currency }).format(
@@ -45,31 +33,20 @@ function Withdrawals() {
   const { settings } = useSettings();
   const [searchParams] = useSearchParams();
 
-  const [requests, setRequests] = useState([]);
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [withdrawalOpen, setWithdrawalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({ walletId: '', amount: '', phone: '', note: '' });
-  const headingRef = useRef(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    if (withdrawalOpen) headingRef.current?.focus();
-  }, [withdrawalOpen]);
-
   const loadData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const [withdrawals, walletsData] = await Promise.all([
-        authRequest('/api/withdrawals'),
-        authRequest('/api/wallets')
-      ]);
+      const walletsData = await authRequest('/api/wallets');
 
-      setRequests(withdrawals);
       const availableWallets = walletsData.filter(
         (wallet) =>
           wallet.status === 'ACTIVE' &&
@@ -177,9 +154,6 @@ function Withdrawals() {
   const amountValidationMessage = amountError();
   const phoneValidationMessage = phoneError();
 
-  const openWithdrawal = () => setWithdrawalOpen(true);
-  const closeWithdrawal = () => setWithdrawalOpen(false);
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (submitting) return;
@@ -222,7 +196,6 @@ function Withdrawals() {
       });
 
       setForm({ walletId: form.walletId, amount: '', phone: '', note: '' });
-      closeWithdrawal();
       await loadData();
     } catch (err) {
       console.error(err);
@@ -235,16 +208,6 @@ function Withdrawals() {
       setSubmitting(false);
     }
   };
-
-  const requestCount = requests.length;
-  const summary = useMemo(
-    () => ({
-      pending: requests.filter((item) => item.status === 'pending').length,
-      approved: requests.filter((item) => item.status === 'approved').length,
-      rejected: requests.filter((item) => item.status === 'rejected').length
-    }),
-    [requests]
-  );
 
   // ── Card de carteira selecionável ────────────────────────────────────────
   const WalletOption = ({ wallet, isSelected, onSelect }) => (
@@ -280,6 +243,9 @@ function Withdrawals() {
           <p className="truncate font-mono text-[11px] text-slate-500 dark:text-slate-400">
             {wallet.walletCode}
           </p>
+          <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+            {wallet.WalletType?.name || 'Tipo desconhecido'}
+          </p>
         </div>
         <div className="shrink-0 text-right">
           <p className="text-xs font-semibold text-slate-900 dark:text-white">
@@ -298,307 +264,46 @@ function Withdrawals() {
     </div>
   );
 
-  // ── Vista: lista de saques ───────────────────────────────────────────────
-  if (!withdrawalOpen) {
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-              Saques
-            </p>
-            <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-              Seus saques
-            </h1>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-              Transfira o saldo disponível para um número M-Pesa via B2C, sem aprovação
-              administrativa.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={openWithdrawal}
-            disabled={loading}
-            className="inline-flex items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-brand-600/20 transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            Levantar saldo
-          </button>
-        </div>
-
-        {/* Cards de estatísticas */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          {[
-            { label: 'Total', value: requestCount, color: 'slate' },
-            { label: 'Em confirmação', value: summary.pending, color: 'amber' },
-            { label: 'Processado', value: summary.approved, color: 'emerald' }
-          ].map((card) => (
-            <div
-              key={card.label}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-700 dark:bg-slate-800"
-            >
-              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                {card.label}
-              </p>
-              <p
-                className={`mt-1 text-2xl font-bold text-${card.color}-700 dark:text-${card.color}-300 sm:text-3xl`}
-              >
-                {card.value}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        {/* Lista */}
-        <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Histórico
-              </h2>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Todos os pedidos de saque com referência única.
-              </p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
-              {requestCount}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
-              A carregar pedidos de saque...
-            </div>
-          ) : requestCount === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-base font-semibold text-slate-900 dark:text-white">
-                Nenhum saque encontrado.
-              </p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Use "Levantar saldo" para fazer o seu primeiro saque.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Tabela (md+) */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700 text-sm">
-                  <thead className="bg-slate-50 text-left text-xs uppercase tracking-[0.2em] text-slate-500 dark:bg-slate-900 dark:text-slate-400">
-                    <tr>
-                      <th className="px-4 py-3">Carteira</th>
-                      <th className="px-4 py-3">Valor</th>
-                      <th className="px-4 py-3">Taxa</th>
-                      <th className="px-4 py-3">Telefone</th>
-                      <th className="px-4 py-3">Referência</th>
-                      <th className="px-4 py-3">Estado</th>
-                      <th className="px-4 py-3">Data</th>
-                      <th className="px-4 py-3">Resposta</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white dark:divide-slate-700 dark:bg-slate-800">
-                    {requests.map((request) => (
-                      <tr key={request.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/60">
-                        <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-slate-900 dark:text-white">
-                            {request.Wallet?.walletName || request.Wallet?.walletCode || '—'}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {request.Wallet?.currency || 'MZN'}
-                          </p>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900 dark:text-white">
-                          {formatCurrency(request.amount, request.Wallet?.currency)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
-                          {formatCurrency(request.fee || 0, request.Wallet?.currency)}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-300">
-                          {request.phone}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-300">
-                          {request.reference || '—'}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                              STATUS_STYLES[request.status] ||
-                              'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                            }`}
-                          >
-                            {STATUS_LABELS[request.status] || request.status}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-500 dark:text-slate-400">
-                          {new Date(request.createdAt).toLocaleString('pt-PT')}
-                        </td>
-                        <td className="max-w-[220px] px-4 py-3 text-slate-500 dark:text-slate-400">
-                          <span className="line-clamp-2">{request.adminMessage || '—'}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Cards (mobile) */}
-              <div className="md:hidden space-y-3">
-                {requests.map((request) => (
-                  <div
-                    key={request.id}
-                    className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold text-slate-900 dark:text-white">
-                          {request.Wallet?.walletName || request.Wallet?.walletCode || '—'}
-                        </p>
-                        <p className="truncate text-xs text-slate-600 dark:text-slate-300">
-                          {request.phone}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-                          STATUS_STYLES[request.status] ||
-                          'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-                        }`}
-                      >
-                        {STATUS_LABELS[request.status] || request.status}
-                      </span>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                      <div>
-                        <span className="block uppercase tracking-wider">Valor</span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          {formatCurrency(request.amount, request.Wallet?.currency)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="block uppercase tracking-wider">Taxa</span>
-                        <span className="font-semibold text-slate-900 dark:text-white">
-                          {formatCurrency(request.fee || 0, request.Wallet?.currency)}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <span className="block uppercase tracking-wider">Data</span>
-                        <span className="text-slate-700 dark:text-slate-300">
-                          {new Date(request.createdAt).toLocaleDateString('pt-PT')}
-                        </span>
-                      </div>
-                      {request.reference && (
-                        <div className="col-span-2">
-                          <span className="block uppercase tracking-wider">Referência</span>
-                          <span className="break-all font-mono text-slate-700 dark:text-slate-300">
-                            {request.reference}
-                          </span>
-                        </div>
-                      )}
-                      {request.adminMessage && (
-                        <div className="col-span-2 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-900">
-                          <span className="block text-[10px] uppercase tracking-wider text-slate-500">
-                            Resposta
-                          </span>
-                          <span className="text-slate-700 dark:text-slate-300">
-                            {request.adminMessage}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Dica */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Dica</p>
-          <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
-            Cada saque é registado com uma referência única, disponível no histórico acima.
-          </p>
-          <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-300">
-            Caso ainda não tenha carteira ativa, crie ou ative uma em{' '}
-            <Link
-              to="/client/wallets"
-              className="font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Carteiras
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Vista: formulário de saque ───────────────────────────────────────────
   return (
-    <div className="space-y-4">
-      {/* Barra de contexto */}
-      <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-            Saque automático
-          </p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
-            Levantar saldo via M-Pesa B2C
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={closeWithdrawal}
-          disabled={submitting}
-          className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-        >
-          ← Voltar aos saques
-        </button>
-      </div>
-
-      <section
-        aria-labelledby="withdrawal-heading"
-        className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800"
-      >
-        <div className="mb-4">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-            Saque
-          </p>
-          <h2
-            id="withdrawal-heading"
-            ref={headingRef}
-            tabIndex={-1}
-            className="mt-1 text-lg font-bold text-slate-900 dark:text-white"
-          >
-            Levantar saldo
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Saques
           </h2>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <fieldset disabled={submitting} className="space-y-5">
-            {/* Secção: Carteira */}
-            <section className="space-y-2">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Carteira
-              </h3>
-              {wallets.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-rose-200 bg-rose-50 px-4 py-4 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-                  Nenhuma carteira disponível para levantamento.
-                </div>
-              ) : (
-                <div role="radiogroup" aria-label="Selecionar carteira" className="space-y-2">
-                  {wallets.map((wallet) => (
-                    <WalletOption
-                      key={wallet.id}
-                      wallet={wallet}
-                      isSelected={wallet.id === form.walletId}
-                      onSelect={(id) => setForm((prev) => ({ ...prev, walletId: id }))}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+        {/* Coluna: formulário (ordem 2 em mobile, 1 em desktop) */}
+        <div className="order-2 space-y-4 rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm lg:order-1 dark:border-slate-700 dark:bg-slate-800">
+          <div>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              Levantar saldo
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Selecione uma carteira à direita (ou acima em mobile) e preencha os dados.
+            </p>
+          </div>
+
+          {selectedWallet && (
+            <div className="rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                Carteira selecionada
+              </p>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">
+                  {selectedWallet.walletName || selectedWallet.walletCode}
+                </p>
+                <span className="shrink-0 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {formatCurrency(selectedWallet.balance, selectedWallet.currency || 'MZN')}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <fieldset disabled={submitting} className="space-y-4">
 
             {/* Secção: Valor */}
             <section className="space-y-2">
@@ -712,33 +417,64 @@ function Withdrawals() {
               </p>
             </div>
 
-            {/* Ações */}
-            <div className="flex flex-col-reverse gap-2 border-t border-slate-200 pt-4 sm:flex-row sm:justify-end dark:border-slate-700">
-              <button
-                type="button"
-                onClick={closeWithdrawal}
-                className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={
-                  submitting ||
-                  !selectedWallet ||
-                  !form.amount ||
-                  !form.phone ||
-                  Boolean(amountValidationMessage) ||
-                  Boolean(phoneValidationMessage)
-                }
-                className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {submitting ? 'A processar...' : 'Confirmar saque'}
-              </button>
+            <button
+              type="submit"
+              disabled={
+                submitting ||
+                !selectedWallet ||
+                !form.amount ||
+                !form.phone ||
+                Boolean(amountValidationMessage) ||
+                Boolean(phoneValidationMessage)
+              }
+              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? 'A processar...' : 'Confirmar saque'}
+            </button>
+            </fieldset>
+          </form>
+        </div>
+
+        {/* Coluna: carteiras (ordem 1 em mobile, 2 em desktop) */}
+        <div className="order-1 space-y-3 rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm lg:order-2 dark:border-slate-700 dark:bg-slate-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                Carteiras disponíveis
+              </h3>
+              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                {wallets.length} disponíve{wallets.length === 1 ? 'l' : 'is'}
+              </p>
             </div>
-          </fieldset>
-        </form>
-      </section>
+            {form.walletId && (
+              <span className="rounded-full bg-brand-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:bg-brand-900/30 dark:text-brand-300">
+                1 selecionada
+              </span>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+              A carregar carteiras...
+            </div>
+          ) : wallets.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-rose-200 bg-rose-50 px-4 py-6 text-center text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+              Nenhuma carteira disponível para levantamento.
+            </div>
+          ) : (
+            <div role="radiogroup" aria-label="Selecionar carteira" className="space-y-2">
+              {wallets.map((wallet) => (
+                <WalletOption
+                  key={wallet.id}
+                  wallet={wallet}
+                  isSelected={wallet.id === form.walletId}
+                  onSelect={(id) => setForm((prev) => ({ ...prev, walletId: id }))}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

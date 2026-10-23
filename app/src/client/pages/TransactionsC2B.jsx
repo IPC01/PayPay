@@ -31,15 +31,6 @@ const renderTypeLogo = (logo, provider, size = 'md') => {
   return logo;
 };
 
-// Gera a referência inicial do cliente (8 caracteres alfanuméricos); o servidor
-// associa um código aleatório de 12 caracteres para garantir que nunca se repete.
-const generateInitialReference = () => {
-  const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const bytes = new Uint8Array(8);
-  window.crypto.getRandomValues(bytes);
-  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
-};
-
 function TransactionsC2B() {
   const { authRequest } = useAuth();
   const { notify } = useNotification();
@@ -147,8 +138,7 @@ function TransactionsC2B() {
         body: {
           walletCode: selectedWalletCode,
           amount: Number(amount),
-          phone: phone.trim(),
-          reference: generateInitialReference()
+          phone: phone.trim()
         }
       });
 
@@ -230,10 +220,7 @@ function TransactionsC2B() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Transações C2B
           </h2>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-            Receba pagamentos M-Pesa sem custo de transação. O cliente autoriza o pagamento no
-            seu telefone por USSD.
-          </p>
+     
         </div>
       </div>
 

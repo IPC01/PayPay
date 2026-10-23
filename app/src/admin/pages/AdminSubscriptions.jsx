@@ -237,7 +237,7 @@ function AdminSubscriptions() {
             </button>
           </div>
 
-          <div className="max-w-xl">
+          <div className="w-full">
             <SubscriptionDetailsCard
               sub={selectedSubscription}
               onClose={() => setSelectedSubscription(null)}

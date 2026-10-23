@@ -597,7 +597,7 @@ function AdminPackages() {
             </button>
           </div>
 
-          <div className="max-w-xl">
+          <div className="w-full">
             <PackageDetailsCard
               pack={selectedPackage}
               onClose={() => setSelectedPackage(null)}

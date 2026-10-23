@@ -289,7 +289,7 @@ function AdminWallets() {
           </div>
 
           {/* Detalhes compactos inline (largura limitada em ecrãs grandes) */}
-          <div className="max-w-xl">
+          <div className="w-full">
             <WalletDetailsCard wallet={selectedWallet} onClose={() => setSelectedWallet(null)} />
           </div>
 
