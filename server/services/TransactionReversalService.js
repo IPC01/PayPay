@@ -1,11 +1,11 @@
 const { Op } = require('sequelize');
-const { Wallet, WalletType, Transaction, Notification } = require('../models');
+const { Wallet, Transaction, Notification } = require('../models');
 const sequelize = require('../config/database');
 const PaymentService = require('./PaymentService');
 const { moveBalance, generateUniqueReference } = require('./WalletPaymentService');
 const { createAuditLog } = require('../helpers/auditLogger');
 const {
-  paymentError, getOutcome, responseMessage, toThirdPartyReference
+  paymentError, getOutcome, responseMessage, sanitizePrefix, toThirdPartyReference
 } = require('../helpers/mpesaPayment');
 
 class TransactionReversalService {
@@ -51,8 +51,7 @@ class TransactionReversalService {
         throw paymentError('Saldo insuficiente na carteira para estornar este depósito.');
       }
 
-      const walletType = await WalletType.findByPk(wallet.walletTypeId, { transaction: t });
-      const reference = await generateUniqueReference(walletType?.referencePrefix, t);
+      const reference = await generateUniqueReference(sanitizePrefix(wallet.reference), t);
       const reversal = await Transaction.create({
         fromWalletId: original.paymentMode === 'C2B' ? wallet.id : null,
         toWalletId: original.paymentMode === 'B2C' ? wallet.id : null,

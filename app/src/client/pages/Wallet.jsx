@@ -37,8 +37,7 @@ function Wallets() {
   const [formData, setFormData] = useState({
     walletName: '',
     walletTypeId: '',
-    reference: '',
-    currency: 'MZN'
+    reference: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [kyc, setKyc] = useState(null);
@@ -154,8 +153,7 @@ function Wallets() {
         body: {
           walletName: formData.walletName,
           walletTypeId: formData.walletTypeId,
-          reference: formData.reference,
-          currency: formData.currency
+          reference: formData.reference
         }
       });
       notify({
@@ -164,7 +162,7 @@ function Wallets() {
         message: `Carteira ${data.wallet.walletCode} criada com sucesso!`
       });
       setFormOpen(false);
-      setFormData({ walletName: '', walletTypeId: walletTypes[0]?.id || '', reference: '', currency: 'MZN' });
+      setFormData({ walletName: '', walletTypeId: walletTypes[0]?.id || '', reference: '' });
       loadData();
     } catch (err) {
       notify({
@@ -450,17 +448,11 @@ function Wallets() {
 
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Moeda <span className="text-rose-600">*</span>
+                  Moeda
                 </label>
-                <select
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                >
-                  <option value="MZN">Metical (MZN)</option>
-                  <option value="USD">Dólar Americano (USD)</option>
-                  <option value="EUR">Euro (EUR)</option>
-                </select>
+                <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  {selectedWalletType?.currency || 'MZN'} — definida pelo tipo de carteira
+                </div>
               </div>
             </div>
 

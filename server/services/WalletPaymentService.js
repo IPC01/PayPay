@@ -52,7 +52,6 @@ class WalletPaymentService {
 
     const prepared = await sequelize.transaction(async (t) => {
       let wallet = null;
-      let walletPrefix = null;
       let fee = 0;
       if (walletId || walletCode) {
         const where = walletId ? { id: walletId } : { walletCode };
@@ -60,8 +59,9 @@ class WalletPaymentService {
         wallet = await Wallet.findOne({ where, transaction: t, lock: t.LOCK.UPDATE });
         if (!wallet) throw paymentError('Wallet not found', 404);
         if (wallet.status !== 'ACTIVE') throw paymentError('Wallet is not active');
-        if (wallet.currency !== 'MZN') throw paymentError('M-Pesa only supports MZN wallets');
         const walletType = await WalletType.findByPk(wallet.walletTypeId, { transaction: t });
+        const effectiveCurrency = walletType?.currency || wallet.currency;
+        if (effectiveCurrency !== 'MZN') throw paymentError('M-Pesa only supports MZN wallets');
         if (!walletType?.status || String(walletType.code).toLowerCase() !== 'mpesa') {
           throw paymentError('Apenas carteiras M-Pesa ativas são suportadas.');
         }
@@ -96,13 +96,11 @@ class WalletPaymentService {
             throw paymentError('Saldo insuficiente para cobrir o saque e a taxa da plataforma.');
           }
         }
-        walletPrefix = walletType.referencePrefix;
       }
-      // Base inicial: referência enviada pelo cliente, referência da carteira ou
-      // prefixo do tipo de carteira + sufixo aleatório; em caso de colisão, um novo
-      // sufixo é gerado automaticamente.
+      // Base inicial: referência enviada pelo cliente ou referência da carteira +
+      // sufixo aleatório; em caso de colisão, um novo sufixo é gerado automaticamente.
       reference = await generateUniqueReference(
-        providedBase || sanitizePrefix(wallet?.reference) || walletPrefix,
+        providedBase || sanitizePrefix(wallet?.reference),
         t
       );
       const transaction = await Transaction.create({

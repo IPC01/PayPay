@@ -144,7 +144,7 @@ async function ensureWithdrawalReferenceColumns() {
   const queryInterface = sequelize.getQueryInterface();
 
   for (const [tableName, columnName, attributes] of [
-    ['wallet_types', 'referencePrefix', { type: DataTypes.STRING(32), allowNull: true }],
+    ['wallet_types', 'currency', { type: DataTypes.STRING(3), allowNull: false, defaultValue: 'MZN' }],
     ['wallets', 'reference', { type: DataTypes.STRING(8), allowNull: true }],
     ['withdrawal_requests', 'reference', { type: DataTypes.STRING, allowNull: true }],
     ['transactions', 'originalTransactionId', { type: DataTypes.UUID, allowNull: true }]

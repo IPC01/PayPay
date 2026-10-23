@@ -22,7 +22,6 @@ import AdminWallets from './admin/pages/AdminWallets';
 import AdminWalletTypes from './admin/pages/AdminWalletTypes';
 import AdminTransactions from './admin/pages/AdminTransactions';
 import AdminTickets from './admin/pages/AdminTickets';
-import AdminWithdrawals from './admin/pages/AdminWithdrawals';
 import AdminKyc from './admin/pages/AdminKyc';
 import AdminPackages from './admin/pages/AdminPackages';
 import AdminSubscriptions from './admin/pages/AdminSubscriptions';
@@ -270,14 +269,7 @@ function App() {
           <Route path="/client/transactions/c2b" element={<Navigate to="/client/c2b" replace />} />
           <Route path="/client/transactions/c2b-test" element={<Navigate to="/client/c2b" replace />} />
           <Route path="/client/transactions/b2c" element={<Navigate to="/client/withdrawals" replace />} />
-          <Route
-            path="/admin/withdrawals"
-            element={
-              <AdminRoute>
-                <AdminWithdrawals />
-              </AdminRoute>
-            }
-          />
+          <Route path="/admin/withdrawals" element={<Navigate to="/admin/transactions" replace />} />
           <Route
             path="/admin/subscriptions"
             element={

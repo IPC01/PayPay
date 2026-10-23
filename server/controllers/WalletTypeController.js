@@ -1,16 +1,23 @@
 ﻿const { WalletType } = require('../models');
 const { saveBase64Image } = require('../helpers/imageStorage');
-const { PREFIX_PATTERN } = require('../helpers/mpesaPayment');
+
+const ALLOWED_CURRENCIES = ['MZN', 'USD', 'EUR'];
+
+function normalizeCurrency(value) {
+  const currency = String(value || 'MZN').toUpperCase();
+  return ALLOWED_CURRENCIES.includes(currency) ? currency : null;
+}
 
 class WalletTypeController {
 
   // CREATE WALLET TYPE (admin only)
   async create(req, res) {
     try {
-      const { code, name, provider, referencePrefix, isExternal } = req.body;
+      const { code, name, provider, currency, isExternal } = req.body;
 
-      if (referencePrefix && !PREFIX_PATTERN.test(referencePrefix)) {
-        return res.status(400).json({ error: 'A referência inicial deve ter de 1 a 8 caracteres, apenas letras e números (exigência do M-Pesa)' });
+      const normalizedCurrency = normalizeCurrency(currency);
+      if (!normalizedCurrency) {
+        return res.status(400).json({ error: 'Moeda inválida. Use MZN, USD ou EUR.' });
       }
 
       const exists = await WalletType.findOne({
@@ -27,7 +34,7 @@ class WalletTypeController {
         code,
         name,
         provider,
-        referencePrefix: referencePrefix ? referencePrefix.toUpperCase() : null,
+        currency: normalizedCurrency,
         isExternal: isExternal || false,
         status: true
       });
@@ -59,7 +66,7 @@ class WalletTypeController {
   async update(req, res) {
     try {
       const { id } = req.params;
-      const { status, name, provider, referencePrefix, isExternal, imageBase64 } = req.body;
+      const { status, name, provider, currency, isExternal, imageBase64 } = req.body;
 
       const type = await WalletType.findByPk(id);
 
@@ -74,11 +81,12 @@ class WalletTypeController {
       }
       if (name) type.name = name;
       if (provider) type.provider = provider;
-      if (typeof referencePrefix !== 'undefined') {
-        if (referencePrefix && !PREFIX_PATTERN.test(referencePrefix)) {
-          return res.status(400).json({ error: 'A referência inicial deve ter de 1 a 8 caracteres, apenas letras e números (exigência do M-Pesa)' });
+      if (typeof currency !== 'undefined') {
+        const normalizedCurrency = normalizeCurrency(currency);
+        if (!normalizedCurrency) {
+          return res.status(400).json({ error: 'Moeda inválida. Use MZN, USD ou EUR.' });
         }
-        type.referencePrefix = referencePrefix ? referencePrefix.toUpperCase() : null;
+        type.currency = normalizedCurrency;
       }
       if (typeof isExternal !== 'undefined') type.isExternal = Boolean(isExternal);
 

@@ -13,7 +13,6 @@ const PAGE_TITLES = [
   { path: '/admin/wallets', label: 'Carteiras' },
   { path: '/admin/transactions', label: 'Transações' },
   { path: '/admin/tickets', label: 'Tickets' },
-  { path: '/admin/withdrawals', label: 'Saques' },
   { path: '/admin/kyc', label: 'KYC' },
   { path: '/admin/packages', label: 'Pacotes' },
   { path: '/admin/subscriptions', label: 'Subscrições' },

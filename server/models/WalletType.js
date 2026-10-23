@@ -27,9 +27,11 @@ WalletType.init(
       allowNull: true
     },
 
-    referencePrefix: {
-      type: DataTypes.STRING(32),
-      allowNull: true
+    // Moeda das carteiras deste tipo (definida aqui, não na carteira)
+    currency: {
+      type: DataTypes.STRING(3),
+      allowNull: false,
+      defaultValue: 'MZN'
     },
 
     imageUrl: {

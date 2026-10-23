@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { reversalConfirmMessage, reversalResultNotification } from '../../helpers/transactionReversal';
@@ -43,10 +43,22 @@ function AdminTransactions({ wallet = null }) {
   const [queryResult, setQueryResult] = useState(null);
   const [queryError, setQueryError] = useState(null);
   const [loadError, setLoadError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [clientFilter, setClientFilter] = useState('');
+  const [walletFilter, setWalletFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     loadTransactions();
   }, [wallet?.id]);
+
+  // Repõe a primeira página ao mudar de carteira ou de qualquer filtro
+  useEffect(() => {
+    setPage(1);
+  }, [wallet?.id, statusFilter, typeFilter, clientFilter, walletFilter, dateFrom, dateTo]);
 
   const loadTransactions = async (silent = false) => {
     try {
@@ -142,6 +154,63 @@ function AdminTransactions({ wallet = null }) {
     }
   };
 
+  // Carteiras presentes nas transações carregadas (para o filtro por carteira)
+  const walletOptions = useMemo(
+    () => [...new Set(transactions.map((tx) => tx.walletCode).filter(Boolean))].sort(),
+    [transactions]
+  );
+
+  // Filtros: estado, tipo, cliente, carteira e intervalo de datas
+  const filteredTransactions = transactions.filter((tx) => {
+    if (statusFilter && tx.status !== statusFilter) return false;
+    if (typeFilter && tx.type !== typeFilter) return false;
+    if (walletFilter && tx.walletCode !== walletFilter) return false;
+    if (clientFilter.trim()) {
+      const query = clientFilter.trim().toLowerCase();
+      const name = tx.walletInfo?.user?.name || '';
+      const email = tx.walletInfo?.user?.email || '';
+      if (!`${name} ${email}`.toLowerCase().includes(query)) return false;
+    }
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (new Date(tx.createdAt) < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (new Date(tx.createdAt) > to) return false;
+    }
+    return true;
+  });
+
+  const hasActiveFilters = Boolean(
+    statusFilter || typeFilter || clientFilter.trim() || walletFilter || dateFrom || dateTo
+  );
+
+  const clearFilters = () => {
+    setStatusFilter('');
+    setTypeFilter('');
+    setClientFilter('');
+    setWalletFilter('');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  // Ordena sempre por data (mais recente primeiro) e pagina 25 elementos por página
+  const PAGE_SIZE = 25;
+  const sortedTransactions = [...filteredTransactions].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+  const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedTransactions = sortedTransactions.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+  const pageStart = sortedTransactions.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageEnd = Math.min(currentPage * PAGE_SIZE, sortedTransactions.length);
+
   // Vista de detalhe (componente selecionado)
   if (selectedTransaction) {
     return (
@@ -169,6 +238,85 @@ function AdminTransactions({ wallet = null }) {
         </div>
       </div>
 
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          aria-label="Filtrar por estado"
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        >
+          <option value="">Todos os estados</option>
+          <option value="success">Sucesso</option>
+          <option value="pending">Pendente</option>
+          <option value="failed">Falhou</option>
+          <option value="reversed">Estornada</option>
+        </select>
+
+        <select
+          value={typeFilter}
+          onChange={(event) => setTypeFilter(event.target.value)}
+          aria-label="Filtrar por tipo de transação"
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        >
+          <option value="">Todos os tipos</option>
+          <option value="c2b">C2B (depósito)</option>
+          <option value="withdrawal">Levantamento (B2C)</option>
+          <option value="reversal">Estorno</option>
+          <option value="subscription">Subscrição</option>
+          <option value="payment">Pagamento</option>
+          <option value="direct">Direto</option>
+        </select>
+
+        <input
+          type="text"
+          value={clientFilter}
+          onChange={(event) => setClientFilter(event.target.value)}
+          placeholder="Cliente (nome ou email)"
+          aria-label="Filtrar por cliente"
+          className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 sm:w-56"
+        />
+
+        {!wallet && (
+          <select
+            value={walletFilter}
+            onChange={(event) => setWalletFilter(event.target.value)}
+            aria-label="Filtrar por carteira"
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+          >
+            <option value="">Todas as carteiras</option>
+            {walletOptions.map((code) => (
+              <option key={code} value={code}>{code}</option>
+            ))}
+          </select>
+        )}
+
+        <input
+          type="date"
+          value={dateFrom}
+          onChange={(event) => setDateFrom(event.target.value)}
+          aria-label="Data inicial"
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        />
+        <input
+          type="date"
+          value={dateTo}
+          onChange={(event) => setDateTo(event.target.value)}
+          aria-label="Data final"
+          className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        />
+
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-full bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          >
+            Limpar filtros
+          </button>
+        )}
+      </div>
+
       {loadError ? (
         <div
           role="alert"
@@ -189,7 +337,7 @@ function AdminTransactions({ wallet = null }) {
             <div className="py-10 text-center text-slate-500 dark:text-slate-400">
               A carregar transações...
             </div>
-          ) : transactions.length === 0 ? (
+          ) : filteredTransactions.length === 0 ? (
             <div className="py-10 text-center text-slate-500 dark:text-slate-400">
               Nenhuma transação encontrada.
             </div>
@@ -205,12 +353,11 @@ function AdminTransactions({ wallet = null }) {
                       <th className="px-6 py-4">Utilizador</th>
                       <th className="px-6 py-4">Montante</th>
                       <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4">Data</th>
-                      <th className="px-6 py-4 text-right">Ações</th>
+                      <th className="px-6 py-4">Data</th>              
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white text-sm dark:divide-slate-700 dark:bg-slate-800">
-                    {transactions.map((transaction) => (
+                    {paginatedTransactions.map((transaction) => (
                       <tr
                         key={transaction.id}
                         role="button"
@@ -245,18 +392,7 @@ function AdminTransactions({ wallet = null }) {
                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                           {new Date(transaction.createdAt).toLocaleDateString('pt-PT')}
                         </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openTransaction(transaction);
-                            }}
-                            className="rounded-xl border border-brand-300 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50 dark:border-brand-700 dark:text-brand-300 dark:hover:bg-brand-900/20"
-                          >
-                            Ver detalhes
-                          </button>
-                        </td>
+
                       </tr>
                     ))}
                   </tbody>
@@ -265,7 +401,7 @@ function AdminTransactions({ wallet = null }) {
 
               {/* Cards (mobile) */}
               <div className="md:hidden space-y-3">
-                {transactions.map((transaction) => (
+                {paginatedTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
                     role="button"
@@ -334,6 +470,34 @@ function AdminTransactions({ wallet = null }) {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Paginação: 25 transações por página */}
+              <div className="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  A mostrar {pageStart}–{pageEnd} de {sortedTransactions.length} transações
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Seguinte
+                  </button>
+                </div>
               </div>
             </>
           )}

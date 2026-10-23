@@ -8,7 +8,7 @@ const initialForm = {
   code: '',
   name: '',
   provider: '',
-  referencePrefix: '',
+  currency: 'MZN',
   isExternal: false
 };
 
@@ -74,7 +74,7 @@ function AdminWalletTypes() {
       code: type.code || '',
       name: type.name || '',
       provider: type.provider || '',
-      referencePrefix: type.referencePrefix || '',
+      currency: type.currency || 'MZN',
       isExternal: Boolean(type.isExternal)
     });
     setSelectedType(null);
@@ -126,7 +126,7 @@ function AdminWalletTypes() {
           code: form.code,
           name: form.name,
           provider: form.provider || null,
-          referencePrefix: form.referencePrefix.trim() || null,
+          currency: form.currency || 'MZN',
           isExternal: Boolean(form.isExternal)
         }
       });
@@ -203,9 +203,7 @@ function AdminWalletTypes() {
           {/* Grid 2x2 */}
           <div className="grid grid-cols-2 gap-2">
             <InfoTile label="Provedor">{type.provider || 'N/A'}</InfoTile>
-            <InfoTile label="Referência">
-              <span className="font-mono">{type.referencePrefix || '—'}</span>
-            </InfoTile>
+            <InfoTile label="Moeda">{type.currency || 'MZN'}</InfoTile>
             <InfoTile label="Externa">{type.isExternal ? 'Sim' : 'Não'}</InfoTile>
             <InfoTile label="Estado">
               <span
@@ -343,7 +341,7 @@ function AdminWalletTypes() {
             {/* Secção: Provedor */}
             <section className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Provedor e referência
+                Provedor e moeda
               </h3>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
@@ -360,39 +358,23 @@ function AdminWalletTypes() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Referência inicial
+                    Moeda <span className="text-rose-600">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={form.referencePrefix}
-                    onChange={(event) =>
-                      handleChange(
-                        'referencePrefix',
-                        event.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
-                      )
-                    }
-                    maxLength={8}
-                    placeholder="Ex: PAY"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm uppercase text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                  />
+                  <select
+                    required
+                    value={form.currency}
+                    onChange={(event) => handleChange('currency', event.target.value)}
+                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  >
+                    <option value="MZN">Metical (MZN)</option>
+                    <option value="USD">Dólar Americano (USD)</option>
+                    <option value="EUR">Euro (EUR)</option>
+                  </select>
                   <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    Até 8 letras ou números. Início da referência única (20 caracteres) por transação.
+                    A moeda é definida aqui e aplicada a todas as carteiras deste tipo.
                   </p>
                 </div>
               </div>
-
-              {/* Preview da referência */}
-              {form.referencePrefix && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                    Exemplo de referência
-                  </p>
-                  <p className="mt-0.5 break-all font-mono text-xs text-slate-700 dark:text-slate-300">
-                    {form.referencePrefix}
-                    {'ABCDEFGHIJKLMN'.slice(0, Math.max(0, 20 - form.referencePrefix.length))}
-                  </p>
-                </div>
-              )}
             </section>
 
             {/* Secção: Configuração */}
@@ -494,7 +476,7 @@ function AdminWalletTypes() {
                       <th className="px-4 py-3">Código</th>
                       <th className="px-4 py-3">Nome</th>
                       <th className="px-4 py-3">Provedor</th>
-                      <th className="px-4 py-3">Referência</th>
+                      <th className="px-4 py-3">Moeda</th>
                       <th className="px-4 py-3">Externa</th>
                       <th className="px-4 py-3">Estado</th>
                       <th className="px-4 py-3 text-right">Ações</th>
@@ -519,8 +501,8 @@ function AdminWalletTypes() {
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           {type.provider || 'N/A'}
                         </td>
-                        <td className="px-4 py-3 font-mono text-slate-600 dark:text-slate-300">
-                          {type.referencePrefix || '—'}
+                        <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
+                          {type.currency || 'MZN'}
                         </td>
                         <td className="px-4 py-3 text-slate-600 dark:text-slate-300">
                           {type.isExternal ? 'Sim' : 'Não'}
@@ -608,9 +590,9 @@ function AdminWalletTypes() {
                         </span>
                       </div>
                       <div className="text-right">
-                        <span className="block uppercase tracking-wider">Referência</span>
-                        <span className="font-mono text-slate-700 dark:text-slate-300">
-                          {type.referencePrefix || '—'}
+                        <span className="block uppercase tracking-wider">Moeda</span>
+                        <span className="text-slate-700 dark:text-slate-300">
+                          {type.currency || 'MZN'}
                         </span>
                       </div>
                       <div>

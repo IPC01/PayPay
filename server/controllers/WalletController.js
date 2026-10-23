@@ -22,7 +22,7 @@ class WalletController {
         return res.status(403).json({ error: 'Deve subscrever um pacote para poder criar carteiras' });
       }
 
-      const { walletName, walletTypeId, currency, allowC2B, allowB2C, allowWithdraw } = req.body;
+      const { walletName, walletTypeId, allowC2B, allowB2C, allowWithdraw } = req.body;
 
       // validar wallet type
       const walletType = await WalletType.findByPk(walletTypeId);
@@ -60,7 +60,8 @@ class WalletController {
         walletCode,
         walletName,
         reference,
-        currency: currency || 'MZN',
+        // A moeda é definida pelo tipo de carteira
+        currency: walletType.currency || 'MZN',
         balance: 0.00,
         allowC2B: typeof allowC2B === 'boolean' ? allowC2B : true,
         allowB2C: typeof allowB2C === 'boolean' ? allowB2C : true,

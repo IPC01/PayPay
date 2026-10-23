@@ -129,7 +129,7 @@ function NotificationsPage() {
     }
     if (category === 'withdrawal') {
       return isAdmin(user)
-        ? '/admin/withdrawals'
+        ? '/admin/transactions'
         : isStaff(user)
           ? managementPath(user, '/admin/wallets')
           : '/client/withdrawals';

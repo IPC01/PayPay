@@ -32,7 +32,7 @@ function row(data) {
 }
 
 function setup(t, { mode = 'C2B', balance = 1000, status = 'success', response, error } = {}) {
-  const wallet = row({ id: 'wallet-id', userId: 7, walletCode: '000001', walletTypeId: 1, balance });
+  const wallet = row({ id: 'wallet-id', userId: 7, walletCode: '000001', walletTypeId: 1, balance, reference: 'WALLET1' });
   const original = row({
     id: randomUUID(), paymentMode: mode, type: mode === 'B2C' ? 'withdrawal' : 'c2b', status,
     amount: 100, fee: mode === 'B2C' ? 10 : 0, phone: '258841234567', reference: 'PAYORIGINAL',
@@ -116,7 +116,8 @@ test('C2B reversal reserves the amount before M-Pesa and marks the original as r
   assert.equal(state.original.status, 'reversed');
   assert.equal(result.transaction.type, 'reversal');
   assert.equal(result.transaction.originalTransactionId, state.original.id);
-  assert.match(result.transaction.reference, /^PAY[A-Z0-9]{17}$/);
+  // Referência do estorno: referência da carteira (7) + sufixo aleatório (13) = 20
+  assert.match(result.transaction.reference, /^WALLET1[A-Z0-9]{13}$/);
 });
 
 test('C2B reversal is blocked when the wallet balance is insufficient', async (t) => {

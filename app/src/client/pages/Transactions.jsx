@@ -20,6 +20,7 @@ function Transactions({ adminView = false, wallet = null }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [wallets, setWallets] = useState([]);
   const [selectedWalletId, setSelectedWalletId] = useState('');
+  const [page, setPage] = useState(1);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [reversingId, setReversingId] = useState(null);
   const [queryingStatusId, setQueryingStatusId] = useState(null);
@@ -40,6 +41,11 @@ function Transactions({ adminView = false, wallet = null }) {
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Repõe a primeira página ao mudar filtros, pesquisa ou carteira
+  useEffect(() => {
+    setPage(1);
+  }, [filter, typeFilter, searchTerm, selectedWalletId]);
 
   const loadTransactions = async (silent = false) => {
     try {
@@ -225,6 +231,20 @@ function Transactions({ adminView = false, wallet = null }) {
       tx.description?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesType && matchesSearch;
   });
+
+  // Ordena sempre por data (mais recente primeiro) e pagina 25 elementos por página
+  const PAGE_SIZE = 25;
+  const sortedTransactions = [...filteredTransactions].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
+  const totalPages = Math.max(1, Math.ceil(sortedTransactions.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedTransactions = sortedTransactions.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+  const pageStart = sortedTransactions.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const pageEnd = Math.min(currentPage * PAGE_SIZE, sortedTransactions.length);
 
   const stats = {
     total: transactions.length,
@@ -530,7 +550,7 @@ function Transactions({ adminView = false, wallet = null }) {
                   </td>
                 </tr>
               ) : (
-                filteredTransactions.map((tx) => (
+                paginatedTransactions.map((tx) => (
                   <tr
                     key={tx.id}
                     className="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-700/50"
@@ -584,6 +604,36 @@ function Transactions({ adminView = false, wallet = null }) {
             </tbody>
           </table>
         </div>
+
+        {/* Paginação: 25 transações por página */}
+        {sortedTransactions.length > 0 && (
+          <div className="flex flex-col gap-2 border-t border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-700">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              A mostrar {pageStart}–{pageEnd} de {sortedTransactions.length} transações
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Anterior
+              </button>
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                Página {currentPage} de {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                Seguinte
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
