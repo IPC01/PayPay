@@ -11,6 +11,55 @@ const TWO_FACTOR_EXPIRY_MS = 5 * 60 * 1000;
 const TWO_FACTOR_MAX_ATTEMPTS = 5;
 const SESSION_TTL_SECONDS = 30 * 60;
 const MAX_ACTIVE_CODES = 3;
+const OTP_SEND_WINDOW_MS = 15 * 60 * 1000;
+// Histórico de envios de código por destinatário (anti-rajada: OTPs repetidos em sequência são marcados como spam)
+const otpSendLog = new Map();
+
+function otpResendCooldownMs() {
+  const value = Number(process.env.OTP_RESEND_COOLDOWN_SECONDS);
+  return (Number.isFinite(value) && value >= 0 ? value : 30) * 1000;
+}
+
+function otpMaxSendsPerWindow() {
+  const value = Number(process.env.OTP_MAX_SENDS_PER_WINDOW);
+  return Number.isFinite(value) && value > 0 ? value : 5;
+}
+
+class OtpRateLimitError extends Error {
+  constructor(retryAfterSeconds) {
+    super(`Aguarde ${retryAfterSeconds} segundos antes de pedir um novo codigo.`);
+    this.name = 'OtpRateLimitError';
+    this.code = 'OTP_RATE_LIMITED';
+    this.status = 429;
+    this.retryAfter = retryAfterSeconds;
+  }
+}
+
+// Reserva um envio para o destinatário; lança 429 se ainda estiver em cooldown ou exceder o limite da janela.
+function reserveOtpSend(recipient) {
+  const key = String(recipient || '').trim().toLowerCase();
+  const now = Date.now();
+  const sends = (otpSendLog.get(key) || []).filter((ts) => now - ts < OTP_SEND_WINDOW_MS);
+
+  const cooldown = otpResendCooldownMs();
+  const last = sends[sends.length - 1];
+  if (last !== undefined && now - last < cooldown) {
+    throw new OtpRateLimitError(Math.ceil((cooldown - (now - last)) / 1000));
+  }
+  if (sends.length >= otpMaxSendsPerWindow()) {
+    throw new OtpRateLimitError(Math.ceil((OTP_SEND_WINDOW_MS - (now - sends[0])) / 1000));
+  }
+
+  sends.push(now);
+  otpSendLog.set(key, sends);
+
+  return () => {
+    const current = otpSendLog.get(key) || [];
+    const idx = current.indexOf(now);
+    if (idx >= 0) current.splice(idx, 1);
+    if (current.length === 0) otpSendLog.delete(key);
+  };
+}
 
 function challengeSubject(payload) {
   return payload.userId ? `user:${payload.userId}` : `email:${String(payload.email).toLowerCase()}`;
@@ -87,11 +136,13 @@ class AuthService {
   }
 
   // Envia o código; se o email falhar o desafio é descartado para não ficar um código "fantasma".
-  async deliverVerificationCode(store, challengeId, message) {
+  async deliverVerificationCode(store, challengeId, message, release) {
     try {
       await EmailService.sendTwoFactorCode(message);
     } catch (err) {
       store.delete(challengeId);
+      // Um envio falhado não conta para o limite de reenvios
+      if (release) release();
       throw err;
     }
   }
@@ -147,6 +198,7 @@ class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    const release = reserveOtpSend(user.email);
     const { code, otpToken, challengeId } = this.createVerificationChallenge(twoFactorChallenges, {
       userId: user.id,
       email: user.email
@@ -156,7 +208,7 @@ class AuthService {
       to: user.email,
       name: user.name,
       code
-    });
+    }, release);
 
     return {
       userId: user.id,
@@ -202,6 +254,7 @@ class AuthService {
       throw new Error('User already exists');
     }
 
+    const release = reserveOtpSend(email);
     const { code, otpToken, challengeId } = this.createVerificationChallenge(registrationChallenges, {
       name,
       email
@@ -212,7 +265,7 @@ class AuthService {
       name,
       code,
       purpose: 'registration'
-    });
+    }, release);
 
     return {
       message: 'Verification code sent.',

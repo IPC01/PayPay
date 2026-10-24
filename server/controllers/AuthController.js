@@ -5,6 +5,15 @@ const { createAuditLog } = require('../helpers/auditLogger');
 // simples "logout" via blacklist em memória (MVP)
 const tokenBlacklist = new Set();
 
+function sendCodeError(res, err, fallbackStatus) {
+  if (err.retryAfter) res.set('Retry-After', String(err.retryAfter));
+  return res.status(err.status || fallbackStatus).json({
+    error: err.message,
+    ...(err.code === 'EMAIL_SEND_FAILED' || err.code === 'OTP_RATE_LIMITED' ? { code: err.code } : {}),
+    ...(err.retryAfter ? { retryAfter: err.retryAfter } : {})
+  });
+}
+
 class AuthController {
   async requestRegistrationCode(req, res) {
     try {
@@ -14,10 +23,7 @@ class AuthController {
 
       return res.json(result);
     } catch (err) {
-      return res.status(err.status || 400).json({
-        error: err.message,
-        ...(err.code === 'EMAIL_SEND_FAILED' ? { code: err.code } : {})
-      });
+      return sendCodeError(res, err, 400);
     }
   }
 
@@ -36,10 +42,7 @@ class AuthController {
         expiresIn: result.expiresIn
       });
     } catch (err) {
-      return res.status(err.status || 401).json({
-        error: err.message,
-        ...(err.code === 'EMAIL_SEND_FAILED' ? { code: err.code } : {})
-      });
+      return sendCodeError(res, err, 401);
     }
   }
 

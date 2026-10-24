@@ -30,3 +30,5 @@ required to receive the new 30-minute token.
 - Destinatários rejeitados contam como falha. Todos os envios e falhas ficam registados no log com o email mascarado (`[email] ...`).
 - Se o envio falhar, o desafio OTP é descartado e a API responde `503` com `code: EMAIL_SEND_FAILED`.
 - Após um reenvio, os códigos anteriores ainda válidos (no máximo 3 ativos por utilizador) continuam a ser aceites. Depois de uma verificação bem-sucedida, todos são invalidados.
+- Para evitar que rajadas de OTPs quase idênticos sejam marcadas como spam, os envios por email são limitados: cooldown de `OTP_RESEND_COOLDOWN_SECONDS` (30 s por omissão) e no máximo `OTP_MAX_SENDS_PER_WINDOW` (5 por omissão) em 15 minutos. Ao exceder, a API responde `429` com `code: OTP_RATE_LIMITED`, `retryAfter` (segundos) e o cabeçalho `Retry-After`. Envios falhados não contam.
+- O HTML dos emails não contém texto oculto (preheader) nem cabeçalhos típicos de envio em massa.

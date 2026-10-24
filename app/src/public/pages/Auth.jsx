@@ -97,7 +97,23 @@ const Divider = ({ text }) => (
   </div>
 );
 
-const OtpStep = ({ email, otp, setOtp, error, onResend, resending, resendMessage }) => (
+const RESEND_COOLDOWN_SECONDS = 30;
+
+// Contador para o botão "Reenviar código" (o servidor também limita reenvios por email)
+function useResendCooldown() {
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    if (seconds <= 0) return undefined;
+    const timer = setTimeout(() => setSeconds(s => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(timer);
+  }, [seconds]);
+
+  const start = (value = RESEND_COOLDOWN_SECONDS) => setSeconds(Math.max(0, Math.ceil(value)));
+  return [seconds, start];
+}
+
+const OtpStep = ({ email, otp, setOtp, error, onResend, resending, resendMessage, cooldown = 0 }) => (
   <>
     <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
       <div className="flex items-start gap-2.5">
@@ -135,10 +151,10 @@ const OtpStep = ({ email, otp, setOtp, error, onResend, resending, resendMessage
       <button
         type="button"
         onClick={onResend}
-        disabled={resending}
+        disabled={resending || cooldown > 0}
         className="font-medium text-gray-700 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {resending ? 'A reenviar...' : 'Reenviar código'}
+        {resending ? 'A reenviar...' : cooldown > 0 ? `Reenviar em ${cooldown}s` : 'Reenviar código'}
       </button>
     </div>
     {resendMessage && <p className="text-xs text-emerald-700">{resendMessage}</p>}
@@ -161,6 +177,7 @@ function LoginView() {
   const [otpToken, setOtpToken] = useState(null);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState(null);
+  const [resendCooldown, startResendCooldown] = useResendCooldown();
 
   const { login, requestLoginCode, sessionExpired, clearSessionExpired } = useAuth();
   const [expiredNotice] = useState(sessionExpired);
@@ -204,7 +221,9 @@ function LoginView() {
         setOtpToken(data.otpToken);
         setOtp('');
         setStep('otp');
+        startResendCooldown();
       } catch (err) {
+        if (err.retryAfter) startResendCooldown(err.retryAfter);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -239,7 +258,9 @@ function LoginView() {
       setOtpToken(data.otpToken);
       setOtp('');
       setResendMessage('Novo código enviado para o seu email.');
+      startResendCooldown();
     } catch (err) {
+      if (err.retryAfter) startResendCooldown(err.retryAfter);
       setError(err.message);
     } finally {
       setResending(false);
@@ -305,6 +326,7 @@ function LoginView() {
                 onResend={handleResend}
                 resending={resending}
                 resendMessage={resendMessage}
+                cooldown={resendCooldown}
               />
             ) : (
             <>
@@ -455,6 +477,7 @@ function RegisterView() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState(null);
+  const [resendCooldown, startResendCooldown] = useResendCooldown();
 
   const { register, login } = useAuth();
   const { settings } = useSettings();
@@ -467,6 +490,7 @@ function RegisterView() {
     });
     setOtpToken(data.otpToken);
     setOtp('');
+    startResendCooldown();
   };
 
   const handleResend = async () => {
@@ -477,6 +501,7 @@ function RegisterView() {
       await sendRegistrationCode();
       setResendMessage('Novo código enviado para o seu email.');
     } catch (err) {
+      if (err.retryAfter) startResendCooldown(err.retryAfter);
       setError(err.message);
     } finally {
       setResending(false);
@@ -500,6 +525,7 @@ function RegisterView() {
         await sendRegistrationCode();
         setStep('otp');
       } catch (err) {
+        if (err.retryAfter) startResendCooldown(err.retryAfter);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -657,6 +683,7 @@ function RegisterView() {
                 onResend={handleResend}
                 resending={resending}
                 resendMessage={resendMessage}
+                cooldown={resendCooldown}
               />
             )}
 

@@ -75,6 +75,7 @@ export async function request(path, { method = 'GET', body, token, headers = {},
     const error = new Error(data.error || data.message || response.statusText);
     error.status = response.status;
     error.code = data.code;
+    if (data.retryAfter) error.retryAfter = data.retryAfter;
     throw error;
   }
 

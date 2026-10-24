@@ -8,6 +8,8 @@ const AuthService = require('../services/AuthService');
 const authMiddleware = require('../middleware/authMiddleware');
 
 process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.OTP_RESEND_COOLDOWN_SECONDS = '0';
+process.env.OTP_MAX_SENDS_PER_WINDOW = '1000';
 
 function captureCodes(t) {
   const sent = [];

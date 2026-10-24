@@ -163,10 +163,8 @@ class EmailService {
           text: safeText,
           html: safeHtml,
           headers: {
-            'X-Auto-Response-Suppress': 'OOF, AutoReply',
-            // UUID novo por tentativa — o servidor não deduplica
-            'X-Entity-Ref-ID': safeUuid(),
-            'X-Mailer': `${getPlatformName()} Mailer`
+            // UUID novo por tentativa — evita que o Gmail agrupe os códigos numa conversa e oculte o corpo repetido
+            'X-Entity-Ref-ID': safeUuid()
           }
         };
         if (replyTo) mailOptions.replyTo = replyTo;
@@ -253,7 +251,6 @@ class EmailService {
       html: renderEmail({
         platformName,
         title: isRegistration ? 'Confirme o seu email' : 'Código de verificação',
-        preheader: `O seu código de verificação é ${safeCode}. Expira em 5 minutos.`,
         body: `
           <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
           <p style="margin:0 0 16px;">${escapeHtml(intro)}</p>
@@ -301,7 +298,6 @@ class EmailService {
       html: renderEmail({
         platformName,
         title: 'Redefinição de senha',
-        preheader: 'Pedido para redefinir a sua senha. O link é válido durante 1 hora.',
         body: `
           <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
           <p style="margin:0 0 16px;">Recebemos um pedido para redefinir a senha da sua conta ${escapeHtml(platformName)}. O link é válido durante 1 hora.</p>
@@ -328,7 +324,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
-function renderEmail({ platformName, title, preheader, body }) {
+function renderEmail({ platformName, title, body }) {
   const year = new Date().getFullYear();
   return `<!DOCTYPE html>
 <html lang="pt">
@@ -338,7 +334,6 @@ function renderEmail({ platformName, title, preheader, body }) {
 <title>${escapeHtml(title)}</title>
 </head>
 <body style="margin:0;padding:0;background:#f3f4f6;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;">

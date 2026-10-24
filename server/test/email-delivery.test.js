@@ -6,6 +6,8 @@ const EmailService = require('../services/EmailService');
 const AuthService = require('../services/AuthService');
 
 process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.OTP_RESEND_COOLDOWN_SECONDS = '0';
+process.env.OTP_MAX_SENDS_PER_WINDOW = '1000';
 
 function fakeTransport(t, outcomes) {
   const calls = [];
@@ -128,4 +130,42 @@ test('verification emails have a descriptive subject and escaped HTML', async (t
   }
   assert.ok(!calls[0].html.includes('<b>Ana</b>'));
   assert.ok(calls[0].html.includes('&lt;b&gt;Ana&lt;/b&gt;'));
+  // Sem texto oculto (sinal de spam)
+  assert.ok(!calls[0].html.includes('display:none'));
+});
+
+test('verification codes are rate limited per recipient', async (t) => {
+  const passwordHash = await bcrypt.hash('secret123', 4);
+  const user = { id: 51, name: 'Lia', email: 'lia@example.test', roleId: 2, passwordHash };
+  t.mock.method(models.User, 'findOne', async () => user);
+  const sent = [];
+  let fail = false;
+  t.mock.method(EmailService, 'sendTwoFactorCode', async (message) => {
+    if (fail) throw new EmailService.EmailSendError('Nao foi possivel enviar o email.');
+    sent.push(message);
+  });
+  t.after(() => {
+    process.env.OTP_RESEND_COOLDOWN_SECONDS = '0';
+    process.env.OTP_MAX_SENDS_PER_WINDOW = '1000';
+  });
+
+  process.env.OTP_RESEND_COOLDOWN_SECONDS = '30';
+  fail = true;
+  await assert.rejects(AuthService.verifyCredentials(user.email, 'secret123'), { status: 503 });
+  fail = false;
+  // Um envio falhado não ativa o cooldown
+  const first = await AuthService.verifyCredentials(user.email, 'secret123');
+  await assert.rejects(
+    AuthService.verifyCredentials(user.email, 'secret123'),
+    (err) => err.status === 429 && err.code === 'OTP_RATE_LIMITED' && err.retryAfter > 0
+  );
+  assert.equal(sent.length, 1);
+  // O pedido bloqueado não invalida o código já enviado
+  const result = await AuthService.login(user.email, 'secret123', first.otpToken, sent[0].code);
+  assert.ok(result.token);
+
+  process.env.OTP_RESEND_COOLDOWN_SECONDS = '0';
+  process.env.OTP_MAX_SENDS_PER_WINDOW = '2';
+  await AuthService.verifyCredentials(user.email, 'secret123');
+  await assert.rejects(AuthService.verifyCredentials(user.email, 'secret123'), { status: 429 });
 });
