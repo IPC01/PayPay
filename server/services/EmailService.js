@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 const MAX_SEND_ATTEMPTS = 3;
 const RETRY_BASE_DELAY_MS = 1000;
@@ -70,13 +71,28 @@ class EmailService {
   }
 
   async sendMail({ to, subject, text, html }) {
-    const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+    const fromAddress = process.env.SMTP_FROM || process.env.SMTP_USER;
+    // Um remetente com nome de exibição é melhor classificado pelos filtros de spam
+    const from = /</.test(fromAddress) ? fromAddress : { name: getPlatformName(), address: fromAddress };
+    const replyTo = process.env.SMTP_REPLY_TO || undefined;
     let lastError;
 
     for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
       try {
         const transporter = this.getTransporter();
-        const info = await transporter.sendMail({ from, to, subject, text, html });
+        const info = await transporter.sendMail({
+          from,
+          to,
+          replyTo,
+          subject,
+          text,
+          html,
+          headers: {
+            'X-Auto-Response-Suppress': 'OOF, AutoReply',
+            // Evita que emails com o mesmo assunto sejam agrupados numa conversa
+            'X-Entity-Ref-ID': crypto.randomUUID()
+          }
+        });
 
         if (Array.isArray(info.rejected) && info.rejected.length > 0) {
           const rejected = new Error(`Destinatario rejeitado pelo servidor SMTP: ${info.response || ''}`);
@@ -106,47 +122,124 @@ class EmailService {
     throw new EmailSendError('Nao foi possivel enviar o email. Tente novamente dentro de instantes.', lastError);
   }
 
-  async sendTwoFactorCode({ to, name, code }) {
-    const platformName = process.env.PLATFORM_NAME || 'Romenapay';
-    const subject = `${platformName} - Codigo de verificacao`;
-    const greeting = name ? `Ola ${name},` : 'Ola,';
+  async sendTwoFactorCode({ to, name, code, purpose = 'login' }) {
+    const platformName = getPlatformName();
+    const isRegistration = purpose === 'registration';
+    const subject = isRegistration
+      ? `${code} é o seu código para confirmar o email na ${platformName}`
+      : `${code} é o seu código de acesso à ${platformName}`;
+    const intro = isRegistration
+      ? `Use o código abaixo para confirmar o seu email e concluir a criação da conta na ${platformName}.`
+      : `Use o código abaixo para concluir o início de sessão na sua conta ${platformName}.`;
+    const greeting = name ? `Olá ${name},` : 'Olá,';
 
     return this.sendMail({
       to,
       subject,
-      text: `${greeting}\n\nO seu codigo de verificacao e: ${code}\n\nEste codigo expira em 5 minutos.`,
-      html: `
-        <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
-          <p>${greeting}</p>
-          <p>Use o codigo abaixo para concluir a verificacao:</p>
-          <p style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 24px 0;">${code}</p>
-          <p>Este codigo expira em 5 minutos.</p>
-        </div>
-      `
+      text: [
+        greeting,
+        '',
+        intro,
+        '',
+        `Código de verificação: ${code}`,
+        '',
+        'Este código expira em 5 minutos e só pode ser usado uma vez.',
+        'Se não foi você que fez este pedido, ignore este email e não partilhe o código com ninguém.',
+        '',
+        `Equipa ${platformName}`
+      ].join('\n'),
+      html: renderEmail({
+        platformName,
+        title: isRegistration ? 'Confirme o seu email' : 'Código de verificação',
+        preheader: `O seu código de verificação é ${code}. Expira em 5 minutos.`,
+        body: `
+          <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
+          <p style="margin:0 0 16px;">${escapeHtml(intro)}</p>
+          <p style="margin:24px 0;font-size:30px;font-weight:700;letter-spacing:8px;font-family:Consolas,monospace;color:#111827;">${escapeHtml(code)}</p>
+          <p style="margin:0 0 8px;">Este código expira em 5 minutos e só pode ser usado uma vez.</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Se não foi você que fez este pedido, ignore este email e não partilhe o código com ninguém.</p>
+        `
+      })
     });
   }
 
-  async sendPasswordReset({ to, name, resetUrl, token }) {
-    const platformName = process.env.PLATFORM_NAME || 'Romenapay';
-    const subject = `${platformName} - Redefinicao de senha`;
-    const greeting = name ? `Ola ${name},` : 'Ola,';
+  async sendPasswordReset({ to, name, resetUrl }) {
+    const platformName = getPlatformName();
+    const subject = `Redefinição da sua senha ${platformName}`;
+    const greeting = name ? `Olá ${name},` : 'Olá,';
+    const safeUrl = escapeHtml(resetUrl);
 
     return this.sendMail({
       to,
       subject,
-      text: `${greeting}\n\nUse o link abaixo para redefinir a sua senha:\n${resetUrl}\n\nSe nao foi voce, ignore este email.\n\nToken: ${token}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
-          <p>${greeting}</p>
-          <p>Recebemos um pedido para redefinir a sua senha.</p>
-          <p><a href="${resetUrl}" style="display: inline-block; background: #1f2937; color: #ffffff; padding: 10px 16px; border-radius: 8px; text-decoration: none;">Redefinir senha</a></p>
-          <p>Se o botao nao funcionar, copie este link:</p>
-          <p style="word-break: break-all; font-size: 12px; color: #4b5563;">${resetUrl}</p>
-          <p>Se nao foi voce, ignore este email.</p>
-        </div>
-      `
+      text: [
+        greeting,
+        '',
+        `Recebemos um pedido para redefinir a senha da sua conta ${platformName}.`,
+        'Abra o link abaixo para escolher uma nova senha (válido durante 1 hora):',
+        resetUrl,
+        '',
+        'Se não foi você que fez este pedido, ignore este email. A sua senha não será alterada.',
+        '',
+        `Equipa ${platformName}`
+      ].join('\n'),
+      html: renderEmail({
+        platformName,
+        title: 'Redefinição de senha',
+        preheader: 'Pedido para redefinir a sua senha. O link é válido durante 1 hora.',
+        body: `
+          <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
+          <p style="margin:0 0 16px;">Recebemos um pedido para redefinir a senha da sua conta ${escapeHtml(platformName)}. O link é válido durante 1 hora.</p>
+          <p style="margin:24px 0;"><a href="${safeUrl}" style="display:inline-block;background:#1f2937;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Redefinir senha</a></p>
+          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Se o botão não funcionar, copie este link para o navegador:</p>
+          <p style="margin:0 0 16px;word-break:break-all;font-size:12px;color:#4b5563;">${safeUrl}</p>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Se não foi você que fez este pedido, ignore este email. A sua senha não será alterada.</p>
+        `
+      })
     });
   }
+}
+
+function getPlatformName() {
+  return process.env.PLATFORM_NAME || 'Romenapay';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderEmail({ platformName, title, preheader, body }) {
+  const year = new Date().getFullYear();
+  return `<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(title)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f4f6;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;">
+<tr><td style="padding:20px 28px;border-bottom:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#111827;">${escapeHtml(platformName)}</td></tr>
+<tr><td style="padding:28px;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#111827;">
+<h1 style="margin:0 0 16px;font-size:20px;color:#111827;">${escapeHtml(title)}</h1>
+${body}
+</td></tr>
+<tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;">
+Este é um email automático enviado pela ${escapeHtml(platformName)}. Por favor não responda.<br>&copy; ${year} ${escapeHtml(platformName)}
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
 }
 
 module.exports = new EmailService();

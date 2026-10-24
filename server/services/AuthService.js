@@ -210,7 +210,8 @@ class AuthService {
     await this.deliverVerificationCode(registrationChallenges, challengeId, {
       to: email,
       name,
-      code
+      code,
+      purpose: 'registration'
     });
 
     return {
