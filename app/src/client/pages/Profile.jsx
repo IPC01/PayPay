@@ -229,57 +229,7 @@ function Profile() {
 
       {/* Grid principal */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Informações da Empresa */}
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 dark:text-white">
-                Informações da Empresa
-              </h2>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Detalhes oficiais da plataforma
-              </p>
-            </div>
-            {companyInfo?.logoImg && (
-              <img
-                src={companyInfo.logoImg}
-                alt="Logo da empresa"
-                className="h-10 w-10 rounded-xl object-contain"
-              />
-            )}
-          </div>
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <InfoTile label="Nome">
-              <p className="font-medium">
-                {companyInfo?.platformName || appSettings?.platformName || 'Não definido'}
-              </p>
-            </InfoTile>
-            <InfoTile label="Proprietário">
-              <p className="font-medium">{companyInfo?.ownerName || 'Não definido'}</p>
-            </InfoTile>
-            <InfoTile label="Contacto">
-              <p>{companyInfo?.contacts || 'Nenhum contacto disponível.'}</p>
-            </InfoTile>
-            <InfoTile label="Endereço">
-              <p>{companyInfo?.address || 'Nenhum endereço cadastrado.'}</p>
-            </InfoTile>
-            <InfoTile label="E-mails" span>
-              <p>{companyInfo?.emails || 'Nenhum e-mail cadastrado.'}</p>
-            </InfoTile>
-            <InfoTile label="Mais informações" span>
-              {companyInfo?.additionalInfo ? (
-                <div className="space-y-1 text-xs leading-relaxed">
-                  {companyInfo.additionalInfo.split(/\r?\n/).map((line, index) => (
-                    <p key={index}>{line}</p>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs">Não há informações adicionais publicadas.</p>
-              )}
-            </InfoTile>
-          </div>
-        </section>
+ 
 
         {/* Dados Pessoais */}
         <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
