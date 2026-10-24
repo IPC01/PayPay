@@ -4,27 +4,49 @@ const { Kyc, KycDocument, User, Notification } = require('../models');
 const { Op } = require('sequelize');
 const { Role } = require('../models');
 const { getUploadsDir } = require('../config/uploadStorage');
+const {
+  KYC_MAX_FILE_BYTES,
+  KYC_MIME_EXTENSIONS,
+  shortenKycFileName,
+  createKycInternalName
+} = require('../helpers/kycFiles');
+
+class KycFileError extends Error {
+  constructor(message, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
 
 async function saveKycFile(base64, filename) {
-  if (!base64) return null;
-  const uploadsDir = path.join(getUploadsDir(), 'kyc');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  const matches = typeof base64 === 'string'
+    ? base64.match(/^data:([a-zA-Z0-9/+.-]+);base64,(.+)$/)
+    : null;
+  if (!matches) throw new KycFileError('Arquivo inválido');
+
+  const mimeType = matches[1].toLowerCase();
+  const extension = KYC_MIME_EXTENSIONS[mimeType];
+  if (!extension) throw new KycFileError('Formato de arquivo não suportado.');
+
+  // Rejeita antes de descodificar (base64 ocupa ~4/3 do tamanho real)
+  if (Math.floor(matches[2].length * 3 / 4) > KYC_MAX_FILE_BYTES + 2) {
+    throw new KycFileError('O arquivo excede o limite de 10 MB.', 413);
+  }
+  const buffer = Buffer.from(matches[2], 'base64');
+  if (buffer.length === 0) throw new KycFileError('Arquivo vazio.');
+  if (buffer.length > KYC_MAX_FILE_BYTES) {
+    throw new KycFileError('O arquivo excede o limite de 10 MB.', 413);
   }
 
-  const matches = base64.match(/^data:([a-zA-Z0-9/+.-]+);base64,(.+)$/);
-  if (!matches) return null;
+  const uploadsDir = path.join(getUploadsDir(), 'kyc');
+  await fs.promises.mkdir(uploadsDir, { recursive: true });
 
-  const mimeType = matches[1];
-  const buffer = Buffer.from(matches[2], 'base64');
-  const extension = path.extname(filename) || `.${mimeType.split('/')[1]}`;
-  const internalName = `${Date.now()}-${Math.random().toString(16).slice(2)}${extension}`;
-  const filepath = path.join(uploadsDir, internalName);
-
-  fs.writeFileSync(filepath, buffer);
+  const internalName = createKycInternalName(extension);
+  await fs.promises.writeFile(path.join(uploadsDir, internalName), buffer);
   return {
     url: `/api/uploads/kyc/${internalName}`,
     internalName,
+    originalName: shortenKycFileName(filename, extension),
     extension,
     mimeType,
     size: buffer.length
@@ -265,14 +287,11 @@ class KycController {
       }
 
       const fileData = await saveKycFile(file, fileName);
-      if (!fileData) {
-        return res.status(400).json({ error: 'Arquivo inválido' });
-      }
 
       const document = await KycDocument.create({
         kycId,
         type,
-        originalName: fileName,
+        originalName: fileData.originalName,
         internalName: fileData.internalName,
         url: fileData.url,
         extension: fileData.extension,
@@ -283,7 +302,7 @@ class KycController {
 
       return res.status(201).json({ document });
     } catch (error) {
-      return res.status(500).json({ error: error.message });
+      return res.status(error instanceof KycFileError ? error.status : 500).json({ error: error.message });
     }
   }
 

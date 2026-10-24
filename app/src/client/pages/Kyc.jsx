@@ -4,6 +4,25 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { openAuthenticatedFile } from '../../services/api';
 import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
+const KYC_MAX_FILE_BYTES = 10 * 1024 * 1024;
+const KYC_MAX_NAME_LENGTH = 40;
+
+// Mesmo formato que o servidor aplica: sem acentos/espaços, no máximo 40 caracteres + .pdf
+const shortenFileName = (name) => {
+  const base = String(name || '')
+    .replace(/\.[^.]*$/, '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+    .slice(0, KYC_MAX_NAME_LENGTH)
+    .replace(/-+$/, '');
+  return `${base || 'documento'}.pdf`;
+};
+
+const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+
 const initialKycState = {
   type: 'INDIVIDUAL',
   status: 'DRAFT',
@@ -381,6 +400,14 @@ function Kyc() {
       });
       return;
     }
+    if (uploadFile.size > KYC_MAX_FILE_BYTES) {
+      notify({
+        type: 'error',
+        title: 'Ficheiro demasiado grande',
+        message: `O ficheiro tem ${formatFileSize(uploadFile.size)}. O tamanho máximo é 10 MB.`
+      });
+      return;
+    }
 
     try {
       setUploading(true);
@@ -397,7 +424,7 @@ function Kyc() {
           kycId: kycData.id,
           type: KYC_DOCUMENT_TYPE,
           file: base64,
-          fileName: uploadFile.name
+          fileName: shortenFileName(uploadFile.name)
         }
       });
       setDocuments((prev) => [...prev, response.document]);
@@ -896,7 +923,20 @@ function Kyc() {
                   <input
                     type="file"
                     accept="application/pdf"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      e.target.value = '';
+                      if (file && file.size > KYC_MAX_FILE_BYTES) {
+                        setUploadFile(null);
+                        notify({
+                          type: 'error',
+                          title: 'Ficheiro demasiado grande',
+                          message: `O ficheiro tem ${formatFileSize(file.size)}. O tamanho máximo é 10 MB.`
+                        });
+                        return;
+                      }
+                      setUploadFile(file);
+                    }}
                     className="sr-only"
                   />
                   <svg
@@ -912,11 +952,13 @@ function Kyc() {
                       d="M7 16a4 4 0 01-.88-7.9A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                     />
                   </svg>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {uploadFile ? uploadFile.name : 'Selecionar scan em PDF'}
+                  <p className="max-w-full truncate text-sm font-semibold text-slate-900 dark:text-white">
+                    {uploadFile
+                      ? `${shortenFileName(uploadFile.name)} (${formatFileSize(uploadFile.size)})`
+                      : 'Selecionar scan em PDF'}
                   </p>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Apenas formato PDF (BI + NUIT)
+                    Apenas formato PDF (BI + NUIT), máximo 10 MB
                   </p>
                 </label>
 

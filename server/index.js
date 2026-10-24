@@ -44,7 +44,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
-app.use(express.json({ limit: '10mb' }));
+// 15 MB: um ficheiro KYC de 10 MB ocupa ~13,4 MB em base64
+app.use(express.json({ limit: '15mb' }));
+app.use((err, _req, res, next) => {
+  if (err && err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'O pedido excede o tamanho máximo permitido (ficheiros até 10 MB).' });
+  }
+  return next(err);
+});
 app.use('/api/uploads/kyc', (_req, res) => res.status(404).json({ error: 'Not found' }));
 for (const publicUploadFolder of ['settings', 'tickets', 'users', 'wallet-types']) {
   app.use(
