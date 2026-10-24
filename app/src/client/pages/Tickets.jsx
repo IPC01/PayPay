@@ -46,10 +46,6 @@ function Header({ formOpen, selectedTicket, onNew }) {
         <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
           Suporte
         </p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-          Tickets de Suporte
-        </h1>
-
       </div>
       {!formOpen && !selectedTicket && (
         <button

@@ -440,13 +440,6 @@ function Kyc() {
         <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
           Verificação
         </p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-          KYC
-        </h1>
-        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-          Complete o processo de verificação KYC para desbloquear carteiras, levantamentos e
-          chaves de API.
-        </p>
       </div>
 
       {/* Progresso + Status */}

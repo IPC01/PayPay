@@ -64,12 +64,6 @@ function LegalPages() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
             Documentos
           </p>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Documentos Legais
-          </h1>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
-            Selecione um documento legal para visualizar os termos e políticas publicadas.
-          </p>
         </div>
         {!loading && pages.length > 0 && (
           <span className="inline-flex self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">

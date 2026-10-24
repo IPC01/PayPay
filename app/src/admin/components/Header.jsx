@@ -1,4 +1,3 @@
-// Header.jsx - Versão leve com fundo branco e cores pretas
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -108,12 +107,12 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
-      <div className="mx-auto flex h-14 min-w-0 max-w-none items-center gap-2 px-3 md:pl-6 sm:pr-4">
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+      <div className="mx-auto grid h-14 min-w-0 max-w-none grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-3 md:flex md:pl-6 md:pr-4">
         <button
           type="button"
           onClick={onToggleMobileSidebar}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-brand-100 bg-brand-50 text-brand-700 transition-colors hover:border-brand-300 hover:bg-brand-100 md:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center justify-self-start rounded-lg border border-brand-100 bg-brand-50 text-brand-700 transition-colors hover:border-brand-300 hover:bg-brand-100 dark:border-slate-600 dark:bg-slate-700 dark:text-brand-300 dark:hover:border-brand-500 dark:hover:bg-slate-600 md:hidden"
           aria-label="Abrir menu"
           aria-expanded={mobileSidebarOpen}
           aria-controls="dashboard-sidebar"
@@ -123,13 +122,13 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
           </svg>
         </button>
 
-        <NavLink to={managementPath(user)} aria-label="Página inicial" className="flex min-w-0 max-w-28 items-center md:hidden">
-          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-11 w-28 max-w-full object-contain object-left" />
+        <NavLink to={managementPath(user)} aria-label="Página inicial" className="flex h-14 w-[clamp(7rem,calc(100vw-13rem),12rem)] min-w-0 items-center justify-center md:hidden">
+          <img src={settings?.logoImg || '/logo.png'} alt={settings?.platformName || 'Logo'} className="h-14 w-full object-contain" />
         </NavLink>
 
-        <h1 className="sr-only min-w-0 truncate text-base font-semibold text-gray-900 md:not-sr-only">{pageTitle}</h1>
+        <h1 className="sr-only min-w-0 truncate text-base font-semibold text-gray-900 dark:text-white md:not-sr-only">{pageTitle}</h1>
 
-        <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end gap-2 md:flex-1">
+        <div className="ml-auto flex min-w-0 shrink-0 items-center justify-end justify-self-end gap-1 md:flex-1 md:gap-2">
           <div className="relative shrink-0" ref={notificationDropdownRef}>
             <button
               type="button"
@@ -140,7 +139,7 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
                   loadUnreadNotifications();
                 }
               }}
-              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-500 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50 hover:text-gray-800"
+              className="relative inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-300 bg-white text-gray-500 transition-all duration-200 hover:border-gray-600 hover:bg-gray-50 hover:text-gray-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:bg-slate-700 dark:hover:text-white"
               aria-label="Notificações"
               title="Notificações"
             >
@@ -155,35 +154,35 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
             </button>
 
             {notificationDropdownOpen && (
-              <div className="fixed inset-x-3 top-14 mt-2 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:w-80">
-                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                  <p className="text-sm font-semibold text-gray-900">Notificações do sistema</p>
+              <div className="fixed inset-x-3 top-14 mt-2 max-w-[calc(100vw-1.5rem)] rounded-xl border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:w-80">
+                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-slate-700">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">Notificações do sistema</p>
                   <button
                     type="button"
                     onClick={() => {
                       setNotificationDropdownOpen(false);
                       navigate(managementPath(user, '/admin/notifications'));
                     }}
-                    className="text-xs font-medium text-gray-700 hover:text-gray-900 transition-colors"
+                    className="text-xs font-medium text-gray-700 hover:text-gray-900 transition-colors dark:text-slate-300 dark:hover:text-white"
                   >
                     Ver todas
                   </button>
                 </div>
                 <div className="max-h-96 overflow-y-auto p-2">
                   {notificationsLoading ? (
-                    <p className="px-2 py-3 text-sm text-gray-500">Carregando notificações do sistema...</p>
+                    <p className="px-2 py-3 text-sm text-gray-500 dark:text-slate-400">Carregando notificações do sistema...</p>
                   ) : unreadNotifications.length === 0 ? (
-                    <p className="px-2 py-3 text-sm text-gray-500">Sem novas notificações do sistema.</p>
+                    <p className="px-2 py-3 text-sm text-gray-500 dark:text-slate-400">Sem novas notificações do sistema.</p>
                   ) : (
                     unreadNotifications.map((notification) => (
                       <button
                         key={notification.id}
                         type="button"
                         onClick={() => handleNotificationClick(notification)}
-                        className="w-full rounded-lg px-3 py-2 text-left transition-all duration-200 hover:bg-gray-50"
+                        className="w-full rounded-lg px-3 py-2 text-left transition-all duration-200 hover:bg-gray-50 dark:hover:bg-slate-700"
                       >
-                        <p className="text-sm font-semibold text-gray-900">{notification.title}</p>
-                        <p className="mt-1 text-xs text-gray-600">{notification.message}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{notification.title}</p>
+                        <p className="mt-1 text-xs text-gray-600 dark:text-slate-300">{notification.message}</p>
                         <p className="mt-1 text-[11px] text-gray-400">{new Date(notification.createdAt).toLocaleString('pt-PT')}</p>
                       </button>
                     ))
@@ -197,31 +196,32 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
             <button
               type="button"
               onClick={() => setDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-2 rounded-xl p-1.5 transition-all duration-200 hover:bg-gray-50"
+              aria-label="Menu do utilizador"
+              className="flex items-center gap-2 rounded-xl p-1 transition-all duration-200 hover:bg-gray-50 dark:hover:bg-slate-700 md:p-1.5"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-900 text-white shadow-md">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-900 text-white shadow-md md:h-9 md:w-9">
                 {getUserInitials()}
               </span>
-              <span className="hidden min-w-0 max-w-40 text-left sm:block">
-                <span className="block truncate text-sm font-medium text-gray-900">{user?.name?.split(' ')[0] || roleLabel(user)}</span>
-                <span className="block truncate text-xs text-gray-500">{roleLabel(user)}</span>
+              <span className="hidden min-w-0 max-w-40 text-left md:block">
+                <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">{user?.name?.split(' ')[0] || roleLabel(user)}</span>
+                <span className="block truncate text-xs text-gray-500 dark:text-slate-400">{roleLabel(user)}</span>
               </span>
-              <svg className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`hidden h-4 w-4 text-gray-400 transition-transform duration-200 md:block ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] break-words rounded-xl border border-gray-200 bg-white shadow-xl">
-                <div className="border-b border-gray-200 p-3">
-                  <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
-                  <p className="mt-0.5 text-xs text-gray-500">{user?.email}</p>
+              <div className="absolute right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] break-words rounded-xl border border-gray-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <div className="border-b border-gray-200 p-3 dark:border-slate-700">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.name}</p>
+                  <p className="mt-0.5 text-xs text-gray-500 dark:text-slate-400">{user?.email}</p>
                 </div>
                 <div className="p-2">
                   <NavLink
                     to={managementPath(user, '/admin/profile')}
                     onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -234,7 +234,7 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
                       toggleTheme();
                       setDropdownOpen(false);
                     }}
-                    className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
+                    className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                   >
                     <span className="flex items-center gap-3">
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -249,7 +249,7 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
                       toggleLanguage();
                       setDropdownOpen(false);
                     }}
-                    className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900"
+                    className="mt-2 flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                   >
                     <span className="flex items-center gap-3">
                       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -259,14 +259,14 @@ function Header({ onToggleMobileSidebar, mobileSidebarOpen }) {
                     </span>
                     <span className="text-xs font-medium text-gray-400">{language.toUpperCase()}</span>
                   </button>
-                  <div className="my-2 border-t border-gray-200" />
+                  <div className="my-2 border-t border-gray-200 dark:border-slate-700" />
                   <button
                     type="button"
                     onClick={() => {
                       logout();
                       setDropdownOpen(false);
                     }}
-                    className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 transition-all duration-200 hover:bg-red-50"
+                    className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-red-600 transition-all duration-200 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

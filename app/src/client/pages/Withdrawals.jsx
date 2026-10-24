@@ -222,11 +222,10 @@ function Withdrawals() {
           onSelect(wallet.id);
         }
       }}
-      className={`cursor-pointer rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
-        isSelected
+      className={`cursor-pointer rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${isSelected
           ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 dark:border-brand-500 dark:bg-brand-900/20'
           : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-800'
-      }`}
+        }`}
     >
       <div className="flex items-center gap-3">
         {renderTypeLogo(
@@ -268,9 +267,9 @@ function Withdrawals() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Saques
-          </h2>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
+            Levantar saldo
+          </p>
         </div>
       </div>
 
@@ -305,132 +304,130 @@ function Withdrawals() {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <fieldset disabled={submitting} className="space-y-4">
 
-            {/* Secção: Valor */}
-            <section className="space-y-2">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Valor
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Montante a levantar <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={form.amount}
-                    onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
-                    placeholder="0.00"
-                    className={`mt-1.5 w-full rounded-xl border px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 dark:text-white ${
-                      amountValidationMessage
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200 dark:border-rose-500/40'
-                        : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-700'
-                    } bg-white dark:bg-slate-900`}
-                  />
-                  {amountValidationMessage && (
-                    <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
-                      {amountValidationMessage}
-                    </p>
-                  )}
+              {/* Secção: Valor */}
+              <section className="space-y-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Valor
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Montante a levantar <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={form.amount}
+                      onChange={(e) => setForm((prev) => ({ ...prev, amount: e.target.value }))}
+                      placeholder="0.00"
+                      className={`mt-1.5 w-full rounded-xl border px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 dark:text-white ${amountValidationMessage
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200 dark:border-rose-500/40'
+                          : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-700'
+                        } bg-white dark:bg-slate-900`}
+                    />
+                    {amountValidationMessage && (
+                      <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                        {amountValidationMessage}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Telefone de destino <span className="text-rose-600">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={form.phone}
+                      onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+                      placeholder="84 000 0000"
+                      className={`mt-1.5 w-full rounded-xl border px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 dark:text-white ${phoneValidationMessage
+                          ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200 dark:border-rose-500/40'
+                          : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-700'
+                        } bg-white dark:bg-slate-900`}
+                    />
+                    {phoneValidationMessage && (
+                      <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+                        {phoneValidationMessage}
+                      </p>
+                    )}
+                  </div>
                 </div>
+              </section>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Telefone de destino <span className="text-rose-600">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.phone}
-                    onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-                    placeholder="84 000 0000"
-                    className={`mt-1.5 w-full rounded-xl border px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:ring-2 dark:text-white ${
-                      phoneValidationMessage
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-200 dark:border-rose-500/40'
-                        : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-700'
-                    } bg-white dark:bg-slate-900`}
-                  />
-                  {phoneValidationMessage && (
-                    <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
-                      {phoneValidationMessage}
-                    </p>
-                  )}
+              {/* Resumo de saldo / taxa / total */}
+              <div aria-live="polite" className="space-y-2 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                    Saldo disponível
+                  </p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                    {selectedWallet
+                      ? formatCurrency(currentBalance, selectedWallet.currency || 'MZN')
+                      : '—'}
+                  </p>
                 </div>
+                {form.amount && (
+                  <>
+                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                      <span>Recebe no M-Pesa</span>
+                      <span>{formatCurrency(requestedAmount, selectedWallet?.currency || 'MZN')}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
+                      <span>Taxa da plataforma ({withdrawalFeePercent}%)</span>
+                      <span>{formatCurrency(feeAmount, selectedWallet?.currency || 'MZN')}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
+                      <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                        Total exigido
+                      </span>
+                      <span className="text-sm font-bold text-slate-900 dark:text-white">
+                        {formatCurrency(totalRequired, selectedWallet?.currency || 'MZN')}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
-            </section>
 
-            {/* Resumo de saldo / taxa / total */}
-            <div aria-live="polite" className="space-y-2 rounded-xl bg-slate-50 px-4 py-3 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                  Saldo disponível
-                </p>
-                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  {selectedWallet
-                    ? formatCurrency(currentBalance, selectedWallet.currency || 'MZN')
-                    : '—'}
+              {/* Observação */}
+              <section className="space-y-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Observação
+                </h3>
+                <textarea
+                  rows={3}
+                  value={form.note}
+                  onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
+                  placeholder="Motivo ou referência (opcional)"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+              </section>
+
+              {/* Nota sobre processamento */}
+              <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+                <p className="font-semibold text-slate-900 dark:text-white">Processamento</p>
+                <p className="mt-1">
+                  O valor e a taxa da plataforma serão reservados e o M-Pesa enviará o valor solicitado
+                  via B2C. Uma rejeição confirmada devolve a reserva. Em caso de timeout, aguarde
+                  a confirmação e não repita o saque.
                 </p>
               </div>
-              {form.amount && (
-                <>
-                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                    <span>Recebe no M-Pesa</span>
-                    <span>{formatCurrency(requestedAmount, selectedWallet?.currency || 'MZN')}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-300">
-                    <span>Taxa da plataforma ({withdrawalFeePercent}%)</span>
-                    <span>{formatCurrency(feeAmount, selectedWallet?.currency || 'MZN')}</span>
-                  </div>
-                  <div className="flex items-center justify-between border-t border-slate-200 pt-2 dark:border-slate-700">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                      Total exigido
-                    </span>
-                    <span className="text-sm font-bold text-slate-900 dark:text-white">
-                      {formatCurrency(totalRequired, selectedWallet?.currency || 'MZN')}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
 
-            {/* Observação */}
-            <section className="space-y-2">
-              <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                Observação
-              </h3>
-              <textarea
-                rows={3}
-                value={form.note}
-                onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
-                placeholder="Motivo ou referência (opcional)"
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-              />
-            </section>
-
-            {/* Nota sobre processamento */}
-            <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-              <p className="font-semibold text-slate-900 dark:text-white">Processamento</p>
-              <p className="mt-1">
-                O valor e a taxa da plataforma serão reservados e o M-Pesa enviará o valor solicitado
-                via B2C. Uma rejeição confirmada devolve a reserva. Em caso de timeout, aguarde
-                a confirmação e não repita o saque.
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={
-                submitting ||
-                !selectedWallet ||
-                !form.amount ||
-                !form.phone ||
-                Boolean(amountValidationMessage) ||
-                Boolean(phoneValidationMessage)
-              }
-              className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? 'A processar...' : 'Confirmar saque'}
-            </button>
+              <button
+                type="submit"
+                disabled={
+                  submitting ||
+                  !selectedWallet ||
+                  !form.amount ||
+                  !form.phone ||
+                  Boolean(amountValidationMessage) ||
+                  Boolean(phoneValidationMessage)
+                }
+                className="inline-flex w-full items-center justify-center rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? 'A processar...' : 'Confirmar saque'}
+              </button>
             </fieldset>
           </form>
         </div>

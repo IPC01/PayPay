@@ -37,10 +37,22 @@ if (-not $health.ok) {
   throw "API indisponivel: $($health.body)"
 }
 
-$login = Invoke-Api -Method 'Post' -Uri 'http://localhost:8000/api/auth/login' -Body @{
+$credentials = @{
   email = 'admin@test.com'
   password = '123456'
 }
+
+$challenge = Invoke-Api -Method 'Post' -Uri 'http://localhost:8000/api/auth/verify-credentials' -Body $credentials
+if (-not $challenge.ok) {
+  throw "Falha ao validar credenciais: $($challenge.body)"
+}
+
+$otp = Read-Host "Codigo de verificacao enviado para $($credentials.email)"
+
+$login = Invoke-Api -Method 'Post' -Uri 'http://localhost:8000/api/auth/login' -Body ($credentials + @{
+  otpToken = $challenge.body.otpToken
+  otp = $otp
+})
 if (-not $login.ok) {
   throw "Falha no login: $($login.body)"
 }

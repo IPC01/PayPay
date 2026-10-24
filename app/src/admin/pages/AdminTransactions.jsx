@@ -268,14 +268,16 @@ function AdminTransactions({ wallet = null }) {
           <option value="direct">Direto</option>
         </select>
 
-        <input
-          type="text"
-          value={clientFilter}
-          onChange={(event) => setClientFilter(event.target.value)}
-          placeholder="Cliente (nome ou email)"
-          aria-label="Filtrar por cliente"
-          className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 sm:w-56"
-        />
+        {!wallet && (
+          <input
+            type="text"
+            value={clientFilter}
+            onChange={(event) => setClientFilter(event.target.value)}
+            placeholder="Cliente (nome ou email)"
+            aria-label="Filtrar por cliente"
+            className="w-full rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300 sm:w-56"
+          />
+        )}
 
         {!wallet && (
           <select

@@ -46,7 +46,7 @@ class EmailService {
       html: `
         <div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.5;">
           <p>${greeting}</p>
-          <p>Use o codigo abaixo para concluir o login:</p>
+          <p>Use o codigo abaixo para concluir a verificacao:</p>
           <p style="font-size: 28px; font-weight: 700; letter-spacing: 6px; margin: 24px 0;">${code}</p>
           <p>Este codigo expira em 5 minutos.</p>
         </div>

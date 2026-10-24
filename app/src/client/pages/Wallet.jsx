@@ -656,8 +656,9 @@ function Wallets() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Carteiras</h2>
- 
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
+          Gerenciamento de Carteiras
+        </p>
         </div>
         {!formOpen && !selectedWallet && (
           <button

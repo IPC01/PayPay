@@ -171,11 +171,10 @@ function TransactionsC2B() {
       tabIndex={0}
       onClick={() => onSelect(wallet.walletCode)}
       onKeyDown={(event) => handleWalletKeyDown(event, wallet.walletCode)}
-      className={`cursor-pointer rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${
-        isSelected
+      className={`cursor-pointer rounded-xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${isSelected
           ? 'border-brand-500 bg-brand-50 ring-2 ring-brand-500/20 dark:border-brand-500 dark:bg-brand-900/20'
           : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900'
-      }`}
+        }`}
     >
       <div className="flex items-center gap-3">
         {renderTypeLogo(
@@ -217,10 +216,9 @@ function TransactionsC2B() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
             Transações C2B
-          </h2>
-     
+          </p>
         </div>
       </div>
 

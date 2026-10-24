@@ -26,12 +26,12 @@ function formatDate(date) {
   return Number.isNaN(d.getTime())
     ? '—'
     : d.toLocaleString('pt-PT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 }
 
 function formatShortDate(date) {
@@ -544,9 +544,9 @@ function ApiKeys() {
         <>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
                 Chaves de Acesso
-              </h1>
+              </p>
             </div>
             <button
               type="button"
@@ -827,11 +827,10 @@ function ApiKeys() {
                       return (
                         <label
                           key={wallet.id}
-                          className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 transition ${
-                            checked
+                          className={`flex cursor-pointer items-center gap-2 rounded-xl border p-2.5 transition ${checked
                               ? 'border-brand-500 bg-brand-50 dark:border-brand-500 dark:bg-brand-900/20'
                               : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900'
-                          }`}
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -914,11 +913,10 @@ function ApiKeys() {
                             }
                           }}
                           aria-pressed={checked}
-                          className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${
-                            checked
+                          className={`rounded-full border px-3 py-1 text-[11px] font-semibold transition ${checked
                               ? 'border-brand-600 bg-brand-600 text-white'
                               : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200'
-                          }`}
+                            }`}
                           title={scope.name}
                         >
                           {scope.label}

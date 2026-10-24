@@ -677,11 +677,8 @@ function Packages() {
     <div className="space-y-6">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-          Cliente
-        </p>
-        <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
           Pacotes e Subscrições
-        </h1>
+        </p>
       </div>
 
       {/* Pacotes */}

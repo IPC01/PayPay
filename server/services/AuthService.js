@@ -11,7 +11,7 @@ const TWO_FACTOR_EXPIRY_MS = 5 * 60 * 1000;
 const TWO_FACTOR_MAX_ATTEMPTS = 5;
 
 function hashCode(code) {
-  return crypto.createHash('sha256').update(code).digest('hex');
+  return crypto.createHash('sha256').update(String(code).trim()).digest('hex');
 }
 
 function createResetUrl(token) {
@@ -240,14 +240,12 @@ class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // 2FA no login temporariamente desativado durante os testes.
-    // Para reativar, restaure a validação abaixo:
-    // this.verifyTwoFactorCode({
-    //   otpToken,
-    //   code: otp,
-    //   userId: user.id,
-    //   email: user.email
-    // });
+    this.verifyTwoFactorCode({
+      otpToken,
+      code: otp,
+      userId: user.id,
+      email: user.email
+    });
 
     const token = jwt.sign(
       {

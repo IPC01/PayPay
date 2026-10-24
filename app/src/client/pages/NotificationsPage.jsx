@@ -157,9 +157,9 @@ function NotificationsPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="mt-2 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
             Suas notificações
-          </h1>
+          </p>
         </div>
         {!loading && notifications.length > 0 && (
           <span className="inline-flex self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-900 dark:text-slate-300">
@@ -181,11 +181,10 @@ function NotificationsPage() {
               key={tab.key}
               type="button"
               onClick={() => setFilter(tab.key)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
-                filter === tab.key
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${filter === tab.key
                   ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
@@ -249,11 +248,10 @@ function NotificationsPage() {
                   key={notification.id}
                   type="button"
                   onClick={() => handleNotificationClick(notification)}
-                  className={`flex w-full items-start gap-3 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 sm:px-6 ${
-                    notification.read
+                  className={`flex w-full items-start gap-3 px-4 py-4 text-left transition focus:outline-none focus:ring-2 focus:ring-inset focus:ring-brand-500/20 sm:px-6 ${notification.read
                       ? 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700/60'
                       : 'bg-brand-50/60 hover:bg-brand-50 dark:bg-brand-900/20 dark:hover:bg-brand-900/30'
-                  }`}
+                    }`}
                 >
                   {/* Categoria */}
                   <span
@@ -266,11 +264,10 @@ function NotificationsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
                       <p
-                        className={`truncate text-sm ${
-                          notification.read
+                        className={`truncate text-sm ${notification.read
                             ? 'font-medium text-slate-700 dark:text-slate-300'
                             : 'font-bold text-slate-900 dark:text-white'
-                        }`}
+                          }`}
                       >
                         {notification.title}
                       </p>

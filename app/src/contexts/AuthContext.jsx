@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
     setError(null);
     const data = await request('/api/auth/login', {
       method: 'POST',
-      body: { email, password }
+      body: { email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
     localStorage.setItem('token', data.token);
@@ -45,6 +45,13 @@ export function AuthProvider({ children }) {
     setUser(userData);
 
     return userData;
+  }, []);
+
+  const requestLoginCode = useCallback(async (email, password) => {
+    return request('/api/auth/verify-credentials', {
+      method: 'POST',
+      body: { email, password }
+    });
   }, []);
 
   const register = useCallback(async (name, email, password, twoFactor = {}) => {
@@ -117,7 +124,7 @@ export function AuthProvider({ children }) {
   );
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, error, login, logout, register, forgotPassword, resetPassword, authRequest, refreshUser }}>
+    <AuthContext.Provider value={{ token, user, loading, error, login, requestLoginCode, logout, register, forgotPassword, resetPassword, authRequest, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

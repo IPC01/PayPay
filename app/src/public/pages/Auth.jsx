@@ -97,6 +97,54 @@ const Divider = ({ text }) => (
   </div>
 );
 
+const OtpStep = ({ email, otp, setOtp, error, onResend, resending, resendMessage }) => (
+  <>
+    <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
+      <div className="flex items-start gap-2.5">
+        <div className="flex-shrink-0 w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
+          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-gray-700">Verificação necessária</p>
+          <p className="text-xs text-gray-500 mt-0.5">Insira o código de 6 dígitos enviado para:</p>
+          <p className="text-xs font-medium text-gray-700 mt-0.5 break-all">{email}</p>
+          <p className="text-[10px] text-gray-400 mt-1">O código expira em 5 minutos.</p>
+        </div>
+      </div>
+    </div>
+
+    <InputField
+      label="Código de verificação"
+      type="text"
+      inputMode="numeric"
+      autoComplete="one-time-code"
+      maxLength={6}
+      value={otp}
+      onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+      placeholder="000000"
+      required
+      autoFocus
+      className="font-mono"
+      error={!!error}
+    />
+
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-gray-400">Não recebeu o código?</span>
+      <button
+        type="button"
+        onClick={onResend}
+        disabled={resending}
+        className="font-medium text-gray-700 hover:text-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {resending ? 'A reenviar...' : 'Reenviar código'}
+      </button>
+    </div>
+    {resendMessage && <p className="text-xs text-emerald-700">{resendMessage}</p>}
+  </>
+);
+
 // ============================================
 // LOGIN VIEW - RESPONSIVA E OTIMIZADA
 // ============================================
@@ -108,8 +156,13 @@ function LoginView() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [step, setStep] = useState('credentials');
+  const [otp, setOtp] = useState('');
+  const [otpToken, setOtpToken] = useState(null);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState(null);
 
-  const { login } = useAuth();
+  const { login, requestLoginCode } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,23 +178,44 @@ function LoginView() {
   const handleSubmit = async e => {
     e.preventDefault();
     setError(null);
+    setResendMessage(null);
 
-    if (!email || !password) {
-      setError('Preencha todos os campos.');
+    if (step === 'credentials') {
+      if (!email || !password) {
+        setError('Preencha todos os campos.');
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        if (rememberMe) {
+          localStorage.setItem('romenapay_email', email);
+        } else {
+          localStorage.removeItem('romenapay_email');
+        }
+
+        const data = await requestLoginCode(email, password);
+        setOtpToken(data.otpToken);
+        setOtp('');
+        setStep('otp');
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (otp.length !== 6) {
+      setError('Insira o código de 6 dígitos enviado para o seu email.');
       return;
     }
 
     setLoading(true);
 
     try {
-      if (rememberMe) {
-        localStorage.setItem('romenapay_email', email);
-      } else {
-        localStorage.removeItem('romenapay_email');
-      }
-
-      // O 2FA de login está temporariamente comentado para os testes.
-      const userData = await login(email, password);
+      const userData = await login(email, password, { otpToken, otp });
       const requestedPath = location.state?.from?.pathname || '/client';
       const destination = postLoginRoute(userData, requestedPath);
       navigate(destination, { replace: true });
@@ -151,7 +225,31 @@ function LoginView() {
     }
   };
 
+  const handleResend = async () => {
+    setError(null);
+    setResendMessage(null);
+    setResending(true);
+    try {
+      const data = await requestLoginCode(email, password);
+      setOtpToken(data.otpToken);
+      setOtp('');
+      setResendMessage('Novo código enviado para o seu email.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleBack = () => {
+    if (step === 'otp') {
+      setStep('credentials');
+      setOtp('');
+      setOtpToken(null);
+      setError(null);
+      setResendMessage(null);
+      return;
+    }
     navigate('/');
   };
 
@@ -182,15 +280,28 @@ function LoginView() {
           {/* Título do formulário */}
           <div className="mb-5">
             <h1 className="text-lg font-bold text-gray-900" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-              Bem-vindo
+              {step === 'credentials' ? 'Bem-vindo' : 'Verifique seu email'}
             </h1>
             <p className="mt-0.5 text-xs text-gray-500">
-              Acesse sua conta com segurança
+              {step === 'credentials'
+                ? 'Acesse sua conta com segurança'
+                : 'Enviámos um código de verificação para o seu email.'}
             </p>
           </div>
 
           {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {step === 'otp' ? (
+              <OtpStep
+                email={email}
+                otp={otp}
+                setOtp={setOtp}
+                error={error}
+                onResend={handleResend}
+                resending={resending}
+                resendMessage={resendMessage}
+              />
+            ) : (
             <>
                 <InputField
                   label="Email"
@@ -262,6 +373,7 @@ function LoginView() {
                   </Link>
                 </div>
             </>
+            )}
 
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 animate-in slide-in-from-top-2 fade-in duration-200">
@@ -279,7 +391,7 @@ function LoginView() {
               disabled={loading}
               className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-gray-800/20 transition-all duration-200 hover:bg-gray-900 hover:shadow-lg hover:shadow-gray-800/30 focus:outline-none focus:ring-2 focus:ring-gray-700 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <LoadingSpinner /> : 'Entrar'}
+              {loading ? <LoadingSpinner /> : (step === 'credentials' ? 'Continuar' : 'Confirmar e entrar')}
             </button>
           </form>
 
@@ -330,14 +442,40 @@ function RegisterView() {
   const [success, setSuccess] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState(null);
 
   const { register, login } = useAuth();
   const { settings } = useSettings();
   const navigate = useNavigate();
 
+  const sendRegistrationCode = async () => {
+    const data = await request('/api/auth/register/verify-email', {
+      method: 'POST',
+      body: { name, email }
+    });
+    setOtpToken(data.otpToken);
+    setOtp('');
+  };
+
+  const handleResend = async () => {
+    setError(null);
+    setResendMessage(null);
+    setResending(true);
+    try {
+      await sendRegistrationCode();
+      setResendMessage('Novo código enviado para o seu email.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     setError(null);
+    setResendMessage(null);
 
     if (step === 'details') {
       if (!acceptTerms) {
@@ -348,11 +486,7 @@ function RegisterView() {
       setLoading(true);
 
       try {
-        const data = await request('/api/auth/register/verify-email', {
-          method: 'POST',
-          body: { name, email }
-        });
-        setOtpToken(data.otpToken);
+        await sendRegistrationCode();
         setStep('otp');
       } catch (err) {
         setError(err.message);
@@ -363,8 +497,8 @@ function RegisterView() {
       return;
     }
 
-    if (!otp) {
-      setError('Insira o código de verificação enviado para seu email.');
+    if (otp.length !== 6) {
+      setError('Insira o código de 6 dígitos enviado para o seu email.');
       return;
     }
 
@@ -389,6 +523,7 @@ function RegisterView() {
       setOtp('');
       setOtpToken(null);
       setError(null);
+      setResendMessage(null);
     } else {
       navigate('/');
     }
@@ -503,33 +638,15 @@ function RegisterView() {
                 </label>
               </>
             ) : (
-              <>
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3">
-                  <div className="flex items-start gap-2.5">
-                    <div className="flex-shrink-0 w-6 h-6 bg-gray-700 rounded-md flex items-center justify-center">
-                      <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700">Verificação necessária</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Insira o código enviado para:</p>
-                      <p className="text-xs font-medium text-gray-700 mt-0.5 break-all">{email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <InputField
-                  label="Código de verificação"
-                  type="text"
-                  value={otp}
-                  onChange={e => setOtp(e.target.value)}
-                  placeholder="Código de verificação"
-                  required
-                  className="font-mono"
-                  error={!!error}
-                />
-              </>
+              <OtpStep
+                email={email}
+                otp={otp}
+                setOtp={setOtp}
+                error={error}
+                onResend={handleResend}
+                resending={resending}
+                resendMessage={resendMessage}
+              />
             )}
 
             {error && (

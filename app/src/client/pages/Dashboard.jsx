@@ -190,7 +190,7 @@ function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <div className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
-            Sincronização automática a cada 20 segundos
+            Bem-vindo, {user?.name || 'usuário'}
           </div>
         </div>
       </div>

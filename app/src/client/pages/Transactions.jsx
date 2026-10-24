@@ -202,7 +202,16 @@ function Transactions({ adminView = false, wallet = null }) {
     );
   };
 
-  const getTransactionType = (type) => {
+  // O servidor identifica entradas/levantamentos por paymentMode (C2B/B2C) e estornos por type
+  const getTransactionKind = (tx) => {
+    if (tx?.type === 'reversal') return 'reversal';
+    if (tx?.paymentMode === 'C2B' || tx?.type === 'c2b') return 'c2b';
+    if (tx?.paymentMode === 'B2C' || tx?.type === 'withdrawal') return 'withdrawal';
+    return tx?.type;
+  };
+
+  const getTransactionType = (tx) => {
+    const type = getTransactionKind(tx);
     const typeMap = {
       c2b: { label: 'C2B', icon: '⬅️', className: 'text-green-600 dark:text-green-400' },
       withdrawal: { label: 'Levantamento', icon: '➡️', className: 'text-red-600 dark:text-red-400' },
@@ -223,7 +232,7 @@ function Transactions({ adminView = false, wallet = null }) {
 
   const filteredTransactions = transactions.filter((tx) => {
     const matchesStatus = filter === 'all' || tx.status === filter;
-    const matchesType = typeFilter === 'all' || tx.type === typeFilter;
+    const matchesType = typeFilter === 'all' || getTransactionKind(tx) === typeFilter;
     const matchesSearch =
       searchTerm === '' ||
       tx.id.toString().includes(searchTerm) ||
@@ -246,14 +255,26 @@ function Transactions({ adminView = false, wallet = null }) {
   const pageStart = sortedTransactions.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const pageEnd = Math.min(currentPage * PAGE_SIZE, sortedTransactions.length);
 
+  const sumAmount = (list) => list.reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+  const ofKind = (kind) => transactions.filter((tx) => getTransactionKind(tx) === kind);
+  // Uma transação estornada foi concluída com sucesso antes do estorno
+  const isCompleted = (tx) => tx.status === 'success' || tx.status === 'reversed';
+  const c2bTransactions = ofKind('c2b');
+  const withdrawalTransactions = ofKind('withdrawal');
+  const reversalTransactions = ofKind('reversal');
+
   const stats = {
     total: transactions.length,
     success: transactions.filter((tx) => tx.status === 'success').length,
     pending: transactions.filter((tx) => tx.status === 'pending').length,
     failed: transactions.filter((tx) => tx.status === 'failed').length,
-    totalAmount: transactions
-      .filter((tx) => tx.status === 'success')
-      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0)
+    totalAmount: sumAmount(transactions.filter((tx) => tx.status === 'success')),
+    c2b: c2bTransactions.length,
+    c2bAmount: sumAmount(c2bTransactions.filter(isCompleted)),
+    withdrawal: withdrawalTransactions.length,
+    withdrawalAmount: sumAmount(withdrawalTransactions.filter(isCompleted)),
+    reversal: reversalTransactions.length,
+    reversalAmount: sumAmount(reversalTransactions.filter((tx) => tx.status === 'success'))
   };
 
   const formatCurrency = (amount) => {
@@ -335,77 +356,204 @@ function Transactions({ adminView = false, wallet = null }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {wallet
-              ? 'Transações da carteira'
-              : adminView
-                ? 'Transações da Plataforma'
-                : 'Transações'}
-          </h2>
-        </div>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
+          Historico de Transações
+        </p>
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
-            </div>
-            <div className="rounded-full bg-blue-100 p-3 dark:bg-blue-900/30">
-              <svg className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
-            </div>
-          </div>
+      {/* Mini Dashboard */}
+<div className="space-y-4">
+  {/* Linha 1: Resumo geral */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    {/* Total de Transações */}
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Total Transações
+          </p>
+          <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
+            {stats.total}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {formatCurrency(stats.totalAmount)} processado
+          </p>
         </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Sucesso</p>
-              <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">{stats.success}</p>
-            </div>
-            <div className="rounded-full bg-green-100 p-3 dark:bg-green-900/30">
-              <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Pendentes</p>
-              <p className="mt-2 text-3xl font-bold text-yellow-600 dark:text-yellow-400">{stats.pending}</p>
-            </div>
-            <div className="rounded-full bg-yellow-100 p-3 dark:bg-yellow-900/30">
-              <svg className="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Valor Total</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">
-                {formatCurrency(stats.totalAmount)}
-              </p>
-            </div>
-            <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/30">
-              <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
+        <div className="rounded-xl bg-indigo-100 p-2.5 dark:bg-indigo-900/30">
+          <svg className="h-5 w-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
         </div>
       </div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div className="h-full w-full rounded-full bg-indigo-500" />
+      </div>
+    </div>
+
+    {/* Sucesso */}
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Sucesso
+          </p>
+          <p className="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
+            {stats.success}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {stats.total > 0 ? Math.round((stats.success / stats.total) * 100) : 0}% do total
+          </p>
+        </div>
+        <div className="rounded-xl bg-green-100 p-2.5 dark:bg-green-900/30">
+          <svg className="h-5 w-5 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div
+          className="h-full rounded-full bg-green-500 transition-all"
+          style={{ width: `${stats.total > 0 ? (stats.success / stats.total) * 100 : 0}%` }}
+        />
+      </div>
+    </div>
+
+    {/* Falha */}
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Falha
+          </p>
+          <p className="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">
+            {stats.failed}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {stats.total > 0 ? Math.round((stats.failed / stats.total) * 100) : 0}% do total
+          </p>
+        </div>
+        <div className="rounded-xl bg-red-100 p-2.5 dark:bg-red-900/30">
+          <svg className="h-5 w-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </div>
+      </div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div
+          className="h-full rounded-full bg-red-500 transition-all"
+          style={{ width: `${stats.total > 0 ? (stats.failed / stats.total) * 100 : 0}%` }}
+        />
+      </div>
+    </div>
+
+    {/* Pendentes */}
+    <div className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Pendentes
+          </p>
+          <p className="mt-2 text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+            {stats.pending}
+          </p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% do total
+          </p>
+        </div>
+        <div className="rounded-xl bg-yellow-100 p-2.5 dark:bg-yellow-900/30">
+          <svg className="h-5 w-5 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+      </div>
+      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div
+          className="h-full rounded-full bg-yellow-500 transition-all"
+          style={{ width: `${stats.total > 0 ? (stats.pending / stats.total) * 100 : 0}%` }}
+        />
+      </div>
+    </div>
+  </div>
+
+  {/* Linha 2: Indicadores por tipo de transação */}
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    {/* C2B */}
+    <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-5 shadow-sm dark:border-emerald-900/50 dark:from-emerald-900/20 dark:to-slate-800">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⬅️</span>
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              C2B (Entradas)
+            </p>
+          </div>
+          <p className="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-300">
+            {stats.c2b}
+          </p>
+          <p className="mt-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            {formatCurrency(stats.c2bAmount)}
+          </p>
+        </div>
+        <div className="rounded-full bg-emerald-100 p-3 dark:bg-emerald-900/40">
+          <svg className="h-6 w-6 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    {/* Levantamentos */}
+    <div className="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-5 shadow-sm dark:border-rose-900/50 dark:from-rose-900/20 dark:to-slate-800">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">➡️</span>
+            <p className="text-xs font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400">
+              Levantamentos
+            </p>
+          </div>
+          <p className="mt-2 text-3xl font-bold text-rose-700 dark:text-rose-300">
+            {stats.withdrawal}
+          </p>
+          <p className="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+            {formatCurrency(stats.withdrawalAmount)}
+          </p>
+        </div>
+        <div className="rounded-full bg-rose-100 p-3 dark:bg-rose-900/40">
+          <svg className="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    {/* Estornos */}
+    <div className="relative overflow-hidden rounded-2xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 shadow-sm dark:border-purple-900/50 dark:from-purple-900/20 dark:to-slate-800">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">↩️</span>
+            <p className="text-xs font-semibold uppercase tracking-wider text-purple-700 dark:text-purple-400">
+              Estornos
+            </p>
+          </div>
+          <p className="mt-2 text-3xl font-bold text-purple-700 dark:text-purple-300">
+            {stats.reversal}
+          </p>
+          <p className="mt-1 text-xs font-medium text-purple-600 dark:text-purple-400">
+            {formatCurrency(stats.reversalAmount)}
+          </p>
+        </div>
+        <div className="rounded-full bg-purple-100 p-3 dark:bg-purple-900/40">
+          <svg className="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
       {/* Filtros e Busca */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -580,7 +728,7 @@ function Transactions({ adminView = false, wallet = null }) {
                       </div>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      {getTransactionType(tx.type)}
+                      {getTransactionType(tx)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">
