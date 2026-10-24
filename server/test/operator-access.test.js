@@ -77,7 +77,7 @@ async function setup(t) {
     else process.env.JWT_SECRET = previousSecret;
   });
   const request = async (userId, path, method = 'GET', body, claims = {}) => {
-    const token = jwt.sign({ userId, roleId: users[userId]?.roleId, ...claims }, secret);
+    const token = jwt.sign({ userId, roleId: users[userId]?.roleId, type: 'session', ...claims }, secret);
     const response = await fetch(`http://127.0.0.1:${server.address().port}/api${path}`, {
       method,
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

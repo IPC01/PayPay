@@ -12,11 +12,13 @@ router.post('/', KycController.upsertKyc);
 router.post('/submit', KycController.submitKyc);
 router.post('/documents', KycController.uploadDocument);
 router.get('/documents', KycController.listDocuments);
+router.get('/documents/:id/file', KycController.getMyDocument.bind(KycController));
 router.delete('/documents/:id', KycController.deleteDocument);
 
 const adminGuard = [staffAccess];
 router.get('/admin', adminGuard, KycController.getAdminKycs);
 router.get('/admin/:id', adminGuard, KycController.getAdminKycById);
+router.get('/admin/documents/:id/file', adminGuard, KycController.getAdminDocument.bind(KycController));
 router.post('/admin/:id/review', adminGuard, KycController.reviewKyc);
 
 module.exports = router;

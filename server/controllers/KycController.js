@@ -3,10 +3,11 @@ const path = require('path');
 const { Kyc, KycDocument, User, Notification } = require('../models');
 const { Op } = require('sequelize');
 const { Role } = require('../models');
+const { getUploadsDir } = require('../config/uploadStorage');
 
 async function saveKycFile(base64, filename) {
   if (!base64) return null;
-  const uploadsDir = path.join(__dirname, '../uploads/kyc');
+  const uploadsDir = path.join(getUploadsDir(), 'kyc');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
@@ -55,6 +56,74 @@ function normalizeDateOnly(value) {
 }
 
 class KycController {
+  async streamDocument(req, res, isAdmin) {
+    try {
+      const document = await KycDocument.findByPk(req.params.id);
+      if (!document) return res.status(404).json({ error: 'Documento não encontrado' });
+
+      const kyc = await Kyc.findByPk(document.kycId);
+      if (!kyc) return res.status(404).json({ error: 'KYC não encontrado' });
+      if (!isAdmin && kyc.userId !== req.user.userId) {
+        return res.status(403).json({ error: 'Não autorizado' });
+      }
+
+      const internalName = document.internalName;
+      if (
+        !internalName ||
+        !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(internalName) ||
+        path.basename(internalName) !== internalName
+      ) {
+        return res.status(404).json({ error: 'Arquivo não encontrado' });
+      }
+
+      const filepath = path.join(getUploadsDir(), 'kyc', internalName);
+      let stat;
+      try {
+        stat = await fs.promises.stat(filepath);
+      } catch (error) {
+        if (error.code === 'ENOENT') return res.status(404).json({ error: 'Arquivo não encontrado' });
+        throw error;
+      }
+      if (!stat.isFile()) return res.status(404).json({ error: 'Arquivo não encontrado' });
+
+      const allowedMimeTypes = new Set([
+        'application/pdf',
+        'image/avif',
+        'image/jpeg',
+        'image/png',
+        'image/webp'
+      ]);
+      const mimeType = allowedMimeTypes.has(document.mimeType) ? document.mimeType : 'application/octet-stream';
+
+      res.set({
+        'Cache-Control': 'private, no-store',
+        'Content-Disposition': 'inline; filename="kyc-document"',
+        'Content-Length': stat.size,
+        'Content-Type': mimeType,
+        'X-Content-Type-Options': 'nosniff'
+      });
+
+      const stream = fs.createReadStream(filepath);
+      stream.on('error', (error) => {
+        console.error('KYC document read failed:', error.message);
+        if (!res.headersSent) res.status(500).json({ error: 'Não foi possível abrir o documento.' });
+        else res.destroy(error);
+      });
+      return stream.pipe(res);
+    } catch (error) {
+      console.error('KYC document access failed:', error.message);
+      return res.status(500).json({ error: 'Não foi possível abrir o documento.' });
+    }
+  }
+
+  async getMyDocument(req, res) {
+    return this.streamDocument(req, res, false);
+  }
+
+  async getAdminDocument(req, res) {
+    return this.streamDocument(req, res, true);
+  }
+
   async getMyKyc(req, res) {
     try {
       const userId = req.user.userId;

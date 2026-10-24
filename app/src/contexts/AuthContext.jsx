@@ -1,15 +1,66 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { request } from '../services/api';
+import { request, SESSION_EXPIRED_EVENT } from '../services/api';
+import {
+  clearStoredSession,
+  getSessionTimes,
+  monitorSession,
+  storeSession
+} from '../helpers/authSession';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
+
+  const expireSession = useCallback((expiredToken, revoke = false) => {
+    if (!clearStoredSession(expiredToken)) return;
+    setToken(null);
+    setUser(null);
+    setLoading(false);
+    setSessionExpired(true);
+    if (revoke && getSessionTimes(expiredToken)?.expiresAt > Date.now()) {
+      request('/api/auth/logout', { method: 'POST', token: expiredToken, skipSessionCheck: true })
+        .catch((err) => console.error('Session revocation failed:', err.message));
+    }
+  }, []);
+
+  const clearSessionExpired = useCallback(() => setSessionExpired(false), []);
 
   useEffect(() => {
+    if (!token) return undefined;
+    return monitorSession(token, () => expireSession(token, true));
+  }, [token, expireSession]);
+
+  useEffect(() => {
+    const handleExpired = (event) => {
+      const current = localStorage.getItem('token');
+      if (current && event.detail?.token === current) {
+        expireSession(current, event.detail?.code === 'SESSION_IDLE');
+      }
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleExpired);
+  }, [expireSession]);
+
+  useEffect(() => {
+    const syncSession = (event) => {
+      if (event.key !== 'token' && event.key !== null) return;
+      const stored = localStorage.getItem('token');
+      setUser(null);
+      setLoading(Boolean(stored));
+      setToken(stored);
+      setSessionExpired(!stored);
+    };
+    window.addEventListener('storage', syncSession);
+    return () => window.removeEventListener('storage', syncSession);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     async function loadUser() {
       if (!token) {
         setLoading(false);
@@ -18,17 +69,20 @@ export function AuthProvider({ children }) {
 
       try {
         const data = await request('/api/auth/me', { token });
-        setUser(data);
+        if (active && localStorage.getItem('token') === token) setUser(data);
       } catch (err) {
         console.error(err);
-        setToken(null);
-        localStorage.removeItem('token');
+        if (active && clearStoredSession(token)) {
+          setToken(null);
+          setUser(null);
+        }
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
     loadUser();
+    return () => { active = false; };
   }, [token]);
 
   const login = useCallback(async (email, password, twoFactor = {}) => {
@@ -38,10 +92,12 @@ export function AuthProvider({ children }) {
       body: { email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
-    localStorage.setItem('token', data.token);
+    storeSession(data.token);
+    setSessionExpired(false);
     setToken(data.token);
 
     const userData = await request('/api/auth/me', { token: data.token });
+    if (localStorage.getItem('token') !== data.token) throw new Error('Sessão expirada. Inicie sessão novamente.');
     setUser(userData);
 
     return userData;
@@ -62,10 +118,12 @@ export function AuthProvider({ children }) {
       body: { name, email, password, otpToken: twoFactor.otpToken, otp: twoFactor.otp }
     });
 
-    localStorage.setItem('token', data.token);
+    storeSession(data.token);
+    setSessionExpired(false);
     setToken(data.token);
 
     const userData = await request('/api/auth/me', { token: data.token });
+    if (localStorage.getItem('token') !== data.token) throw new Error('Sessão expirada. Inicie sessão novamente.');
     setUser(userData);
 
     return userData;
@@ -90,16 +148,17 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
+    if (clearStoredSession(token)) {
+      setToken(null);
+      setUser(null);
+      setSessionExpired(false);
+    }
     try {
       if (token) {
-        await request('/api/auth/logout', { method: 'POST', token });
+        await request('/api/auth/logout', { method: 'POST', token, skipSessionCheck: true });
       }
     } catch (err) {
       console.error('Logout API error:', err.message);
-    } finally {
-      localStorage.removeItem('token');
-      setToken(null);
-      setUser(null);
     }
   }, [token]);
 
@@ -107,6 +166,7 @@ export function AuthProvider({ children }) {
     if (!token) return null;
     try {
       const data = await request('/api/auth/me', { token });
+      if (localStorage.getItem('token') !== token) return null;
       setUser(data);
       return data;
     } catch (err) {
@@ -124,7 +184,7 @@ export function AuthProvider({ children }) {
   );
 
   return (
-    <AuthContext.Provider value={{ token, user, loading, error, login, requestLoginCode, logout, register, forgotPassword, resetPassword, authRequest, refreshUser }}>
+    <AuthContext.Provider value={{ token, user, loading, error, sessionExpired, clearSessionExpired, login, requestLoginCode, logout, register, forgotPassword, resetPassword, authRequest, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

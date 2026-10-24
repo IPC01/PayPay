@@ -162,10 +162,15 @@ function LoginView() {
   const [resending, setResending] = useState(false);
   const [resendMessage, setResendMessage] = useState(null);
 
-  const { login, requestLoginCode } = useAuth();
+  const { login, requestLoginCode, sessionExpired, clearSessionExpired } = useAuth();
+  const [expiredNotice] = useState(sessionExpired);
   const { settings } = useSettings();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (sessionExpired) clearSessionExpired();
+  }, [sessionExpired, clearSessionExpired]);
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('romenapay_email');
@@ -373,6 +378,12 @@ function LoginView() {
                   </Link>
                 </div>
             </>
+            )}
+
+            {expiredNotice && step === 'credentials' && !error && (
+              <div role="status" className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                <p className="text-xs text-amber-800">A sua sessão expirou. Inicie sessão novamente.</p>
+              </div>
             )}
 
             {error && (

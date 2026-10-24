@@ -19,7 +19,18 @@ async function authMiddleware(req, res, next) {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
     req.token = token;
   } catch (err) {
-    return res.status(401).json({ error: 'Invalid token' });
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        error: 'Sessão expirada. Inicie sessão novamente.',
+        code: 'SESSION_EXPIRED'
+      });
+    }
+    return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
+  }
+
+  // Só tokens de sessão autenticam; tokens de verificação (OTP), recuperação de senha ou API keys não.
+  if (req.user?.type !== 'session') {
+    return res.status(401).json({ error: 'Invalid token', code: 'INVALID_TOKEN' });
   }
   try {
     const user = await User.findByPk(req.user.userId, {

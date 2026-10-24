@@ -338,7 +338,7 @@ function ApiKeys() {
   if (kyc?.status !== 'APPROVED') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="w-full w-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-rose-600">
             Atenção
           </p>

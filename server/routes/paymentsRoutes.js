@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const authMiddleware = require('../middleware/authMiddleware');
+const confirmWithdrawalPassword = require('../middleware/confirmWithdrawalPassword');
 const mpesaRequestMode = require('../middleware/mpesaRequestMode');
 const { Wallet } = require('../models');
 const PaymentController = require('../controllers/PaymentController');
@@ -99,6 +100,7 @@ router.post(
  *               - walletCode
  *               - amount
  *               - phone
+ *               - password
  *             properties:
  *               walletCode:
  *                 type: string
@@ -109,6 +111,10 @@ router.post(
  *               phone:
  *                 type: string
  *                 example: "258841234567"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: Senha atual de acesso à plataforma para confirmar o levantamento.
  *               reference:
  *                 type: string
  *                 example: ORDER-001
@@ -119,6 +125,7 @@ router.post(
 router.post(
   '/b2c',
   authMiddleware,
+  confirmWithdrawalPassword,
   mpesaRequestMode({ forceMode: 'live' }),
   authorizeUserWalletAction,
   PaymentController.b2c.bind(PaymentController)

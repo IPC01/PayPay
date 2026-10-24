@@ -36,6 +36,7 @@ function Withdrawals() {
   const [wallets, setWallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [password, setPassword] = useState('');
   const [form, setForm] = useState({ walletId: '', amount: '', phone: '', note: '' });
 
   useEffect(() => {
@@ -174,6 +175,14 @@ function Withdrawals() {
       notify({ type: 'error', title: 'Telefone inválido', message: phoneValidationMessage });
       return;
     }
+    if (!password) {
+      notify({
+        type: 'error',
+        title: 'Confirme a sua senha',
+        message: 'Informe a senha de acesso à plataforma para confirmar o levantamento.'
+      });
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -183,7 +192,8 @@ function Withdrawals() {
           walletId: form.walletId,
           amount: Number(form.amount),
           phone: form.phone,
-          note: form.note
+          note: form.note,
+          password
         }
       });
 
@@ -205,6 +215,7 @@ function Withdrawals() {
         message: err.message || 'Não foi possível enviar o pedido de saque.'
       });
     } finally {
+      setPassword('');
       setSubmitting(false);
     }
   };
@@ -404,6 +415,26 @@ function Withdrawals() {
                 />
               </section>
 
+              <section className="space-y-2">
+                <label htmlFor="withdrawal-password" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Senha de acesso à plataforma <span className="text-rose-600">*</span>
+                </label>
+                <input
+                  id="withdrawal-password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  aria-describedby="withdrawal-password-help"
+                  placeholder="Confirme a sua senha"
+                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                />
+                <p id="withdrawal-password-help" className="text-xs text-slate-500 dark:text-slate-400">
+                  Para autorizar este levantamento, introduza a senha usada no login. Não é o código de email nem o PIN M-Pesa.
+                </p>
+              </section>
+
               {/* Nota sobre processamento */}
               <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                 <p className="font-semibold text-slate-900 dark:text-white">Processamento</p>
@@ -421,6 +452,7 @@ function Withdrawals() {
                   !selectedWallet ||
                   !form.amount ||
                   !form.phone ||
+                  !password ||
                   Boolean(amountValidationMessage) ||
                   Boolean(phoneValidationMessage)
                 }

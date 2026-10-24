@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { getUploadsDir } = require('../config/uploadStorage');
 
 async function saveBase64Image(dataUrl, targetFolder, baseName) {
   const match = dataUrl.match(/^data:(image\/(png|jpe?g|webp));base64,(.+)$/);
@@ -10,7 +11,7 @@ async function saveBase64Image(dataUrl, targetFolder, baseName) {
   const mimeType = match[1];
   const payload = match[3];
   const extension = mimeType.includes('jpeg') ? 'jpg' : mimeType.split('/')[1];
-  const folderPath = path.join(__dirname, '..', 'uploads', targetFolder);
+  const folderPath = path.join(getUploadsDir(), targetFolder);
   await fs.promises.mkdir(folderPath, { recursive: true });
   const fileName = `${baseName}.${extension}`;
   const filePath = path.join(folderPath, fileName);

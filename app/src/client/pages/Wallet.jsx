@@ -15,6 +15,12 @@ const STATUS_LABELS = {
   INACTIVE: 'Inativa'
 };
 
+const inputClasses =
+  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
+
+const inputMonoClasses =
+  'w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white';
+
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('pt-PT', {
     style: 'currency',
@@ -22,6 +28,380 @@ function formatCurrency(value) {
     minimumFractionDigits: 2
   });
 }
+
+function getCurrencySymbol(curr) {
+  const symbols = { MZN: 'MT', USD: '$', EUR: '€' };
+  return symbols[curr] || curr;
+}
+
+function getStatusBadge(status) {
+  const s = String(status).toUpperCase();
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+        STATUS_STYLES[s] || 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+      }`}
+    >
+      {STATUS_LABELS[s] || status}
+    </span>
+  );
+}
+
+function renderTypeLogo(imageUrl, provider) {
+  if (imageUrl) {
+    return (
+      <img
+        src={imageUrl}
+        alt={provider || 'Tipo de carteira'}
+        className="h-8 w-8 rounded-lg object-contain"
+      />
+    );
+  }
+  return (
+    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
+      {provider?.slice(0, 2) || 'CT'}
+    </div>
+  );
+}
+
+// ── Componentes movidos para fora para evitar remount a cada render ──────
+
+const WalletForm = ({
+  formData,
+  setFormData,
+  walletTypes,
+  selectedWalletType,
+  selectedWalletTypeLogo,
+  handleCreate,
+  isSubmitting,
+  setFormOpen
+}) => (
+  <div className="space-y-4">
+    {/* Barra de contexto */}
+    <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+          Nova carteira
+        </p>
+        <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
+          Criar nova carteira
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => setFormOpen(false)}
+        className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+      >
+        ← Voltar à lista
+      </button>
+    </div>
+
+    <div className="w-full">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
+              Carteira
+            </p>
+            <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
+              Criar nova carteira
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              Preencha os dados para criar uma nova carteira
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFormOpen(false)}
+            className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            aria-label="Fechar"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleCreate}>
+          <div className="space-y-3 px-5 py-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Tipo de carteira <span className="text-rose-600">*</span>
+              </label>
+              <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
+                {renderTypeLogo(selectedWalletTypeLogo, selectedWalletType?.provider)}
+                <select
+                  value={formData.walletTypeId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, walletTypeId: e.target.value }))
+                  }
+                  required
+                  className="w-full bg-transparent text-sm text-slate-900 outline-none dark:text-white"
+                >
+                  {walletTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name} — {type.provider}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Nome da carteira <span className="text-rose-600">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.walletName}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, walletName: e.target.value }))
+                }
+                placeholder="Ex: Minha Carteira Principal"
+                required
+                className={inputClasses}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Referência <span className="text-slate-400">(opcional, até 8 caracteres)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.reference}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    reference: e.target.value
+                      .replace(/[^A-Za-z0-9]/g, '')
+                      .toUpperCase()
+                      .slice(0, 8)
+                  }))
+                }
+                maxLength={8}
+                placeholder="Ex: LOJA123"
+                className={inputMonoClasses}
+              />
+              <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                Usada como referência inicial nas transações desta carteira; o sistema acrescenta
+                um código aleatório de 12 caracteres para garantir que nunca se repete.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Moeda
+              </label>
+              <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                {selectedWalletType?.currency || 'MZN'} — definida pelo tipo de carteira
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:justify-end dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setFormOpen(false)}
+              className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || !formData.walletName || !formData.walletTypeId}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? 'Criando...' : 'Criar carteira'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+);
+
+const WalletDetails = ({
+  selectedWallet,
+  auditLogs,
+  auditLoading,
+  showAudit,
+  setShowAudit,
+  openEditWallet,
+  closeWalletDetails
+}) => {
+  if (!selectedWallet) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* Barra de contexto */}
+      <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
+            Carteira selecionada
+          </p>
+          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
+            {selectedWallet.walletName} · {selectedWallet.walletCode}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={closeWalletDetails}
+          className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
+        >
+          ← Voltar à lista
+        </button>
+      </div>
+
+      <div className="w-full">
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
+                Carteira
+              </p>
+              <h2 className="mt-1 truncate text-base font-bold text-slate-900 dark:text-white">
+                {selectedWallet.walletName}
+              </h2>
+              <p className="truncate font-mono text-xs text-slate-500 dark:text-slate-400">
+                {selectedWallet.walletCode}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={openEditWallet}
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Editar carteira"
+                title="Editar nome e referência"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={closeWalletDetails}
+                className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+                aria-label="Fechar detalhes"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Corpo */}
+          <div className="space-y-3 px-4 py-3">
+            <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
+              <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Saldo</p>
+              <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
+                {formatCurrency(selectedWallet.balance || 0)}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Moeda</p>
+                <p className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white">
+                  {getCurrencySymbol(selectedWallet.currency)} {selectedWallet.currency}
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</p>
+                <div className="mt-0.5">{getStatusBadge(selectedWallet.status)}</div>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
+                  Referência
+                </p>
+                <p className="mt-0.5 font-mono text-xs font-semibold text-slate-900 dark:text-white">
+                  {selectedWallet.reference || '—'}
+                </p>
+              </div>
+              <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
+                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Tipo</p>
+                <div className="mt-1 flex items-center gap-2">
+                  {renderTypeLogo(
+                    getWalletTypeLogo({
+                      imageUrl: selectedWallet.WalletType?.imageUrl,
+                      code: selectedWallet.WalletType?.code
+                    }),
+                    selectedWallet.WalletType?.provider
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
+                      {selectedWallet.WalletType?.name || 'N/A'}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                      {selectedWallet.WalletType?.provider || 'Sem provedor'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Atividades colapsáveis */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setShowAudit((v) => !v)}
+                className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                <span>
+                  Atividades recentes{' '}
+                  {auditLoading ? '· a carregar...' : `(${auditLogs.length})`}
+                </span>
+                <span>{showAudit ? '−' : '+'}</span>
+              </button>
+              {showAudit && (
+                <div className="space-y-2 border-t border-slate-200 px-3 py-2 dark:border-slate-700">
+                  {auditLoading ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Carregando...</p>
+                  ) : auditLogs.length === 0 ? (
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Nenhuma atividade recente.
+                    </p>
+                  ) : (
+                    auditLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-900"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-white">
+                            {log.action}
+                          </p>
+                          <span className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
+                            {new Date(log.createdAt).toLocaleString('pt-PT')}
+                          </span>
+                        </div>
+                        {log.description && (
+                          <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
+                            {log.description}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Transações da carteira */}
+      <Transactions key={selectedWallet.id} wallet={selectedWallet} />
+    </div>
+  );
+};
 
 function Wallets() {
   const { authRequest } = useAuth();
@@ -250,24 +630,6 @@ function Wallets() {
     }
   };
 
-  const getStatusBadge = (status) => {
-    const s = String(status).toUpperCase();
-    return (
-      <span
-        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold ${
-          STATUS_STYLES[s] || 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
-        }`}
-      >
-        {STATUS_LABELS[s] || status}
-      </span>
-    );
-  };
-
-  const getCurrencySymbol = (curr) => {
-    const symbols = { MZN: 'MT', USD: '$', EUR: '€' };
-    return symbols[curr] || curr;
-  };
-
   const selectedWalletType = walletTypes.find(
     (type) => String(type.id) === formData.walletTypeId
   );
@@ -275,23 +637,6 @@ function Wallets() {
     imageUrl: selectedWalletType?.imageUrl,
     code: selectedWalletType?.code
   });
-
-  const renderTypeLogo = (imageUrl, provider) => {
-    if (imageUrl) {
-      return (
-        <img
-          src={imageUrl}
-          alt={provider || 'Tipo de carteira'}
-          className="h-8 w-8 rounded-lg object-contain"
-        />
-      );
-    }
-    return (
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-[10px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-        {provider?.slice(0, 2) || 'CT'}
-      </div>
-    );
-  };
 
   // ── Estados de carregamento / KYC ────────────────────────────────────────
   if (loading || kycLoading) {
@@ -307,7 +652,7 @@ function Wallets() {
   if (kyc?.status !== 'APPROVED') {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="w-full w-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div className="w-full rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
           <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-rose-600">
             Atenção
           </p>
@@ -339,317 +684,6 @@ function Wallets() {
     (wallet) => String(wallet.status).toUpperCase() === 'ACTIVE'
   ).length;
 
-  // ── Formulário inline de criar carteira ──────────────────────────────────
-  const WalletForm = () => (
-    <div className="space-y-4">
-      {/* Barra de contexto */}
-      <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-            Nova carteira
-          </p>
-          <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
-            Criar nova carteira
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setFormOpen(false)}
-          className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-        >
-          ← Voltar à lista
-        </button>
-      </div>
-
-      <div className="w-full">
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4 dark:border-slate-700">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-                Carteira
-              </p>
-              <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">
-                Criar nova carteira
-              </h3>
-              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                Preencha os dados para criar uma nova carteira
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFormOpen(false)}
-              className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-              aria-label="Fechar"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          <form onSubmit={handleCreate}>
-            <div className="space-y-3 px-5 py-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Tipo de carteira <span className="text-rose-600">*</span>
-                </label>
-                <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900">
-                  {renderTypeLogo(selectedWalletTypeLogo, selectedWalletType?.provider)}
-                  <select
-                    value={formData.walletTypeId}
-                    onChange={(e) => setFormData({ ...formData, walletTypeId: e.target.value })}
-                    required
-                    className="w-full bg-transparent text-sm text-slate-900 outline-none dark:text-white"
-                  >
-                    {walletTypes.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.name} — {type.provider}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Nome da carteira <span className="text-rose-600">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.walletName}
-                  onChange={(e) => setFormData({ ...formData, walletName: e.target.value })}
-                  placeholder="Ex: Minha Carteira Principal"
-                  required
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Referência <span className="text-slate-400">(opcional, até 8 caracteres)</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.reference}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      reference: e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)
-                    })
-                  }
-                  maxLength={8}
-                  placeholder="Ex: LOJA123"
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
-                />
-                <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                  Usada como referência inicial nas transações desta carteira; o sistema acrescenta um código aleatório de 12 caracteres para garantir que nunca se repete.
-                </p>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Moeda
-                </label>
-                <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
-                  {selectedWalletType?.currency || 'MZN'} — definida pelo tipo de carteira
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-2 border-t border-slate-200 px-5 py-3 sm:flex-row sm:justify-end dark:border-slate-700">
-              <button
-                type="button"
-                onClick={() => setFormOpen(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting || !formData.walletName || !formData.walletTypeId}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmitting ? 'Criando...' : 'Criar carteira'}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── Detalhe inline compacto ──────────────────────────────────────────────
-  const WalletDetails = () => {
-    if (!selectedWallet) return null;
-
-    return (
-      <div className="space-y-4">
-        {/* Barra de contexto */}
-        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-slate-700 dark:bg-slate-800">
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-              Carteira selecionada
-            </p>
-            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900 dark:text-white">
-              {selectedWallet.walletName} · {selectedWallet.walletCode}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={closeWalletDetails}
-            className="shrink-0 rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"
-          >
-            ← Voltar à lista
-          </button>
-        </div>
-
-        <div className="w-full">
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-brand-600">
-                  Carteira
-                </p>
-                <h2 className="mt-1 truncate text-base font-bold text-slate-900 dark:text-white">
-                  {selectedWallet.walletName}
-                </h2>
-                <p className="truncate font-mono text-xs text-slate-500 dark:text-slate-400">
-                  {selectedWallet.walletCode}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={openEditWallet}
-                  className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                  aria-label="Editar carteira"
-                  title="Editar nome e referência"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={closeWalletDetails}
-                  className="rounded-full p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-slate-200"
-                  aria-label="Fechar detalhes"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Corpo */}
-            <div className="space-y-3 px-4 py-3">
-              {/* Saldo em destaque */}
-              <div className="rounded-xl bg-slate-50 px-4 py-2.5 dark:bg-slate-900">
-                <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Saldo</p>
-                <p className="mt-0.5 text-lg font-bold text-slate-900 dark:text-white">
-                  {formatCurrency(selectedWallet.balance || 0)}
-                </p>
-              </div>
-
-              {/* Grid 2x2 */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Moeda</p>
-                  <p className="mt-0.5 text-xs font-semibold text-slate-900 dark:text-white">
-                    {getCurrencySymbol(selectedWallet.currency)} {selectedWallet.currency}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Estado</p>
-                  <div className="mt-0.5">{getStatusBadge(selectedWallet.status)}</div>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Referência</p>
-                  <p className="mt-0.5 font-mono text-xs font-semibold text-slate-900 dark:text-white">
-                    {selectedWallet.reference || '—'}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-900 col-span-2">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">Tipo</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    {renderTypeLogo(
-                      getWalletTypeLogo({
-                        imageUrl: selectedWallet.WalletType?.imageUrl,
-                        code: selectedWallet.WalletType?.code
-                      }),
-                      selectedWallet.WalletType?.provider
-                    )}
-                    <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
-                        {selectedWallet.WalletType?.name || 'N/A'}
-                      </p>
-                      <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
-                        {selectedWallet.WalletType?.provider || 'Sem provedor'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Atividades colapsáveis */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setShowAudit((v) => !v)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600 transition hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  <span>
-                    Atividades recentes {auditLoading ? '· a carregar...' : `(${auditLogs.length})`}
-                  </span>
-                  <span>{showAudit ? '−' : '+'}</span>
-                </button>
-                {showAudit && (
-                  <div className="space-y-2 border-t border-slate-200 px-3 py-2 dark:border-slate-700">
-                    {auditLoading ? (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Carregando...
-                      </p>
-                    ) : auditLogs.length === 0 ? (
-                      <p className="text-xs text-slate-500 dark:text-slate-400">
-                        Nenhuma atividade recente.
-                      </p>
-                    ) : (
-                      auditLogs.map((log) => (
-                        <div
-                          key={log.id}
-                          className="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-900"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="truncate text-[11px] font-semibold text-slate-900 dark:text-white">
-                              {log.action}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
-                              {new Date(log.createdAt).toLocaleString('pt-PT')}
-                            </span>
-                          </div>
-                          {log.description && (
-                            <p className="mt-0.5 text-[11px] text-slate-600 dark:text-slate-400">
-                              {log.description}
-                            </p>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Transações da carteira */}
-        <Transactions key={selectedWallet.id} wallet={selectedWallet} />
-      </div>
-    );
-  };
-
   // ── Render principal ─────────────────────────────────────────────────────
   return (
     <div className="space-y-6">
@@ -657,8 +691,8 @@ function Wallets() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-brand-600">
-          Gerenciamento de Carteiras
-        </p>
+            Gerenciamento de Carteiras
+          </p>
         </div>
         {!formOpen && !selectedWallet && (
           <button
@@ -773,9 +807,26 @@ function Wallets() {
       )}
 
       {formOpen ? (
-        <WalletForm />
+        <WalletForm
+          formData={formData}
+          setFormData={setFormData}
+          walletTypes={walletTypes}
+          selectedWalletType={selectedWalletType}
+          selectedWalletTypeLogo={selectedWalletTypeLogo}
+          handleCreate={handleCreate}
+          isSubmitting={isSubmitting}
+          setFormOpen={setFormOpen}
+        />
       ) : selectedWallet ? (
-        <WalletDetails />
+        <WalletDetails
+          selectedWallet={selectedWallet}
+          auditLogs={auditLogs}
+          auditLoading={auditLoading}
+          showAudit={showAudit}
+          setShowAudit={setShowAudit}
+          openEditWallet={openEditWallet}
+          closeWalletDetails={closeWalletDetails}
+        />
       ) : (
         <div className="rounded-2xl sm:rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <div className="mb-4 flex items-center justify-between">
@@ -959,7 +1010,7 @@ function Wallets() {
         </div>
       )}
 
-      {/* Modal de Editar Carteira (continua como overlay) */}
+      {/* Modal de Editar Carteira */}
       {editOpen && selectedWallet && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm"
@@ -1001,10 +1052,12 @@ function Wallets() {
                   <input
                     type="text"
                     value={editData.walletName}
-                    onChange={(e) => setEditData({ ...editData, walletName: e.target.value })}
+                    onChange={(e) =>
+                      setEditData((prev) => ({ ...prev, walletName: e.target.value }))
+                    }
                     placeholder="Ex: Minha Carteira Principal"
                     required
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    className={inputClasses}
                   />
                 </div>
 
@@ -1016,17 +1069,22 @@ function Wallets() {
                     type="text"
                     value={editData.reference}
                     onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        reference: e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 8)
-                      })
+                      setEditData((prev) => ({
+                        ...prev,
+                        reference: e.target.value
+                          .replace(/[^A-Za-z0-9]/g, '')
+                          .toUpperCase()
+                          .slice(0, 8)
+                      }))
                     }
                     maxLength={8}
                     placeholder="Ex: LOJA123"
-                    className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 font-mono text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    className={inputMonoClasses}
                   />
                   <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-                    Usada como referência inicial nas transações desta carteira; o sistema acrescenta um código aleatório de 12 caracteres para garantir que nunca se repete.
+                    Usada como referência inicial nas transações desta carteira; o sistema
+                    acrescenta um código aleatório de 12 caracteres para garantir que nunca se
+                    repete.
                   </p>
                 </div>
               </div>

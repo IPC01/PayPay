@@ -1,4 +1,7 @@
 const { Setting } = require('../models');
+const fs = require('fs');
+const path = require('path');
+const { getUploadsDir } = require('../config/uploadStorage');
 
 class SettingsController {
   async getSettings(req, res) {
@@ -35,14 +38,13 @@ class SettingsController {
       const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
       const buffer = Buffer.from(base64Data, 'base64');
       const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const uploadDir = require('path').join(__dirname, '../uploads/settings');
-      const fs = require('fs');
+      const uploadDir = path.join(getUploadsDir(), 'settings');
 
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      const fullPath = require('path').join(uploadDir, sanitizedFileName);
+      const fullPath = path.join(uploadDir, sanitizedFileName);
       fs.writeFileSync(fullPath, buffer);
       const logoUrl = `${req.protocol}://${req.get('host')}/api/uploads/settings/${sanitizedFileName}`;
       return res.json({ logoImg: logoUrl });

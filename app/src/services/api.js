@@ -1,5 +1,8 @@
+import { getSessionDeadline, getSessionTimes } from '../helpers/authSession';
+
 export const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost:8000').replace(/\/$/, '');
 export const API_PREFIX = '/api';
+export const SESSION_EXPIRED_EVENT = 'auth:session-expired';
 
 export function apiUrl(path = '') {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -37,7 +40,15 @@ export function assetUrl(url) {
   return `${API_BASE}${normalizedPath}`;
 }
 
-export async function request(path, { method = 'GET', body, token, headers = {} } = {}) {
+export async function request(path, { method = 'GET', body, token, headers = {}, responseType, skipSessionCheck = false } = {}) {
+  if (token && !skipSessionCheck && getSessionDeadline(token) <= Date.now()) {
+    const code = getSessionTimes(token)?.expiresAt > Date.now() ? 'SESSION_IDLE' : 'SESSION_EXPIRED';
+    window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { token, code } }));
+    const error = new Error('Sessão expirada. Inicie sessão novamente.');
+    error.status = 401;
+    error.code = code;
+    throw error;
+  }
   const config = {
     method,
     headers: {
@@ -55,13 +66,38 @@ export async function request(path, { method = 'GET', body, token, headers = {} 
   }
 
   const response = await fetch(apiUrl(path), config);
-  const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
-    throw new Error(data.error || data.message || response.statusText);
+    const data = await response.json().catch(() => ({}));
+    // Um 401 num pedido autenticado significa que a sessão expirou ou foi revogada
+    if (response.status === 401 && token && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { token } }));
+    }
+    const error = new Error(data.error || data.message || response.statusText);
+    error.status = response.status;
+    error.code = data.code;
+    throw error;
   }
 
-  return data;
+  if (responseType === 'blob') return response.blob();
+  return response.json().catch(() => ({}));
+}
+
+export async function openAuthenticatedFile(path) {
+  const popup = window.open('about:blank', '_blank');
+  if (!popup) throw new Error('Permita pop-ups para abrir o documento KYC.');
+  popup.opener = null;
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Inicie sessão novamente para abrir o documento.');
+    const blob = await request(path, { token, responseType: 'blob' });
+    const objectUrl = URL.createObjectURL(blob);
+    popup.location.replace(objectUrl);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
+  } catch (error) {
+    popup.close();
+    throw error;
+  }
 }
 
 function getToken() {

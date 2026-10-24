@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
 import { useConfirmation } from '../../contexts/ConfirmationContext';
-import { assetUrl } from '../../services/api';
+import { openAuthenticatedFile } from '../../services/api';
 import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const STATUS_LABELS = {
@@ -56,7 +56,17 @@ function AdminKyc() {
   // Sincronização automática a cada 20 segundos, sem recarregar a página
   useAutoRefresh(() => loadKycs(true));
 
-  const resolveUrl = (url) => assetUrl(url) || '';
+  const handleOpenDocument = async (documentId) => {
+    try {
+      await openAuthenticatedFile(`/api/kyc/admin/documents/${documentId}/file`);
+    } catch (err) {
+      notify({
+        type: 'error',
+        title: 'Não foi possível abrir o documento',
+        message: err.message || 'Tente novamente.'
+      });
+    }
+  };
 
   const openKycDetails = async (kycId) => {
     try {
@@ -287,14 +297,13 @@ function AdminKyc() {
                           <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">
                             {doc.type}
                           </p>
-                          <a
-                            href={resolveUrl(doc.url)}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDocument(doc.id)}
                             className="shrink-0 rounded-lg bg-brand-600 px-2.5 py-1 text-[10px] font-semibold text-white transition hover:bg-brand-700"
                           >
                             Ver
-                          </a>
+                          </button>
                         </div>
                       ))}
                     </div>

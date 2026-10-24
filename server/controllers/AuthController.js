@@ -14,8 +14,9 @@ class AuthController {
 
       return res.json(result);
     } catch (err) {
-      return res.status(400).json({
-        error: err.message
+      return res.status(err.status || 400).json({
+        error: err.message,
+        ...(err.code === 'EMAIL_SEND_FAILED' ? { code: err.code } : {})
       });
     }
   }
@@ -35,8 +36,9 @@ class AuthController {
         expiresIn: result.expiresIn
       });
     } catch (err) {
-      return res.status(401).json({
-        error: err.message
+      return res.status(err.status || 401).json({
+        error: err.message,
+        ...(err.code === 'EMAIL_SEND_FAILED' ? { code: err.code } : {})
       });
     }
   }
@@ -50,7 +52,9 @@ class AuthController {
       return res.status(201).json({
         message: 'User created successfully',
         user: result.user,
-        token: result.token
+        token: result.token,
+        expiresIn: result.expiresIn,
+        expiresAt: result.expiresAt
       });
 
     } catch (err) {
@@ -77,7 +81,9 @@ class AuthController {
 
       return res.json({
         message: 'Login successful',
-        token: result.token
+        token: result.token,
+        expiresIn: result.expiresIn,
+        expiresAt: result.expiresAt
       });
 
     } catch (err) {
@@ -93,7 +99,7 @@ class AuthController {
       const result = await AuthService.forgotPassword(email);
       return res.json(result);
     } catch (err) {
-      return res.status(400).json({ error: err.message });
+      return res.status(err.status || 400).json({ error: err.message });
     }
   }
 

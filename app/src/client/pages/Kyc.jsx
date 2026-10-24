@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotification } from '../../contexts/NotificationContext';
-import { assetUrl } from '../../services/api';
+import { openAuthenticatedFile } from '../../services/api';
 import { useAutoRefresh } from '../../helpers/useAutoRefresh';
 
 const initialKycState = {
@@ -83,11 +83,65 @@ const kycSteps = [
 ];
 
 const STATUS_STYLES = {
-  DRAFT: { label: 'Rascunho', className: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200' },
-  PENDING: { label: 'Em análise', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200' },
-  APPROVED: { label: 'Aprovado', className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200' },
-  REJECTED: { label: 'Rejeitado', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200' }
+  DRAFT: {
+    label: 'Rascunho',
+    className: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+  },
+  PENDING: {
+    label: 'Em análise',
+    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-200'
+  },
+  APPROVED: {
+    label: 'Aprovado',
+    className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+  },
+  REJECTED: {
+    label: 'Rejeitado',
+    className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-200'
+  }
 };
+
+const inputClasses =
+  'w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
+
+/**
+ * Field e SelectField são definidos fora do componente Kyc para que o React
+ * não os desmonte/remonte a cada re-render (o que fazia o input perder o foco
+ * e "engolir" caracteres ao digitar).
+ */
+const Field = ({ label, name, type = 'text', max, value, onChange }) => (
+  <label className="block">
+    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+      {label}
+    </span>
+    <input
+      type={type}
+      max={max}
+      value={value || ''}
+      onChange={(e) => onChange(name, e.target.value)}
+      className={inputClasses}
+    />
+  </label>
+);
+
+const SelectField = ({ label, name, options, value, onChange }) => (
+  <label className="block">
+    <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+      {label}
+    </span>
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(name, e.target.value)}
+      className={inputClasses}
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </label>
+);
 
 function Kyc() {
   const { authRequest } = useAuth();
@@ -103,6 +157,7 @@ function Kyc() {
 
   useEffect(() => {
     loadKyc();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadKyc = async (silent = false) => {
@@ -169,8 +224,12 @@ function Kyc() {
   useEffect(() => {
     const firstIncomplete = getFirstIncompleteStep();
     if (step > firstIncomplete) setStep(firstIncomplete);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kyc, documents, step]);
 
+  // Compõe o endereço a partir das partes. Não inclui kyc.address nas
+  // dependências para evitar loops, e usa setKyc funcional para não
+  // causar re-render desnecessário quando nada muda.
   useEffect(() => {
     const composedAddress = [
       kyc.street,
@@ -184,9 +243,12 @@ function Kyc() {
       .filter((part) => part && String(part).trim() !== '')
       .join(', ');
 
-    if (composedAddress && composedAddress !== kyc.address) {
-      setKyc((prev) => ({ ...prev, address: composedAddress }));
-    }
+    setKyc((prev) =>
+      composedAddress && composedAddress !== prev.address
+        ? { ...prev, address: composedAddress }
+        : prev
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     kyc.street,
     kyc.houseNumber,
@@ -194,8 +256,7 @@ function Kyc() {
     kyc.city,
     kyc.district,
     kyc.province,
-    kyc.country,
-    kyc.address
+    kyc.country
   ]);
 
   const canAccessStep = (stepNumber) => stepNumber <= getFirstIncompleteStep();
@@ -208,6 +269,10 @@ function Kyc() {
       title: 'Etapa bloqueada',
       message: 'Complete os passos anteriores antes de avançar.'
     });
+  };
+
+  const handleFieldChange = (name, value) => {
+    setKyc((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleNextStep = async () => {
@@ -372,6 +437,18 @@ function Kyc() {
     }
   };
 
+  const handleOpenDocument = async (documentId) => {
+    try {
+      await openAuthenticatedFile(`/api/kyc/documents/${documentId}/file`);
+    } catch (err) {
+      notify({
+        type: 'error',
+        title: 'Não foi possível abrir o documento',
+        message: err.message || 'Tente novamente.'
+      });
+    }
+  };
+
   const statusBadge = useMemo(
     () => STATUS_STYLES[kyc.status] || STATUS_STYLES.DRAFT,
     [kyc.status]
@@ -380,7 +457,12 @@ function Kyc() {
   const progress = useMemo(() => {
     const completed = kycSteps.filter((item) => isStepComplete(item.number)).length;
     return Math.round((completed / kycSteps.length) * 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kyc, documents]);
+
+  const adultMaxDate = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+    .toISOString()
+    .split('T')[0];
 
   if (loading) {
     return (
@@ -391,47 +473,6 @@ function Kyc() {
       </div>
     );
   }
-
-  // ── Componentes auxiliares ────────────────────────────────────────────────
-  const Field = ({ label, name, type = 'text', max }) => (
-    <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-        {label}
-      </span>
-      <input
-        type={type}
-        max={max}
-        value={kyc[name] || ''}
-        onChange={(e) => setKyc((prev) => ({ ...prev, [name]: e.target.value }))}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-      />
-    </label>
-  );
-
-  const SelectField = ({ label, name, options }) => (
-    <label className="block">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-        {label}
-      </span>
-      <select
-        value={kyc[name] || ''}
-        onChange={(e) => setKyc((prev) => ({ ...prev, [name]: e.target.value }))}
-        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-
-  const adultMaxDate = new Date(
-    new Date().setFullYear(new Date().getFullYear() - 18)
-  )
-    .toISOString()
-    .split('T')[0];
 
   return (
     <div className="space-y-6">
@@ -597,15 +638,47 @@ function Kyc() {
               </h2>
               {kyc.type === 'INDIVIDUAL' ? (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Field label="Nome próprio" name="firstName" />
-                  <Field label="Apelido" name="lastName" />
-                  <Field label="Outros nomes" name="otherNames" />
-                  <Field label="Telefone principal" name="phonePrimary" />
-                  <Field label="Telefone secundário" name="phoneSecondary" />
-                  <Field label="Email alternativo" name="contactEmail" />
+                  <Field
+                    label="Nome próprio"
+                    name="firstName"
+                    value={kyc.firstName}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Apelido"
+                    name="lastName"
+                    value={kyc.lastName}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Outros nomes"
+                    name="otherNames"
+                    value={kyc.otherNames}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Telefone principal"
+                    name="phonePrimary"
+                    value={kyc.phonePrimary}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Telefone secundário"
+                    name="phoneSecondary"
+                    value={kyc.phoneSecondary}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Email alternativo"
+                    name="contactEmail"
+                    value={kyc.contactEmail}
+                    onChange={handleFieldChange}
+                  />
                   <SelectField
                     label="Sexo"
                     name="gender"
+                    value={kyc.gender}
+                    onChange={handleFieldChange}
                     options={[
                       { value: '', label: 'Selecione' },
                       { value: 'Masculino', label: 'Masculino' },
@@ -619,29 +692,84 @@ function Kyc() {
                     name="dateOfBirth"
                     type="date"
                     max={adultMaxDate}
+                    value={kyc.dateOfBirth}
+                    onChange={handleFieldChange}
                   />
-                  <Field label="Nacionalidade" name="nationality" />
+                  <Field
+                    label="Nacionalidade"
+                    name="nationality"
+                    value={kyc.nationality}
+                    onChange={handleFieldChange}
+                  />
                   <SelectField
                     label="Tipo de documento"
                     name="documentType"
+                    value={kyc.documentType}
+                    onChange={handleFieldChange}
                     options={[
                       { value: 'BI', label: 'BI' },
                       { value: 'PASSAPORTE', label: 'Passaporte' },
                       { value: 'DIRE', label: 'DIRE' }
                     ]}
                   />
-                  <Field label="Número documento" name="documentNumber" />
+                  <Field
+                    label="Número documento"
+                    name="documentNumber"
+                    value={kyc.documentNumber}
+                    onChange={handleFieldChange}
+                  />
                 </div>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <Field label="Razão social" name="businessName" />
-                  <Field label="Nome comercial" name="tradeName" />
-                  <Field label="NUIT" name="companyNuit" />
-                  <Field label="N.º de registo comercial" name="registrationNumber" />
-                  <Field label="Data de constituição" name="registrationDate" type="date" />
-                  <Field label="Forma jurídica" name="legalForm" />
-                  <Field label="Setor económico" name="economicSector" />
-                  <Field label="Website" name="website" />
+                  <Field
+                    label="Razão social"
+                    name="businessName"
+                    value={kyc.businessName}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Nome comercial"
+                    name="tradeName"
+                    value={kyc.tradeName}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="NUIT"
+                    name="companyNuit"
+                    value={kyc.companyNuit}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="N.º de registo comercial"
+                    name="registrationNumber"
+                    value={kyc.registrationNumber}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Data de constituição"
+                    name="registrationDate"
+                    type="date"
+                    value={kyc.registrationDate}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Forma jurídica"
+                    name="legalForm"
+                    value={kyc.legalForm}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Setor económico"
+                    name="economicSector"
+                    value={kyc.economicSector}
+                    onChange={handleFieldChange}
+                  />
+                  <Field
+                    label="Website"
+                    name="website"
+                    value={kyc.website}
+                    onChange={handleFieldChange}
+                  />
                 </div>
               )}
             </div>
@@ -654,14 +782,54 @@ function Kyc() {
                 Endereço
               </h2>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="País" name="country" />
-                <Field label="Província" name="province" />
-                <Field label="Distrito" name="district" />
-                <Field label="Cidade/Vila" name="city" />
-                <Field label="Bairro" name="neighborhood" />
-                <Field label="Avenida/Rua" name="street" />
-                <Field label="Número/Casa" name="houseNumber" />
-                <Field label="Código Postal" name="postalCode" />
+                <Field
+                  label="País"
+                  name="country"
+                  value={kyc.country}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Província"
+                  name="province"
+                  value={kyc.province}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Distrito"
+                  name="district"
+                  value={kyc.district}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Cidade/Vila"
+                  name="city"
+                  value={kyc.city}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Bairro"
+                  name="neighborhood"
+                  value={kyc.neighborhood}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Avenida/Rua"
+                  name="street"
+                  value={kyc.street}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Número/Casa"
+                  name="houseNumber"
+                  value={kyc.houseNumber}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Código Postal"
+                  name="postalCode"
+                  value={kyc.postalCode}
+                  onChange={handleFieldChange}
+                />
               </div>
             </div>
           )}
@@ -673,12 +841,42 @@ function Kyc() {
                 Compliance
               </h2>
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Fonte de rendimentos" name="sourceOfFunds" />
-                <Field label="Finalidade da conta" name="accountPurpose" />
-                <Field label="Volume mensal esperado" name="monthlyVolume" />
-                <Field label="Volume anual esperado" name="annualVolume" />
-                <Field label="Origem dos fundos" name="originOfFunds" />
-                <Field label="País principal de operação" name="mainOperationCountry" />
+                <Field
+                  label="Fonte de rendimentos"
+                  name="sourceOfFunds"
+                  value={kyc.sourceOfFunds}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Finalidade da conta"
+                  name="accountPurpose"
+                  value={kyc.accountPurpose}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Volume mensal esperado"
+                  name="monthlyVolume"
+                  value={kyc.monthlyVolume}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Volume anual esperado"
+                  name="annualVolume"
+                  value={kyc.annualVolume}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="Origem dos fundos"
+                  name="originOfFunds"
+                  value={kyc.originOfFunds}
+                  onChange={handleFieldChange}
+                />
+                <Field
+                  label="País principal de operação"
+                  name="mainOperationCountry"
+                  value={kyc.mainOperationCountry}
+                  onChange={handleFieldChange}
+                />
               </div>
             </div>
           )}
@@ -767,14 +965,13 @@ function Kyc() {
                           </p>
                         </div>
                         <div className="flex shrink-0 gap-1.5">
-                          <a
-                            href={assetUrl(doc.url) || doc.url}
-                            target="_blank"
-                            rel="noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDocument(doc.id)}
                             className="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
                           >
                             Ver
-                          </a>
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteDocument(doc.id)}
@@ -810,7 +1007,9 @@ function Kyc() {
                     },
                     {
                       label: 'Contacto',
-                      value: `${kyc.contactEmail || 'Sem email'} · ${kyc.phonePrimary || 'Sem telefone'}`
+                      value: `${kyc.contactEmail || 'Sem email'} · ${
+                        kyc.phonePrimary || 'Sem telefone'
+                      }`
                     },
                     { label: 'Endereço', value: kyc.address || 'Sem endereço' },
                     {

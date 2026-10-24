@@ -1,8 +1,40 @@
 const nodemailer = require('nodemailer');
 
+const MAX_SEND_ATTEMPTS = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+const TRANSIENT_ERROR_CODES = new Set([
+  'ECONNECTION', 'ETIMEDOUT', 'ESOCKET', 'EDNS', 'ECONNRESET', 'ECONNREFUSED',
+  'EPIPE', 'EAI_AGAIN', 'ENOTFOUND', 'EPROTOCOL'
+]);
+
+class EmailSendError extends Error {
+  constructor(message, cause) {
+    super(message);
+    this.name = 'EmailSendError';
+    this.code = 'EMAIL_SEND_FAILED';
+    this.status = 503;
+    this.cause = cause;
+  }
+}
+
+function isTransientError(err) {
+  if (!err) return false;
+  if (TRANSIENT_ERROR_CODES.has(err.code)) return true;
+  // Respostas SMTP 4xx são temporárias (ex.: limite de envio, greylisting)
+  return Number(err.responseCode) >= 400 && Number(err.responseCode) < 500;
+}
+
+function maskEmail(address) {
+  const value = String(address || '');
+  const [local, domain] = value.split('@');
+  if (!domain) return '***';
+  return `${local.slice(0, 2)}***@${domain}`;
+}
+
 class EmailService {
   constructor() {
     this.transporter = null;
+    this.sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   getTransporter() {
@@ -14,24 +46,64 @@ class EmailService {
     const pass = process.env.SMTP_PASSWORD;
 
     if (!host || !user || !pass) {
-      throw new Error('SMTP is not configured');
+      throw new EmailSendError('Servico de email nao configurado.');
     }
 
     this.transporter = nodemailer.createTransport({
       host,
       port,
       secure: port === 465,
-      auth: { user, pass }
+      auth: { user, pass },
+      connectionTimeout: Number(process.env.SMTP_CONNECTION_TIMEOUT_MS || 15000),
+      greetingTimeout: Number(process.env.SMTP_GREETING_TIMEOUT_MS || 15000),
+      socketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT_MS || 30000)
     });
 
     return this.transporter;
   }
 
+  resetTransporter() {
+    if (this.transporter && typeof this.transporter.close === 'function') {
+      try { this.transporter.close(); } catch (_) { /* ignorar */ }
+    }
+    this.transporter = null;
+  }
+
   async sendMail({ to, subject, text, html }) {
     const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-    const transporter = this.getTransporter();
+    let lastError;
 
-    return transporter.sendMail({ from, to, subject, text, html });
+    for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
+      try {
+        const transporter = this.getTransporter();
+        const info = await transporter.sendMail({ from, to, subject, text, html });
+
+        if (Array.isArray(info.rejected) && info.rejected.length > 0) {
+          const rejected = new Error(`Destinatario rejeitado pelo servidor SMTP: ${info.response || ''}`);
+          rejected.code = 'EENVELOPE';
+          throw rejected;
+        }
+
+        console.info(`[email] enviado para ${maskEmail(to)} (tentativa ${attempt}) id=${info.messageId}`);
+        return info;
+      } catch (err) {
+        if (err instanceof EmailSendError) throw err;
+        lastError = err;
+        const transient = isTransientError(err);
+        console.error(
+          `[email] falha ao enviar para ${maskEmail(to)} (tentativa ${attempt}/${MAX_SEND_ATTEMPTS}):`,
+          err.code || '', err.responseCode || '', err.message
+        );
+
+        // Recria a ligação na próxima tentativa
+        this.resetTransporter();
+
+        if (!transient || attempt === MAX_SEND_ATTEMPTS) break;
+        await this.sleep(RETRY_BASE_DELAY_MS * 2 ** (attempt - 1));
+      }
+    }
+
+    throw new EmailSendError('Nao foi possivel enviar o email. Tente novamente dentro de instantes.', lastError);
   }
 
   async sendTwoFactorCode({ to, name, code }) {
@@ -78,3 +150,4 @@ class EmailService {
 }
 
 module.exports = new EmailService();
+module.exports.EmailSendError = EmailSendError;

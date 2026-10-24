@@ -1,9 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const models = require('../models');
 const EmailService = require('../services/EmailService');
 const AuthService = require('../services/AuthService');
+const authMiddleware = require('../middleware/authMiddleware');
 
 process.env.JWT_SECRET = 'test-jwt-secret';
 
@@ -34,9 +36,54 @@ test('login requires the code sent by email', async (t) => {
   const result = await AuthService.login(user.email, 'secret123', challenge.otpToken, sent[0].code);
   assert.ok(result.token);
   assert.equal(result.userId, user.id);
+  assert.equal(result.expiresIn, 1800);
+  const claims = jwt.verify(result.token, process.env.JWT_SECRET);
+  assert.equal(claims.type, 'session');
+  assert.equal(claims.exp - claims.iat, 30 * 60);
+  assert.equal(new Date(result.expiresAt).getTime(), claims.exp * 1000);
+  assert.doesNotThrow(() => jwt.verify(result.token, process.env.JWT_SECRET, { clockTimestamp: claims.iat + 1799 }));
+  assert.throws(
+    () => jwt.verify(result.token, process.env.JWT_SECRET, { clockTimestamp: claims.iat + 1800 }),
+    { name: 'TokenExpiredError' }
+  );
 
   // O código é de uso único
   await assert.rejects(AuthService.login(user.email, 'secret123', challenge.otpToken, sent[0].code), /invalido/);
+});
+
+function runMiddleware(token) {
+  const req = { headers: { authorization: `Bearer ${token}` } };
+  const res = {
+    statusCode: 200,
+    status(code) { this.statusCode = code; return this; },
+    json(body) { this.body = body; return this; }
+  };
+  let nextCalled = false;
+  return authMiddleware(req, res, () => { nextCalled = true; }).then(() => ({ res, nextCalled }));
+}
+
+test('auth middleware accepts only valid session tokens', async (t) => {
+  t.mock.method(models.User, 'findByPk', async () => ({ id: 7, roleId: 2, isActive: true, Role: { name: 'client' } }));
+
+  const { token } = AuthService.createSessionToken({ id: 7, email: 'ana@example.test', roleId: 2 });
+  const ok = await runMiddleware(token);
+  assert.equal(ok.nextCalled, true);
+
+  const otpToken = jwt.sign({ userId: 7, type: '2fa' }, process.env.JWT_SECRET, { expiresIn: 300 });
+  const otp = await runMiddleware(otpToken);
+  assert.equal(otp.nextCalled, false);
+  assert.equal(otp.res.statusCode, 401);
+  assert.equal(otp.res.body.code, 'INVALID_TOKEN');
+
+  const expired = jwt.sign(
+    { userId: 7, type: 'session', iat: Math.floor(Date.now() / 1000) - 1000 },
+    process.env.JWT_SECRET,
+    { expiresIn: 900 }
+  );
+  const late = await runMiddleware(expired);
+  assert.equal(late.nextCalled, false);
+  assert.equal(late.res.statusCode, 401);
+  assert.equal(late.res.body.code, 'SESSION_EXPIRED');
 });
 
 test('login does not send a code when the password is wrong', async (t) => {
@@ -70,5 +117,8 @@ test('registration requires the code sent to the given email', async (t) => {
 
   const result = await AuthService.register('Rui', 'rui@example.test', 'secret123', otpToken, sent[0].code);
   assert.ok(result.token);
+  assert.equal(result.expiresIn, 1800);
+  const claims = jwt.verify(result.token, process.env.JWT_SECRET);
+  assert.equal(claims.exp - claims.iat, 30 * 60);
   assert.equal(created.length, 1);
 });

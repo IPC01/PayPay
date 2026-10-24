@@ -7,6 +7,7 @@ const swaggerUi = require('swagger-ui-express');
 const { DataTypes } = require('sequelize');
 
 const sequelize = require('./config/database');
+const { getUploadsDir } = require('./config/uploadStorage');
 require('./models');
 const swaggerSpec = require('./docs/swagger');
 
@@ -44,7 +45,13 @@ app.use(cors(corsOptions));
 app.options(/.*/, cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
-app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/api/uploads/kyc', (_req, res) => res.status(404).json({ error: 'Not found' }));
+for (const publicUploadFolder of ['settings', 'tickets', 'users', 'wallet-types']) {
+  app.use(
+    `/api/uploads/${publicUploadFolder}`,
+    express.static(path.join(getUploadsDir(), publicUploadFolder))
+  );
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);

@@ -4,11 +4,12 @@ const { Ticket, TicketMessage, User, Notification } = require('../models');
 const { Op } = require('sequelize');
 const { Role } = require('../models');
 const { isStaff } = require('../middleware/staffAccess');
+const { getUploadsDir } = require('../config/uploadStorage');
 
 async function saveTicketAttachment(attachment, filename) {
   if (!attachment) return null;
 
-  const uploadsDir = path.join(__dirname, '../uploads/tickets');
+  const uploadsDir = path.join(getUploadsDir(), 'tickets');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }

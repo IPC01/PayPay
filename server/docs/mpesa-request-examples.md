@@ -96,9 +96,20 @@ real C2B implementation, not a separate test provider.
   "walletId": "<wallet-uuid>",
   "amount": 100,
   "phone": "841234567",
-  "note": "Withdrawal"
+  "note": "Withdrawal",
+  "password": "<current-platform-login-password>"
 }
 ```
+
+Session-authenticated withdrawals (`POST /api/withdrawals` and
+`POST /api/payments/b2c`) require the current user's login `password` on every
+request. For `/api/payments/b2c`, use `walletCode` instead of `walletId`.
+This is not an email verification code or the M-Pesa PIN. The server checks the
+password before reserving funds or contacting M-Pesa. A missing/invalid password
+returns HTTP 400/403 without executing the withdrawal or ending the session.
+The form clears the password after each submitted attempt and never saves it
+to browser storage. API-key integrations continue using their existing scoped
+authorization and do not send a login password.
 
 Every B2C route uses the same withdrawal implementation, approved-KYC check,
 wallet permissions, minimum/maximum and fixed `withdrawalFeeAmount` setting.
