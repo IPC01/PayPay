@@ -39,23 +39,6 @@ function safeUuid() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-function stripHtml(html) {
-  return String(html || '')
-    .replace(/<style[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
 class EmailService {
   constructor() {
     this.transporter = null;
@@ -98,25 +81,17 @@ class EmailService {
     this.transporter = null;
   }
 
-  async sendMail({ to, subject, text, html }) {
-    // ── Diagnóstico: expõe imediatamente chamadas defeituosas ─────────
-    console.log('[EMAIL DEBUG] sendMail chamado', {
-      to,
-      subject,
-      textLen: typeof text === 'string' ? text.length : null,
-      htmlLen: typeof html === 'string' ? html.length : null,
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      platform: process.env.PLATFORM_NAME,
-    });
-
-    // ── Validações defensivas: nunca enviar email vazio ──────────────
+  async sendMail({ to, subject, text }) {
     if (!to || typeof to !== 'string' || !to.includes('@')) {
       const err = new EmailSendError('Destinatário inválido ou ausente.');
       console.error('[EMAIL ERROR]', err.message, { to });
       throw err;
     }
 
-    if (!subject || typeof subject !== 'string' || !subject.trim()) {
+    const safeSubject = typeof subject === 'string'
+      ? subject.replace(/[\r\n]+/g, ' ').trim()
+      : '';
+    if (!safeSubject) {
       const err = new EmailSendError(
         'Assunto do email vazio — envio bloqueado para evitar emails em branco.'
       );
@@ -124,12 +99,12 @@ class EmailService {
       throw err;
     }
 
-    const hasText = typeof text === 'string' && text.trim().length > 0;
-    const hasHtml = typeof html === 'string' && html.trim().length > 0;
-
-    if (!hasText && !hasHtml) {
+    const safeText = typeof text === 'string'
+      ? text.replace(/\r\n?/g, '\n').trim()
+      : '';
+    if (!safeText) {
       const err = new EmailSendError(
-        'Corpo do email vazio (text e html ausentes) — envio bloqueado.'
+        'Corpo do email vazio — envio bloqueado.'
       );
       console.error('[EMAIL ERROR]', err.message, { to, subject });
       throw err;
@@ -146,11 +121,6 @@ class EmailService {
 
     const replyTo = process.env.SMTP_REPLY_TO?.trim() || undefined;
 
-    // Sempre enviar multipart (text + html) — melhora reputação e evita
-    // emails "vazios" em clientes que não renderizam HTML.
-    const safeText = hasText ? text : stripHtml(html);
-    const safeHtml = hasHtml ? html : undefined;
-
     let lastError;
 
     for (let attempt = 1; attempt <= MAX_SEND_ATTEMPTS; attempt += 1) {
@@ -159,9 +129,8 @@ class EmailService {
         const mailOptions = {
           from,
           to,
-          subject,
+          subject: safeSubject,
           text: safeText,
-          html: safeHtml,
           headers: {
             // UUID novo por tentativa — evita que o Gmail agrupe os códigos numa conversa e oculte o corpo repetido
             'X-Entity-Ref-ID': safeUuid()
@@ -177,6 +146,14 @@ class EmailService {
           );
           rejected.code = 'EENVELOPE';
           throw rejected;
+        }
+
+        if (!Array.isArray(info.accepted) || info.accepted.length === 0) {
+          const unaccepted = new Error(
+            `Destinatario nao aceito pelo servidor SMTP: ${info.response || ''}`
+          );
+          unaccepted.code = 'EENVELOPE';
+          throw unaccepted;
         }
 
         console.info(
@@ -208,14 +185,6 @@ class EmailService {
   }
 
   async sendTwoFactorCode({ to, name, code, purpose = 'login' }) {
-    // ── Diagnóstico: expõe imediatamente parâmetros em falta ─────────
-    console.log('[EMAIL DEBUG] sendTwoFactorCode chamado', {
-      to,
-      name: name ? '***' : null,
-      codeLen: code ? String(code).length : null,
-      purpose,
-    });
-
     if (!code || String(code).trim() === '') {
       throw new EmailSendError(
         'Código de verificação ausente — email de OTP não enviado.'
@@ -226,8 +195,8 @@ class EmailService {
     const isRegistration = purpose === 'registration';
     const safeCode = String(code).trim();
     const subject = isRegistration
-      ? `${safeCode} é o seu código para confirmar o email na ${platformName}`
-      : `${safeCode} é o seu código de acesso à ${platformName}`;
+      ? `Confirme o seu email - ${platformName}`
+      : `Código de acesso - ${platformName}`;
     const intro = isRegistration
       ? `Use o código abaixo para confirmar o seu email e concluir a criação da conta na ${platformName}.`
       : `Use o código abaixo para concluir o início de sessão na sua conta ${platformName}.`;
@@ -248,28 +217,10 @@ class EmailService {
         '',
         `Equipa ${platformName}`
       ].join('\n'),
-      html: renderEmail({
-        platformName,
-        title: isRegistration ? 'Confirme o seu email' : 'Código de verificação',
-        body: `
-          <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
-          <p style="margin:0 0 16px;">${escapeHtml(intro)}</p>
-          <p style="margin:24px 0;font-size:30px;font-weight:700;letter-spacing:8px;font-family:Consolas,monospace;color:#111827;">${escapeHtml(safeCode)}</p>
-          <p style="margin:0 0 8px;">Este código expira em 5 minutos e só pode ser usado uma vez.</p>
-          <p style="margin:0;color:#6b7280;font-size:13px;">Se não foi você que fez este pedido, ignore este email e não partilhe o código com ninguém.</p>
-        `
-      })
     });
   }
 
   async sendPasswordReset({ to, name, resetUrl }) {
-    // ── Diagnóstico: expõe imediatamente parâmetros em falta ─────────
-    console.log('[EMAIL DEBUG] sendPasswordReset chamado', {
-      to,
-      name: name ? '***' : null,
-      hasResetUrl: !!resetUrl,
-    });
-
     if (!resetUrl || typeof resetUrl !== 'string' || !resetUrl.trim()) {
       throw new EmailSendError(
         'URL de redefinição ausente — email de reset não enviado.'
@@ -279,7 +230,6 @@ class EmailService {
     const platformName = getPlatformName();
     const subject = `Redefinição da sua senha ${platformName}`;
     const greeting = name ? `Olá ${name},` : 'Olá,';
-    const safeUrl = escapeHtml(resetUrl);
 
     return this.sendMail({
       to,
@@ -295,61 +245,12 @@ class EmailService {
         '',
         `Equipa ${platformName}`
       ].join('\n'),
-      html: renderEmail({
-        platformName,
-        title: 'Redefinição de senha',
-        body: `
-          <p style="margin:0 0 16px;">${escapeHtml(greeting)}</p>
-          <p style="margin:0 0 16px;">Recebemos um pedido para redefinir a senha da sua conta ${escapeHtml(platformName)}. O link é válido durante 1 hora.</p>
-          <p style="margin:24px 0;"><a href="${safeUrl}" style="display:inline-block;background:#1f2937;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600;">Redefinir senha</a></p>
-          <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">Se o botão não funcionar, copie este link para o navegador:</p>
-          <p style="margin:0 0 16px;word-break:break-all;font-size:12px;color:#4b5563;">${safeUrl}</p>
-          <p style="margin:0;color:#6b7280;font-size:13px;">Se não foi você que fez este pedido, ignore este email. A sua senha não será alterada.</p>
-        `
-      })
     });
   }
 }
 
 function getPlatformName() {
   return process.env.PLATFORM_NAME || 'Romenapay';
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function renderEmail({ platformName, title, body }) {
-  const year = new Date().getFullYear();
-  return `<!DOCTYPE html>
-<html lang="pt">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escapeHtml(title)}</title>
-</head>
-<body style="margin:0;padding:0;background:#f3f4f6;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 12px;">
-<tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;">
-<tr><td style="padding:20px 28px;border-bottom:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:18px;font-weight:700;color:#111827;">${escapeHtml(platformName)}</td></tr>
-<tr><td style="padding:28px;font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#111827;">
-<h1 style="margin:0 0 16px;font-size:20px;color:#111827;">${escapeHtml(title)}</h1>
-${body}
-</td></tr>
-<tr><td style="padding:16px 28px;border-top:1px solid #e5e7eb;font-family:Arial,sans-serif;font-size:12px;color:#9ca3af;">
-Este é um email automático enviado pela ${escapeHtml(platformName)}. Por favor não responda.<br>&copy; ${year} ${escapeHtml(platformName)}
-</td></tr>
-</table>
-</td></tr>
-</table>
-</body>
-</html>`;
 }
 
 module.exports = new EmailService();

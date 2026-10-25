@@ -57,6 +57,19 @@ test('sendMail fails when the recipient is rejected', async (t) => {
   );
 });
 
+test('sendMail requires a non-empty subject and text body', async (t) => {
+  const calls = fakeTransport(t, [{}]);
+  await assert.rejects(
+    EmailService.sendMail({ to: 'ana@example.test', subject: '  ', text: 'corpo' }),
+    { code: 'EMAIL_SEND_FAILED' }
+  );
+  await assert.rejects(
+    EmailService.sendMail({ to: 'ana@example.test', subject: 'Assunto', text: '  ' }),
+    { code: 'EMAIL_SEND_FAILED' }
+  );
+  assert.equal(calls.length, 0);
+});
+
 test('a failed email does not leave a usable challenge', async (t) => {
   const passwordHash = await bcrypt.hash('secret123', 4);
   const user = { id: 31, name: 'Eva', email: 'eva@example.test', roleId: 2, passwordHash };
@@ -114,24 +127,26 @@ test('codes of another user are not accepted', async (t) => {
   }
 });
 
-test('verification emails have a descriptive subject and escaped HTML', async (t) => {
+test('verification emails have a descriptive subject and plain-text body', async (t) => {
   const calls = fakeTransport(t, [{}]);
   await EmailService.sendTwoFactorCode({ to: 'ana@example.test', name: '<b>Ana</b>', code: '123456' });
   await EmailService.sendTwoFactorCode({ to: 'ana@example.test', name: 'Ana', code: '654321', purpose: 'registration' });
   await EmailService.sendPasswordReset({ to: 'ana@example.test', name: 'Ana', resetUrl: 'https://x.test/r?t=1' });
 
-  assert.match(calls[0].subject, /123456 é o seu código de acesso/);
-  assert.match(calls[1].subject, /654321 é o seu código para confirmar o email/);
+  assert.match(calls[0].subject, /Código de acesso/);
+  assert.match(calls[1].subject, /Confirme o seu email/);
   assert.match(calls[2].subject, /Redefinição da sua senha/);
+  assert.ok(!calls[0].subject.includes('123456'));
+  assert.ok(!calls[1].subject.includes('654321'));
   for (const call of calls) {
     assert.ok(call.subject.trim().length > 10);
-    assert.ok(call.text && call.html.startsWith('<!DOCTYPE html>'));
+    assert.ok(call.text.trim().length > 0);
+    assert.equal(Object.hasOwn(call, 'html'), false);
     assert.ok(call.headers['X-Entity-Ref-ID']);
   }
-  assert.ok(!calls[0].html.includes('<b>Ana</b>'));
-  assert.ok(calls[0].html.includes('&lt;b&gt;Ana&lt;/b&gt;'));
-  // Sem texto oculto (sinal de spam)
-  assert.ok(!calls[0].html.includes('display:none'));
+  assert.match(calls[0].text, /Código de verificação: 123456/);
+  assert.match(calls[0].text, /expira em 5 minutos/);
+  assert.match(calls[2].text, /https:\/\/x\.test\/r\?t=1/);
 });
 
 test('verification codes are rate limited per recipient', async (t) => {
