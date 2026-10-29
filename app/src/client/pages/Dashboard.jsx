@@ -14,7 +14,10 @@ function Dashboard() {
   const [wallets, setWallets] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [kycStatus, setKycStatus] = useState(null);
+  // undefined = desconhecido (primeira chamada ainda a decorrer)
+  // null      = sabemos que não há KYC
+  // string    = status devolvido pela API ('DRAFT', 'PENDING', 'APPROVED', 'REJECTED')
+  const [kycStatus, setKycStatus] = useState(undefined);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
 
   const actions = [
@@ -30,14 +33,41 @@ function Dashboard() {
   const loadData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const [walletsData, transactionsData, kycData] = await Promise.all([
+
+      const [walletsData, transactionsData, kycResult] = await Promise.all([
         authRequest('/api/wallets'),
         authRequest('/api/transactions'),
-        authRequest('/api/kyc')
+        // Isolar o KYC: uma falha aqui não deve derrubar o dashboard
+        // nem impedir os dados de carteiras/transações de carregar.
+        authRequest('/api/kyc').catch((err) => {
+          console.warn('[kyc] falha ao obter estado:', err?.message || err);
+          return { __kycError: true };
+        })
       ]);
+
       setWallets(walletsData);
       setTransactions(transactionsData || []);
-      setKycStatus(kycData?.kyc?.status || 'DRAFT');
+
+      if (!kycResult?.__kycError) {
+        // Tentar várias formas possíveis da resposta
+        const rawStatus =
+          kycResult?.kyc?.status ??
+          kycResult?.status ??
+          kycResult?.data?.kyc?.status ??
+          null;
+
+        if (typeof rawStatus === 'string' && rawStatus.trim()) {
+          setKycStatus(rawStatus.trim());
+        } else if (kycResult) {
+          // Resposta válida mas sem KYC → utilizador sem KYC submetido
+          setKycStatus(null);
+        }
+      } else if (kycStatus === undefined) {
+        // Erro na primeira tentativa: assumir "sem KYC" para não esconder
+        // o aviso a utilizadores que realmente precisam de o ver.
+        setKycStatus(null);
+      }
+      // Se já conhecíamos o estado e houve erro → mantém (evita flicker)
     } catch (err) {
       console.error(err);
     } finally {
@@ -45,8 +75,6 @@ function Dashboard() {
     }
   };
 
-  // Sincronização automática a cada 20 segundos, sem recarregar a página
-  // nem alterar o estado atual da interface.
   useAutoRefresh(() => loadData(true));
 
   // Estatísticas por tipo de carteira
@@ -72,30 +100,24 @@ function Dashboard() {
   const totalBalance = wallets.reduce((sum, wallet) => sum + Number(wallet.balance || 0), 0);
   const activeWallets = wallets.filter(w => w.status !== 'inactive').length;
 
-  // Dados para o gráfico de crescimento
   const getGrowthData = () => {
     const now = new Date();
-    const periods = {
-      week: 7,
-      month: 30,
-      year: 12
-    };
-    
+    const periods = { week: 7, month: 30, year: 12 };
     const days = periods[selectedPeriod];
     const data = [];
-    
+
     for (let i = days - 1; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
       const dateStr = date.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
-      
+
       const dayTransactions = transactions.filter(t => {
         const txDate = new Date(t.createdAt);
         return txDate.toDateString() === date.toDateString();
       });
-      
+
       const totalAmount = dayTransactions.reduce((sum, t) => sum + (t.status === 'success' ? Number(t.amount) : 0), 0);
-      
+
       data.push({
         date: dateStr,
         volume: totalAmount,
@@ -106,7 +128,6 @@ function Dashboard() {
     return data;
   };
 
-  // Dados para gráfico de distribuição por tipo
   const pieData = typeStatsArray.map(stat => ({
     name: stat.name,
     value: stat.balance,
@@ -176,10 +197,14 @@ function Dashboard() {
     );
   };
 
+  // Banner só aparece quando:
+  //   - já sabemos o estado (kycStatus !== undefined)
+  //   - e não está aprovado (null, 'DRAFT', 'PENDING', 'REJECTED')
+  const showKycBanner = kycStatus !== undefined && kycStatus !== 'APPROVED';
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      {kycStatus !== 'APPROVED' && (
+      {showKycBanner && (
         <div className="rounded-3xl border border-orange-200 bg-orange-50 p-4 text-sm text-orange-700 dark:border-orange-700/40 dark:bg-orange-950/20 dark:text-orange-200">
           A sua conta ainda não foi verificada. Complete o KYC para desbloquear carteiras, levantamentos, transferências e integrações API.
           <Link to="/client/kyc" className="ml-2 font-semibold text-orange-800 dark:text-orange-100 underline">
@@ -262,9 +287,7 @@ function Dashboard() {
         </div>
       </div>
 
-
-
-      {/* Lista de Carteiras (Movida para cima) */}
+      {/* Lista de Carteiras */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-800">
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -374,27 +397,27 @@ function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="date" stroke="#64748b" />
               <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#fff',
                   border: '1px solid #e2e8f0',
                   borderRadius: '8px'
                 }}
                 formatter={(value) => formatCurrency(value)}
               />
               <Legend />
-              <Area 
-                type="monotone" 
-                dataKey="volume" 
+              <Area
+                type="monotone"
+                dataKey="volume"
                 name="Volume (MZN)"
-                stroke="#3b82f6" 
-                fill="url(#colorVolume)" 
+                stroke="#3b82f6"
+                fill="url(#colorVolume)"
               />
-              <Line 
-                type="monotone" 
-                dataKey="transactions" 
+              <Line
+                type="monotone"
+                dataKey="transactions"
                 name="Transações"
-                stroke="#10b981" 
+                stroke="#10b981"
                 strokeWidth={2}
                 dot={{ fill: '#10b981', strokeWidth: 2 }}
               />
