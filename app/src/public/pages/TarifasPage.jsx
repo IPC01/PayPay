@@ -187,75 +187,7 @@ function TarifasPage() {
           </div>
         </section>
 
-        {/* TABELA DE TARIFAS */}
-        <section className="bg-white py-12 sm:py-16">
-          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <h2
-              className="mb-8 text-center text-2xl text-gray-900 sm:mb-10 sm:text-3xl"
-              style={{ fontFamily: FONT_DISPLAY, fontWeight: 600 }}
-            >
-              Tabela de tarifas
-            </h2>
 
-            {/* Tabela (sm+) */}
-            <div className="hidden overflow-hidden rounded-2xl border border-gray-200 shadow-sm sm:block">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50">
-                  <tr>
-                    {['Serviço', 'Tarifa', 'Prazo'].map((h) => (
-                      <th
-                        key={h}
-                        className="px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-gray-500 lg:px-6 lg:py-4"
-                        style={{ fontFamily: FONT_MONO }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 bg-white">
-                  {feeTable.map((row) => (
-                    <tr key={row.service} className="transition hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900 lg:px-6 lg:py-4">
-                        {row.service}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 lg:px-6 lg:py-4">
-                        {row.fee}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 lg:px-6 lg:py-4">
-                        {row.time}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Cards (mobile) */}
-            <div className="space-y-3 sm:hidden">
-              {feeTable.map((row) => (
-                <div
-                  key={row.service}
-                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                >
-                  <p className="text-sm font-semibold text-gray-900">{row.service}</p>
-                  <div className="mt-2 flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Tarifa</span>
-                    <span className="font-semibold text-gray-900">{row.fee}</span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-xs">
-                    <span className="text-gray-500">Prazo</span>
-                    <span className="text-gray-700">{row.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-4 text-center text-[11px] text-gray-400">
-              * Valores em Meticais (MT). Tarifas sujeitas a alteração sem aviso prévio.
-            </p>
-          </div>
-        </section>
       </main>
 
       <Footer />

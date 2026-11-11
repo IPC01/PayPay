@@ -1,16 +1,10 @@
 // HomePage.jsx
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../../contexts/SettingsContext';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import Footer from '../components/Footer';
-
-// MOCK — substitui pela tua lógica real de auth
-function useCurrentUser() {
-  // const { user } = useAuth();
-  return null;
-}
 
 const FONT_SANS = "'IBM Plex Sans', system-ui, sans-serif";
 const FONT_DISPLAY = "'Space Grotesk', system-ui, sans-serif";
@@ -20,7 +14,7 @@ const FEATURES = [
   {
     icon: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
     title: 'Carteira Digital',
-    desc: 'Armazene, envie e receba fundos com total segurança e controle.',
+    desc: 'Armazene, envie e receba fundos em meticais com total segurança e controle.',
   },
   {
     icon: 'M13 10V3L4 14h7v7l9-11h-7z',
@@ -39,8 +33,8 @@ const FEATURES = [
   },
   {
     icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-    title: 'Multimoedas',
-    desc: 'Suporte a diversas moedas com conversão automática de câmbio.',
+    title: 'Pagamentos Simplificados',
+    desc: 'Adicione fundos via M-Pesa, e-Mola ou transferência bancária em meticais.',
   },
   {
     icon: 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z',
@@ -49,12 +43,6 @@ const FEATURES = [
   },
 ];
 
-const STATS = [
-  { value: '—', label: 'Usuários ativos' },
-  { value: '—', label: 'Processados/mês' },
-  { value: '—', label: 'Uptime garantido' },
-  { value: '—', label: 'Avaliação dos clientes' },
-];
 
 const STEPS = [
   {
@@ -64,13 +52,13 @@ const STEPS = [
   },
   {
     step: '02',
-    title: 'Adicione fundos',
-    desc: 'Deposite via M-Pesa, e-Mola, transferência bancária ou cartão.',
+    title: 'Receba fundos',
+    desc: 'Receba pagamentos de suas plataformas na web em sua conta de forma rápida e segura.',
   },
   {
     step: '03',
     title: 'Comece a usar',
-    desc: 'Envie, receba e gerencie seu dinheiro de forma simples e segura.',
+    desc: 'Envie, receba e gerencie o seu dinheiro em meticais de forma simples e segura.',
   },
 ];
 
@@ -79,7 +67,6 @@ function HomePage() {
   const [language, setLanguage] = useState('pt');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const fontsInjected = useRef(false);
-  const user = useCurrentUser();
 
   const platformName = settings?.platformName || 'Romenapay';
 
@@ -92,33 +79,6 @@ function HomePage() {
       'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap';
     document.head.appendChild(link);
   }, []);
-
-  const dashboardCards = useMemo(
-    () => [
-      {
-        key: 'balance',
-        label: 'Saldo disponível',
-        value: '— MT',
-        accent: 'text-white',
-        bg: 'bg-gradient-to-br from-gray-900 to-gray-700 text-white',
-      },
-      {
-        key: 'in',
-        label: 'Entradas (mês)',
-        value: '+ — MT',
-        accent: 'text-emerald-600',
-        bg: 'bg-white border border-gray-200',
-      },
-      {
-        key: 'out',
-        label: 'Saídas (mês)',
-        value: '- — MT',
-        accent: 'text-rose-500',
-        bg: 'bg-white border border-gray-200',
-      },
-    ],
-    []
-  );
 
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900">
@@ -179,113 +139,49 @@ function HomePage() {
           </div>
         </section>
 
-        {/* CARTÕES DE SALDO (apenas logado) */}
-        {user && (
-          <section className="bg-white pb-4 pt-4 sm:pt-8">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-                {dashboardCards.map((card) => (
-                  <div
-                    key={card.key}
-                    className={`rounded-2xl p-4 shadow-sm sm:p-6 ${card.bg}`}
-                  >
-                    <p
-                      className={`text-[10px] uppercase tracking-[0.16em] ${
-                        card.key === 'balance' ? 'text-gray-300' : 'text-gray-500'
-                      }`}
-                      style={{ fontFamily: FONT_MONO }}
-                    >
-                      {card.label}
-                    </p>
-                    <p
-                      className={`mt-1 text-2xl sm:text-3xl ${card.accent}`}
-                      style={{ fontFamily: FONT_DISPLAY, fontWeight: 700 }}
-                    >
-                      {card.value}
-                    </p>
-                    {card.key === 'balance' && (
-                      <div className="mt-3 flex gap-2">
-                        <button className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/30">
-                          Enviar
-                        </button>
-                        <button className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold transition hover:bg-white/30">
-                          Receber
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
+{/* RECURSOS — lista em pontos */}
+<section className="relative bg-gray-50 py-16 sm:py-20">
+  <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <div className="mx-auto mb-8 max-w-2xl text-center sm:mb-10">
+      <span
+        className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500 sm:text-xs"
+        style={{ fontFamily: FONT_MONO }}
+      >
+        Recursos
+      </span>
+      <h2
+        className="mt-2 text-2xl text-gray-900 sm:mt-3 sm:text-3xl lg:text-4xl"
+        style={{ fontFamily: FONT_DISPLAY, fontWeight: 600 }}
+      >
+        Tudo o que você precisa em um só lugar
+      </h2>
+      <div className="mx-auto mt-4 h-px w-16 bg-gradient-to-r from-transparent via-gray-300 to-transparent sm:mt-5" />
+    </div>
 
-        {/* RECURSOS */}
-        <section className="relative bg-gray-50 py-16 sm:py-20">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
-              <span
-                className="text-[10px] font-semibold uppercase tracking-[0.14em] text-gray-500 sm:text-xs"
-                style={{ fontFamily: FONT_MONO }}
-              >
-                Recursos
-              </span>
-              <h2
-                className="mt-2 text-2xl text-gray-900 sm:mt-3 sm:text-3xl lg:text-4xl"
-                style={{ fontFamily: FONT_DISPLAY, fontWeight: 600 }}
-              >
-                Tudo o que você precisa em um só lugar
-              </h2>
-              <p className="mt-3 text-sm text-gray-500 sm:mt-4 sm:text-base">
-                Gerencie a sua carteira digital, faça transferências e acompanhe as suas
-                transações em tempo real.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
-              {FEATURES.map((item) => (
-                <div
-                  key={item.title}
-                  className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-lg sm:p-6"
-                >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-gray-800 to-gray-600 text-white shadow-md shadow-gray-800/20 sm:h-12 sm:w-12">
-                    <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={item.icon} />
-                    </svg>
-                  </div>
-                  <h3
-                    className="mt-4 text-base text-gray-900 sm:mt-5 sm:text-lg"
-                    style={{ fontFamily: FONT_DISPLAY, fontWeight: 600 }}
-                  >
-                    {item.title}
-                  </h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-gray-500">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ESTATÍSTICAS */}
-        <section className="border-y border-gray-100 bg-white py-12 sm:py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 gap-6 sm:gap-8 lg:grid-cols-4">
-              {STATS.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <p
-                    className="text-2xl text-gray-900 sm:text-3xl lg:text-4xl"
-                    style={{ fontFamily: FONT_DISPLAY, fontWeight: 700 }}
-                  >
-                    {stat.value}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500 sm:mt-2 sm:text-sm">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+      <ul className="grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
+        {FEATURES.map((item) => (
+          <li
+            key={item.title}
+            className="flex items-start gap-3 text-sm text-gray-700 sm:text-base"
+            style={{ fontFamily: FONT_SANS }}
+          >
+            <span
+              className="mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gradient-to-br from-gray-800 to-gray-600"
+              aria-hidden="true"
+            />
+            <span
+              className="font-semibold text-gray-900"
+              style={{ fontFamily: FONT_DISPLAY }}
+            >
+              {item.title}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</section>
 
         {/* COMO FUNCIONA */}
         <section className="bg-gray-50 py-16 sm:py-20">
